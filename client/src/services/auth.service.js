@@ -1,0 +1,80 @@
+import api from "~/utils/axios"
+
+export const loginApi = async (form) => {
+	try {
+		const res = await api.post("/auth/login", form, {
+			headers: {
+				"Content-Type": "application/json"
+			}
+		})
+		return res.data
+	} catch (error) {
+		if (error.response) {
+			return error.response.data
+		}
+		return {
+			status: 500,
+			message: "server-is-busy"
+		}
+	}
+}
+
+export const refreshTokenApi = async (refreshToken) => {
+	try {
+		const res = await api.get("/auth/refresh-token", {
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${refreshToken}`
+			}
+		})
+		return res.data
+	} catch (error) {
+		if (error.response) {
+			return error.response.data
+		}
+		return {
+			status: 500,
+			message: "server-is-busy"
+		}
+	}
+}
+
+export const fetchAccountDataApi = async (accessToken) => {
+	try {
+		const res = await api.get("/auth/fetch-data", {
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${accessToken}`
+			}
+		})
+		return res.data
+	} catch (error) {
+		if (error.response) {
+			return error.response.data
+		}
+		return {
+			status: 500,
+			message: "server-is-busy"
+		}
+	}
+}
+
+export const logoutApi = async (accessToken) => {
+	try {
+		const res = await api.get("/auth/logout", {
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${accessToken}`
+			}
+		})
+		return res.data
+	} catch (error) {
+		if (error.response) {
+			return error.response.data
+		}
+		return {
+			status: 500,
+			message: "server-is-busy"
+		}
+	}
+}

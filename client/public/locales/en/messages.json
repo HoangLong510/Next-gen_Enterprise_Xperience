@@ -1,0 +1,14 @@
+{
+	"server-is-busy": "Server is busy. Please try again later",
+	"please-login-to-continue": "Please login to continue",
+	"you-do-not-have-permission-to-access-this-feature": "You do not have permission to access this feature",
+	"access-denied": "Access denied",
+	"invalid-access-token": "Incorrect authentication information please log in again",
+	"logout-successful": "Account logged out successfully",
+	"validation-errors": "Some of the fields you entered are invalid. Please try again",
+	"login-successfully": "You have successfully logged in!",
+	"failed-to-register-user": "User registration failed. Please try again later",
+	"registered-successfully": "User registration successful. Please login to continue.",
+	"employee-created-successfully": "Employee created successfully",
+	"the-path-you-are-trying-to-access-is-invalid": "The path you are trying to access is invalid"
+}

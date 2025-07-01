@@ -1,0 +1,13 @@
+.simplebar-track.simplebar-vertical {
+	width: 10px;
+}
+
+.simplebar-scrollbar::before {
+	background-color: #888;
+}
+
+@media (max-width: 768px) {
+	.simplebar-track.simplebar-vertical {
+		width: 8px;
+	}
+}

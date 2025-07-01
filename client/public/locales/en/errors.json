@@ -1,0 +1,37 @@
+{
+	"username-is-required": "Username is required",
+	"username-must-be-between-5-and-30-characters": "Username must be between 5 and 30 characters",
+	"username-must-start-with-a-lowercase-letter-and-contain-only-lowercase-letters-and-numbers": "Username must start with a lowercase letter and contain only lowercase letters and numbers",
+	"username-does-not-exist": "Username does not exist",
+	"username-already-exists": "Username already exists",
+
+	"password-is-required": "Password is required",
+	"password-does-not-match": "Password does not match",
+	"password-must-be-between-6-and-30-characters": "Password must be between 6 and 30 characters",
+
+	"confirm-password-is-required": "Confirm password is required",
+	"confirm-password-does-not-match": "Confirm password does not match",
+
+	"first-name-is-required": "First name is required",
+	"first-name-must-be-between-2-and-30-characters": "First name must be between 2 and 30 characters",
+	"first-name-must-contain-only-letters-and-spaces": "First name must contain only letters and spaces",
+
+	"last-name-is-required": "Last name is required",
+	"last-name-must-be-between-2-and-30-characters": "Last name must be between 2 and 30 characters",
+	"last-name-must-contain-only-letters-and-spaces": "Last name must contain only letters and spaces",
+
+	"email-is-required": "Email is required",
+	"email-already-exists": "Email already exists",
+	"email-does-not-exist": "Email does not exist",
+	"invalid-email-address": "Invalid email address",
+
+	"phone-is-required": "Phone is required",
+	"phone-already-exists": "Phone already exists",
+	"phone-does-not-exist": "Phone does not exist",
+	"invalid-phone-number": "Invalid phone number",
+
+	"address-is-required": "Address is required",
+
+	"gender-is-required": "Gender is required",
+	"invalid-gender": "Invalid gender"
+}
