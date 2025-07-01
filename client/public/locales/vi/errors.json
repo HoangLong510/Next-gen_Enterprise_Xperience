@@ -1,0 +1,37 @@
+{
+	"username-is-required": "Tên đăng nhập là bắt buộc",
+	"username-must-be-between-5-and-30-characters": "Tên đăng nhập phải từ 5 đến 30 ký tự",
+	"username-must-start-with-a-lowercase-letter-and-contain-only-lowercase-letters-and-numbers": "Tên đăng nhập phải bắt đầu bằng chữ thường và chỉ chứa chữ thường hoặc số",
+	"username-does-not-exist": "Tên đăng nhập không tồn tại",
+	"username-already-exists": "Tên đăng nhập đã tồn tại",
+
+	"password-is-required": "Mật khẩu là bắt buộc",
+	"password-does-not-match": "Mật khẩu không khớp",
+	"password-must-be-between-6-and-30-characters": "Mật khẩu phải từ 6 đến 30 ký tự",
+
+	"confirm-password-is-required": "Xác nhận mật khẩu là bắt buộc",
+	"confirm-password-does-not-match": "Xác nhận mật khẩu không khớp",
+
+	"first-name-is-required": "Họ là bắt buộc",
+	"first-name-must-be-between-2-and-30-characters": "Họ phải từ 2 đến 30 ký tự",
+	"first-name-must-contain-only-letters-and-spaces": "Họ chỉ được chứa chữ cái và dấu cách",
+
+	"last-name-is-required": "Tên là bắt buộc",
+	"last-name-must-be-between-2-and-30-characters": "Tên phải từ 2 đến 30 ký tự",
+	"last-name-must-contain-only-letters-and-spaces": "Tên chỉ được chứa chữ cái và dấu cách",
+
+	"email-is-required": "Email là bắt buộc",
+	"email-already-exists": "Email đã tồn tại",
+	"email-does-not-exist": "Email không tồn tại",
+	"invalid-email-address": "Địa chỉ email không hợp lệ",
+
+	"phone-is-required": "Số điện thoại là bắt buộc",
+	"phone-already-exists": "Số điện thoại đã tồn tại",
+	"phone-does-not-exist": "Số điện thoại không tồn tại",
+	"invalid-phone-number": "Số điện thoại không hợp lệ",
+
+	"address-is-required": "Địa chỉ là bắt buộc",
+
+	"gender-is-required": "Giới tính là bắt buộc",
+	"invalid-gender": "Giới tính không hợp lệ"
+}
