@@ -1,5 +1,6 @@
 package server.initializers;
 
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -11,6 +12,8 @@ import server.models.enums.Gender;
 import server.models.enums.Role;
 import server.repositories.AccountRepository;
 import server.repositories.EmployeeRepository;
+
+import java.time.LocalDate;
 
 @Component
 @RequiredArgsConstructor
@@ -35,7 +38,8 @@ public class DataInitializer {
             employee.setEmail("N/A");
             employee.setPhone("N/A");
             employee.setAddress("N/A");
-            employee.setGender(Gender.OTHER);
+            employee.setDateBirth(LocalDate.now());
+            employee.setGender(Gender.ORTHER);
             employee.setAccount(admin);
             employeeRepository.save(employee);
         }

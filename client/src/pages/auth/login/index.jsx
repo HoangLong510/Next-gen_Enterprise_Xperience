@@ -20,6 +20,7 @@ import AOS from "aos"
 import "aos/dist/aos.css"
 import { setPopup } from "~/libs/features/popup/popupSlice"
 import { setAccount } from "~/libs/features/account/accountSlice"
+import {Helmet} from "react-helmet-async";
 
 const schema = yup.object().shape({
 	username: yup.string().required("username-is-required"),
@@ -84,157 +85,163 @@ export default function Login() {
 	}, [])
 
 	return (
-		<Box
-			sx={{
-				backgroundImage: "url('/images/background/background1.png')",
-				backgroundSize: "fill",
-				backgroundPosition: "center",
-				width: "100%",
-				minHeight: "100vh",
-				bgcolor: "#fff",
-				display: "flex",
-				alignItems: "center",
-				justifyContent: "center",
-				userSelect: "none",
-				padding: "40px 20px",
-				overflow: "hidden"
-			}}
-		>
+		<>
+			<Helmet>
+				<title>{t("Login")}</title>
+			</Helmet>
 			<Box
-				data-aos="fade-up"
 				sx={{
+					backgroundImage: "url('/images/background/background1.png')",
+					backgroundSize: "cover",
+					backgroundPosition: "center",
+					backgroundRepeat: "no-repeat",
 					width: "100%",
-					maxWidth: "450px",
-					borderRadius: "10px",
-					padding: "30px 20px",
+					minHeight: "100vh",
 					bgcolor: "#fff",
-					boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.1)"
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "center",
+					userSelect: "none",
+					padding: "40px 20px",
+					overflow: "hidden"
 				}}
 			>
-				<Box sx={{ width: "100%", mb: 2 }}>
-					<Typography
-						sx={{
-							fontSize: "20px",
-							fontWeight: 600,
-							color: "#000"
-						}}
-					>
-						{t("Login")}
-					</Typography>
-					<Typography sx={{ mt: 1, fontSize: "14px", color: "#666" }}>
-						{t("Login with your account")}
-					</Typography>
-				</Box>
-				<form onSubmit={handleSubmit(handleLogin)}>
-					<TextField
-						{...register("username")}
-						helperText={tError(errors.username?.message || "")}
-						error={!!errors.username}
-						disabled={loading}
-						fullWidth
-						type="text"
-						label={t("Username")}
-						margin="normal"
-						autoComplete="off"
-						InputProps={{
-							startAdornment: (
-								<InputAdornment position="start">
-									<User />
-								</InputAdornment>
-							),
-							sx: {
-								backgroundColor: "background.default"
-							}
-						}}
-					/>
-
-					<TextField
-						{...register("password")}
-						helperText={tError(errors.password?.message || "")}
-						error={!!errors.password}
-						disabled={loading}
-						fullWidth
-						type={showPassword ? "text" : "password"}
-						label={t("Password")}
-						autoComplete="off"
-						margin="normal"
-						InputProps={{
-							startAdornment: (
-								<InputAdornment position="start">
-									<Lock />
-								</InputAdornment>
-							),
-							endAdornment: (
-								<InputAdornment position="end">
-									<IconButton
-										aria-label="toggle password visibility"
-										onClick={handleClickShowPassword}
-										edge="end"
-									>
-										{showPassword ? <Eye /> : <EyeClosed />}
-									</IconButton>
-								</InputAdornment>
-							)
-						}}
-					/>
-
-					<Box
-						sx={{
-							mt: 2,
-							display: "flex",
-							width: "100%",
-							justifyContent: "flex-end",
-							alignItems: "center"
-						}}
-					>
-						<Link
-							to="/auth/forgot-password"
-							style={{ textDecoration: "none" }}
+				<Box
+					data-aos="fade-up"
+					sx={{
+						width: "100%",
+						maxWidth: "450px",
+						borderRadius: "10px",
+						padding: "30px 20px",
+						bgcolor: "#fff",
+						boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.1)"
+					}}
+				>
+					<Box sx={{ width: "100%", mb: 2 }}>
+						<Typography
+							sx={{
+								fontSize: "20px",
+								fontWeight: 600,
+								color: "#000"
+							}}
 						>
-							<Typography
-								sx={{
-									textDecoration: "none",
-									fontSize: "14px",
-									color: "text.secondary",
-									"&:hover": {
-										textDecoration: "underline"
-									}
-								}}
+							{t("Login")}
+						</Typography>
+						<Typography sx={{ mt: 1, fontSize: "14px", color: "#666" }}>
+							{t("Login with your account")}
+						</Typography>
+					</Box>
+					<form onSubmit={handleSubmit(handleLogin)}>
+						<TextField
+							{...register("username")}
+							helperText={tError(errors.username?.message || "")}
+							error={!!errors.username}
+							disabled={loading}
+							fullWidth
+							type="text"
+							label={t("Username")}
+							margin="normal"
+							autoComplete="off"
+							InputProps={{
+								startAdornment: (
+									<InputAdornment position="start">
+										<User />
+									</InputAdornment>
+								),
+								sx: {
+									backgroundColor: "background.default"
+								}
+							}}
+						/>
+
+						<TextField
+							{...register("password")}
+							helperText={tError(errors.password?.message || "")}
+							error={!!errors.password}
+							disabled={loading}
+							fullWidth
+							type={showPassword ? "text" : "password"}
+							label={t("Password")}
+							autoComplete="off"
+							margin="normal"
+							InputProps={{
+								startAdornment: (
+									<InputAdornment position="start">
+										<Lock />
+									</InputAdornment>
+								),
+								endAdornment: (
+									<InputAdornment position="end">
+										<IconButton
+											aria-label="toggle password visibility"
+											onClick={handleClickShowPassword}
+											edge="end"
+										>
+											{showPassword ? <Eye /> : <EyeClosed />}
+										</IconButton>
+									</InputAdornment>
+								)
+							}}
+						/>
+
+						<Box
+							sx={{
+								mt: 2,
+								display: "flex",
+								width: "100%",
+								justifyContent: "flex-end",
+								alignItems: "center"
+							}}
+						>
+							<Link
+								to="/auth/forgot-password"
+								style={{ textDecoration: "none" }}
 							>
-								{t("Forgot password")}?
-							</Typography>
-						</Link>
-					</Box>
+								<Typography
+									sx={{
+										textDecoration: "none",
+										fontSize: "14px",
+										color: "text.secondary",
+										"&:hover": {
+											textDecoration: "underline"
+										}
+									}}
+								>
+									{t("Forgot password")}?
+								</Typography>
+							</Link>
+						</Box>
 
-					<Button
-						sx={{ textTransform: "none", mt: 3 }}
-						fullWidth
-						disabled={loading}
-						type="submit"
-						variant="contained"
-						startIcon={
-							loading ? (
-								<CircularProgress size={20} color="inherit" />
-							) : null
-						}
-					>
-						{loading ? t("Verifying") : t("Login")}
-					</Button>
+						<Button
+							sx={{ textTransform: "none", mt: 3 }}
+							fullWidth
+							disabled={loading}
+							type="submit"
+							variant="contained"
+							startIcon={
+								loading ? (
+									<CircularProgress size={20} color="inherit" />
+								) : null
+							}
+						>
+							{loading ? t("Verifying") : t("Login")}
+						</Button>
 
-					<Box
-						sx={{
-							mt: 3,
-							display: "flex",
-							justifyContent: "center",
-							alignItems: "center",
-							color: "#666",
-							fontSize: "13px"
-						}}
-					>
-						{t("Accounts are provided by the administrator only")}
-					</Box>
-				</form>
+						<Box
+							sx={{
+								mt: 3,
+								display: "flex",
+								justifyContent: "center",
+								alignItems: "center",
+								color: "#666",
+								fontSize: "13px"
+							}}
+						>
+							{t("Accounts are provided by the administrator only")}
+						</Box>
+					</form>
+				</Box>
 			</Box>
-		</Box>
+		</>
 	)
 }

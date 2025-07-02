@@ -1,5 +1,11 @@
 {
 	"view-profile": "View profile",
 	"logout": "Logout",
-	"change-password": "Change password"
+	"change-password": "Change password",
+	"ADMIN": "Administrator",
+	"MANAGER": "Manager",
+	"PM": "Project manager",
+	"ACCOUNTANT": "Accountant",
+	"HOD": "Head of department",
+	"EMPLOYEE": "Employee"
 }

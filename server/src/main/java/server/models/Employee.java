@@ -9,6 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import server.models.enums.Gender;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -37,6 +38,9 @@ public class Employee {
     private String address;
 
     private String avatar;
+
+    @Column(nullable = false)
+    private LocalDate dateBirth;
 
     @Enumerated(value = EnumType.STRING)
     @Column(nullable = false)

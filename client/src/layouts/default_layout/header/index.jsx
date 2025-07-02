@@ -17,12 +17,12 @@ export default function Header({ open, setOpen }) {
 				top: "0",
 				height: "60px",
 				width: "100%",
-				bgcolor: "background.default",
+				backgroundColor: "background.default",
 				boxShadow: "0px 0px 15px rgba(0, 0, 0, 0.15)",
 				display: "flex",
 				alignItems: "center",
 				justifyContent: "space-between",
-				padding: "0px 20px"
+				padding: "0px 20px",
 			}}
 		>
 			<Box sx={{ display: { xs: "flex", md: "none" } }}>
