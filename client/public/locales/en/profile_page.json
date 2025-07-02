@@ -18,5 +18,14 @@
   "Gender": "Gender",
   "EmailAddress": "Email Address",
   "PhoneNumber": "Phone Number",
-  "Address": "Address"
+  "Address": "Address",
+  "Change": "Change",
+  "EditProfile": "Edit profile",
+  "ChangePassword": "Change password",
+  "Projects": "Projects",
+  "Tasks": "Tasks",
+  "Joined": "Joined",
+  "OngoingAndCompletedProjects": "Ongoing & completed projects",
+  "TotalCompletedTasks": "Total completed tasks",
+  "CompanyJoinDate": "Company join date"
 }
