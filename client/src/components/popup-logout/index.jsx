@@ -15,6 +15,7 @@ import { Close as CloseIcon } from "@mui/icons-material"
 import { closePopupLogout } from "~/libs/features/popupLogout/popupLogoutSlice"
 import { logoutApi } from "~/services/auth.service"
 import { clearAccount } from "~/libs/features/account/accountSlice"
+import {useNavigate} from "react-router-dom";
 
 const Transition = React.forwardRef(function Transition(props, ref) {
 	return <Slide direction="down" ref={ref} {...props} />
@@ -24,6 +25,7 @@ export default function PopupLogout() {
 	const { t } = useTranslation("popup")
 	const open = useSelector((state) => state.popupLogout.value)
 	const dispatch = useDispatch()
+	const navigate = useNavigate()
 
 	const [loading, setLoading] = React.useState(false)
 
@@ -40,6 +42,7 @@ export default function PopupLogout() {
 				localStorage.removeItem("accessToken")
 				localStorage.removeItem("refreshToken")
 				dispatch(clearAccount())
+				navigate("/auth/login")
 				handleClose()
 			}
 		}

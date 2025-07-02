@@ -117,7 +117,10 @@ public class AuthService {
         profileDto.setPhone(account.getEmployee().getPhone());
         profileDto.setAddress(account.getEmployee().getAddress());
         profileDto.setGender(account.getEmployee().getGender().toString());
+        profileDto.setDateBirth(account.getEmployee().getDateBirth());
         profileDto.setRole(account.getRole().toString());
+        profileDto.setCreatedAt(account.getCreatedAt());
+        profileDto.setAvatar(account.getEmployee().getAvatar());
 
         return ApiResponse.success(profileDto, "");
     }

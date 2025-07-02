@@ -1,0 +1,22 @@
+{
+  "profile": "Profile",
+  "MALE": "Male",
+  "FEMALE": "Female",
+  "ORTHER": "Orther",
+  "ADMIN": "Administrator",
+  "MANAGER": "Manager",
+  "PM": "Project manager",
+  "ACCOUNTANT": "Accountant",
+  "HOD": "Head of department",
+  "EMPLOYEE": "Employee",
+  "click-avatar-to-change-photo": "Click avatar to change photo",
+  "max": "Max",
+  "PersonalInformation": "Personal Information",
+  "YourPersonalDetailsAndContactInformation": "Your personal details and contact information",
+  "Department": "Department",
+  "BirthDate": "Date of Birth",
+  "Gender": "Gender",
+  "EmailAddress": "Email Address",
+  "PhoneNumber": "Phone Number",
+  "Address": "Address"
+}

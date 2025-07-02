@@ -47,7 +47,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/auth/login",
                                 "/auth/fetch-data",
-                                "/auth/refresh-token"
+                                "/auth/refresh-token",
+                                "/uploads/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
@@ -98,7 +99,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(client_url));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true); // 👈 Cần thiết nếu bạn gửi cookie hoặc Authorization header
+        configuration.setAllowCredentials(true); // Cần thiết nếu bạn gửi cookie hoặc Authorization header
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

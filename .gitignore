@@ -1,0 +1,97 @@
+# === ROOT FOLDER ===
+.idea
+uploads/
+
+# === CLIENT ===
+
+# Logs
+client/logs
+client/*.log
+client/npm-debug.log*
+client/yarn-debug.log*
+client/yarn-error.log*
+client/pnpm-debug.log*
+client/lerna-debug.log*
+
+# Dependencies & build
+client/node_modules
+client/dist
+client/dist-ssr
+client/*.local
+
+# Env
+client/.env
+
+# Editor config
+client/.vscode/*
+!client/.vscode/extensions.json
+client/.idea
+client/.DS_Store
+client/*.suo
+client/*.ntvs*
+client/*.njsproj
+client/*.sln
+client/*.sw?
+
+# === SERVER ===
+
+# Maven
+server/target/
+!server/.mvn/wrapper/maven-wrapper.jar
+server/pom.xml.tag
+server/pom.xml.releaseBackup
+server/pom.xml.versionsBackup
+server/pom.xml.next
+server/release.properties
+
+# Nested target folders
+!server/**/src/main/**/target/
+!server/**/src/test/**/target/
+
+# Spring Boot config
+application.properties
+application.yml
+
+# IDEs
+server/.apt_generated
+server/.classpath
+server/.factorypath
+server/.project
+server/.settings/
+server/.springBeans
+server/.sts4-cache
+
+server/.idea/
+server/*.iml
+server/*.iws
+server/*.ipr
+server/out/
+
+server/nbproject/private/
+server/nbbuild/
+server/dist/
+server/nbdist/
+server/.nb-gradle/
+
+# Gradle
+server/build/
+!server/**/src/main/**/build/
+!server/**/src/test/**/build/
+
+# VSCode
+server/.vscode/
+
+# OS files
+server/.DS_Store
+server/Thumbs.db
+server/ehthumbs.db
+server/desktop.ini
+server/$RECYCLE.BIN/
+server/*~
+
+# Logs & temp
+server/*.log
+server/*.tmp
+server/*.bak
+server/*.swp
+server/*.swo

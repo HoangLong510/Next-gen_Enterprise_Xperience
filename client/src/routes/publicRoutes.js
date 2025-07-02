@@ -1,16 +1,16 @@
 import DefaultLayout from "~/layouts/default_layout"
-import Home from "~/pages/home"
-import Profile from "~/pages/profile"
+import HomePage from "~/pages/index.jsx"
+import ProfilePage from "~/pages/profile"
 
 const publicRoutes = [
 	{
 		path: "/",
-		component: Home,
+		component: HomePage,
 		layout: DefaultLayout
 	},
 	{
 		path: "/profile",
-		component: Profile,
+		component: ProfilePage,
 		layout: DefaultLayout
 	}
 ]
