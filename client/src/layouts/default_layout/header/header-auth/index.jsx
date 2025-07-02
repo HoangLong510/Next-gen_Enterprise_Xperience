@@ -63,7 +63,7 @@ const StyledHeaderButton = styled(ButtonBase)(({theme, open}) => ({
     },
 
     "&:hover": {
-        transform: "scale(0.98)",
+        transform: "translateY(-1px)",
         boxShadow: `0 8px 25px ${alpha(theme.palette.common.black, 0.15)}`,
         background: `linear-gradient(135deg, ${alpha(
             theme.palette.background.paper,
@@ -158,8 +158,10 @@ export default function HeaderAuth() {
                     <Box sx={{position: "relative"}}>
                         <CustomAvatar
                             src={account.avatar}
-                            firstName={account.firstName}
-                            lastName={account.lastName}
+                            sx={{
+                                width: 30,
+                                height: 30,
+                            }}
                         />
                     </Box>
 
@@ -173,7 +175,7 @@ export default function HeaderAuth() {
                         <Typography
                             variant="body2"
                             sx={{
-                                fontWeight: 500,
+                                fontWeight: 600,
                                 color: "text.primary",
                                 lineHeight: 1.2,
                                 textTransform: "capitalize",
@@ -295,12 +297,9 @@ export default function HeaderAuth() {
                         <Box sx={{position: "relative"}}>
                             <CustomAvatar
                                 src={account.avatar}
-                                firstName={account.firstName}
-                                lastName={account.lastName}
                                 sx={{
-                                    width: 45,
-                                    height: 45,
-                                    fontSize: "22px"
+                                    width: 40,
+                                    height: 40
                                 }}
                             />
                         </Box>
@@ -308,7 +307,7 @@ export default function HeaderAuth() {
                             <Typography
                                 variant="body1"
                                 sx={{
-                                    fontWeight: 500,
+                                    fontWeight: 600,
                                     color: "text.primary",
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",

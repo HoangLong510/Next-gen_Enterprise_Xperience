@@ -18,5 +18,14 @@
   "Gender": "Giới tính",
   "EmailAddress": "Địa chỉ email",
   "PhoneNumber": "Số điện thoại",
-  "Address": "Địa chỉ"
+  "Address": "Địa chỉ",
+  "Change": "Thay đổi",
+  "EditProfile": "Sửa hồ sơ",
+  "ChangePassword": "Đổi mật khẩu",
+  "Projects": "Dự án",
+  "Tasks": "Công việc",
+  "Joined": "Tham gia",
+  "OngoingAndCompletedProjects": "Dự án đã và đang tham gia",
+  "TotalCompletedTasks": "Công việc đã hoàn thành",
+  "CompanyJoinDate": "Ngày tham gia công ty"
 }

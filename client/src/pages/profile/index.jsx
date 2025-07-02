@@ -47,13 +47,13 @@ export default function ProfilePage() {
                     form.append("file", file)
                     const res = await changeAvatarApi(token, form)
                     if (res.status !== 200) {
-                        dispatch(setPopup({type: "error", message: String(res.message)}))
+                        dispatch(setPopup({type: "error", message: res.message}))
                     } else {
                         dispatch(setAccount({
                             ...account,
                             avatar: res.data
                         }))
-                        dispatch(setPopup({type: "success", message: String(res.message)}))
+                        dispatch(setPopup({type: "success", message: res.message}))
                     }
                 }
             }
@@ -76,14 +76,20 @@ export default function ProfilePage() {
     },]
 
     const statsData = [{
-        icon: BusinessCenter, title: "Projects", value: "24", subtitle: "Ongoing & completed projects",
+        icon: BusinessCenter,
+        title: t("Projects"),
+        value: "0",
+        subtitle: t("OngoingAndCompletedProjects"),
     }, {
-        icon: AssignmentTurnedIn, title: "Tasks", value: "152", subtitle: "Total completed tasks",
+        icon: AssignmentTurnedIn,
+        title: t("Tasks"),
+        value: "0",
+        subtitle: t("TotalCompletedTasks"),
     }, {
         icon: Schedule,
-        title: "Joined",
+        title: t("Joined"),
         value: formatDate(account.createdAt, i18n.language),
-        subtitle: "Company join date",
+        subtitle: t("CompanyJoinDate"),
     },];
 
     return (
@@ -206,19 +212,11 @@ export default function ProfilePage() {
                                         >
                                             <CustomAvatar
                                                 src={account.avatar}
-                                                className="avatar-main"
-                                                firstName={account.firstName}
-                                                lastName={account.lastName}
-
                                                 sx={{
                                                     width: 128,
                                                     height: 128,
-                                                    fontSize: "70px",
-                                                    fontWeight: 700,
                                                     border: `4px solid ${theme.palette.background.paper}`,
-                                                    boxShadow: `0 12px 24px ${alpha(theme.palette.primary.main, 0.2)}`,
-                                                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                                                    transition: "transform 0.3s ease-in-out",
+                                                    boxShadow: `0 12px 24px ${alpha(theme.palette.primary.main, 0.2)}`
                                                 }}
                                             />
 
@@ -232,7 +230,7 @@ export default function ProfilePage() {
                                                     right: 0,
                                                     bottom: 0,
                                                     borderRadius: "50%",
-                                                    backgroundColor: alpha(theme.palette.primary.dark, 0.8),
+                                                    backgroundColor: "rgba(0, 0, 0, 0.5)",
                                                     display: "flex",
                                                     flexDirection: "column",
                                                     alignItems: "center",
@@ -240,11 +238,12 @@ export default function ProfilePage() {
                                                     opacity: 0,
                                                     transition: "opacity 0.3s ease-in-out",
                                                     color: "white",
+                                                    zIndex: 2
                                                 }}
                                             >
                                                 <PhotoCamera sx={{fontSize: "2rem", mb: 0.5}}/>
                                                 <Typography variant="caption" sx={{fontWeight: 600}}>
-                                                    Change
+                                                    {t("Change")}
                                                 </Typography>
                                             </Box>
 
@@ -264,7 +263,7 @@ export default function ProfilePage() {
                                                     },
                                                     transition: "all 0.2s ease-in-out",
                                                     boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.3)}`,
-                                                    zIndex: 2,
+                                                    zIndex: 3,
                                                 }}
                                             >
                                                 <Edit/>
@@ -341,30 +340,18 @@ export default function ProfilePage() {
                             <CardContent sx={{p: 4}}>
                                 <Box sx={{mb: 4}}>
                                     <Box sx={{display: "flex", alignItems: "center", gap: 2, mb: 1}}>
-                                        <Box
-                                            sx={{
-                                                p: 1.5,
-                                                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                                                borderRadius: 2,
-                                                boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
-                                            }}
-                                        >
-                                            <Person sx={{color: "white", fontSize: "1.25rem"}}/>
-                                        </Box>
                                         <Typography
                                             variant="h5"
                                             sx={{
                                                 fontWeight: 700,
-                                                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                                                color: "text.primary",
                                                 backgroundClip: "text",
-                                                WebkitBackgroundClip: "text",
-                                                WebkitTextFillColor: "transparent",
                                             }}
                                         >
                                             {t("PersonalInformation")}
                                         </Typography>
                                     </Box>
-                                    <Typography variant="body2" sx={{color: "text.secondary", ml: 7}}>
+                                    <Typography variant="body2" sx={{color: "text.secondary"}}>
                                         {t("YourPersonalDetailsAndContactInformation")}
                                     </Typography>
                                 </Box>
@@ -396,6 +383,8 @@ export default function ProfilePage() {
                                             <Box sx={{display: "flex", alignItems: "flex-start", gap: 2}}>
                                                 <Box
                                                     sx={{
+                                                        display: "flex",
+                                                        alignItems: "center",
                                                         p: 1.5,
                                                         borderRadius: 3,
                                                         background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
@@ -448,6 +437,7 @@ export default function ProfilePage() {
                                         variant="contained"
                                         startIcon={<Edit/>}
                                         sx={{
+                                            textTransform: "none",
                                             background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
                                             boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.3)}`,
                                             "&:hover": {
@@ -457,11 +447,12 @@ export default function ProfilePage() {
                                             transition: "all 0.3s ease-in-out",
                                         }}
                                     >
-                                        Edit Profile
+                                        {t("EditProfile")}
                                     </Button>
                                     <Button
                                         variant="outlined"
                                         sx={{
+                                            textTransform: "none",
                                             borderColor: alpha(theme.palette.primary.main, 0.3),
                                             color: theme.palette.primary.main,
                                             "&:hover": {
@@ -471,7 +462,7 @@ export default function ProfilePage() {
                                             transition: "all 0.3s ease-in-out",
                                         }}
                                     >
-                                        Change Password
+                                        {t("ChangePassword")}
                                     </Button>
                                 </Box>
                             </CardContent>
