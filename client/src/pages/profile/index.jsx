@@ -41,20 +41,17 @@ export default function ProfilePage() {
             if (file.size > 5 * 1024 * 1024) {
                 dispatch(setPopup({type: "error", message: "file-too-large"}))
             } else {
-                const token = localStorage.getItem("accessToken")
-                if (token) {
-                    const form = new FormData()
-                    form.append("file", file)
-                    const res = await changeAvatarApi(token, form)
-                    if (res.status !== 200) {
-                        dispatch(setPopup({type: "error", message: res.message}))
-                    } else {
-                        dispatch(setAccount({
-                            ...account,
-                            avatar: res.data
-                        }))
-                        dispatch(setPopup({type: "success", message: res.message}))
-                    }
+                const form = new FormData()
+                form.append("file", file)
+                const res = await changeAvatarApi(form)
+                if (res.status !== 200) {
+                    dispatch(setPopup({type: "error", message: res.message}))
+                } else {
+                    dispatch(setAccount({
+                        ...account,
+                        avatar: res.data
+                    }))
+                    dispatch(setPopup({type: "success", message: res.message}))
                 }
             }
             fileInputRef.current.value = null;
