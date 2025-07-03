@@ -13,6 +13,7 @@ import {
 } from "@mui/material"
 import { menuItems } from "./menu-items"
 import { Link, useLocation } from "react-router-dom"
+import {useSelector} from "react-redux";
 
 const StyledListItemButton = styled(ListItemButton, {
 	shouldForwardProp: (prop) => prop !== "isActive"
@@ -147,6 +148,7 @@ const MenuSection = styled(Box)(({ theme }) => ({
 }))
 
 const MenuList = ({ open, setOpen }) => {
+	const account = useSelector((state) => state.account.value)
 	const location = useLocation()
 	const pathname = location.pathname
 
@@ -173,118 +175,97 @@ const MenuList = ({ open, setOpen }) => {
 				}
 			}}
 		>
-			{menuItems.map((section) => (
-				<MenuSection key={section.title}>
-					<List
-						subheader={
-							<Collapse
-								in={open}
-								timeout={{ enter: 150, exit: 100 }}
-								unmountOnExit
-							>
-								<StyledListSubheader component="div">
-									{section.title}
-								</StyledListSubheader>
-							</Collapse>
-						}
-						sx={{ py: 0 }}
-					>
-						{section.items.map((item) => {
-							const Icon = item.icon
-							const isActive = pathname === item.href
+			{menuItems.map((section) => {
+				// Lọc các item con theo role
+				const visibleItems = section.items.filter(item =>
+					item.roles.includes(account.role) // hoặc dùng .some nếu account.role là mảng
+				);
 
-							return (
-								<ListItem
-									key={item.label}
-									disablePadding
-									sx={{ display: "block", mb: 0.5 }}
-								>
-									<Link
-										to={item.href}
-										onClick={() => setOpen(false)}
-										style={{
-											textDecoration: "none",
-											color: "inherit"
-										}}
-									>
-										<StyledListItemButton
-											isActive={isActive}
-											sx={{
-												justifyContent: open
-													? "initial"
-													: "center",
-												minHeight: open ? 52 : 48
-											}}
+				// Nếu không có item nào hợp lệ thì bỏ qua section này
+				if (visibleItems.length === 0) return null;
+
+				return (
+					<MenuSection key={section.title}>
+						<List
+							subheader={
+								<Collapse in={open} timeout={{ enter: 150, exit: 100 }} unmountOnExit>
+									<StyledListSubheader component="div">
+										{section.title}
+									</StyledListSubheader>
+								</Collapse>
+							}
+							sx={{ py: 0 }}
+						>
+							{visibleItems.map((item) => {
+								const Icon = item.icon;
+								const isActive = pathname === item.href;
+
+								return (
+									<ListItem key={item.label} disablePadding sx={{ display: "block", mb: 0.5 }}>
+										<Link
+											to={item.href}
+											onClick={() => setOpen(false)}
+											style={{ textDecoration: "none", color: "inherit" }}
 										>
-											<StyledListItemIcon
+											<StyledListItemButton
+												isActive={isActive}
 												sx={{
-													mr: open ? 2.5 : "auto"
+													justifyContent: open ? "initial" : "center",
+													minHeight: open ? 52 : 48
 												}}
 											>
-												<Icon
-													fontSize="small"
+												<StyledListItemIcon sx={{ mr: open ? 2.5 : "auto" }}>
+													<Icon
+														fontSize="small"
+														sx={{ fontSize: open ? "1.25rem" : "1.1rem" }}
+													/>
+												</StyledListItemIcon>
+
+												<ListItemText
+													primary={item.label}
 													sx={{
-														fontSize: open
-															? "1.25rem"
-															: "1.1rem"
+														opacity: open ? 1 : 0,
+														transition: "all 150ms ease-out",
+														transform: open ? "translateX(0)" : "translateX(-8px)",
+														position: "relative",
+														zIndex: 1
 													}}
-												/>
-											</StyledListItemIcon>
-
-											<ListItemText
-												primary={item.label}
-												sx={{
-													opacity: open ? 1 : 0,
-													transition:
-														"all 150ms ease-out",
-													transform: open
-														? "translateX(0)"
-														: "translateX(-8px)",
-													position: "relative",
-													zIndex: 1
-												}}
-												primaryTypographyProps={{
-													fontSize: "0.875rem",
-													fontWeight: isActive
-														? 600
-														: 500,
-													lineHeight: 1.2,
-													sx: {
-														transition:
-															"color 150ms ease-out, font-weight 150ms ease-out"
-													}
-												}}
-											/>
-
-											{item.isNew && open && (
-												<Chip
-													label="New"
-													size="small"
-													sx={{
-														height: 20,
-														fontSize: "0.65rem",
-														fontWeight: 600,
-														backgroundColor: (
-															theme
-														) =>
-															theme.palette
-																.success.main,
-														color: "white",
-														ml: 1,
-														"& .MuiChip-label": {
-															px: 1
+													primaryTypographyProps={{
+														fontSize: "0.875rem",
+														fontWeight: isActive ? 600 : 500,
+														lineHeight: 1.2,
+														sx: {
+															transition: "color 150ms ease-out, font-weight 150ms ease-out"
 														}
 													}}
 												/>
-											)}
-										</StyledListItemButton>
-									</Link>
-								</ListItem>
-							)
-						})}
-					</List>
-				</MenuSection>
-			))}
+
+												{item.isNew && open && (
+													<Chip
+														label="New"
+														size="small"
+														sx={{
+															height: 20,
+															fontSize: "0.65rem",
+															fontWeight: 600,
+															backgroundColor: (theme) => theme.palette.success.main,
+															color: "white",
+															ml: 1,
+															"& .MuiChip-label": {
+																px: 1
+															}
+														}}
+													/>
+												)}
+											</StyledListItemButton>
+										</Link>
+									</ListItem>
+								);
+							})}
+						</List>
+					</MenuSection>
+				);
+			})}
 		</Box>
 	)
 }

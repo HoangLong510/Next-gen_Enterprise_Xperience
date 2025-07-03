@@ -15,17 +15,20 @@ export const menuItems = [
 			{
 				label: "Finance",
 				icon: AttachMoneyIcon,
-				href: "/management/finance"
+				href: "/management/finance",
+				roles: ["ADMIN", "MANAGER", "ACCOUNTANT"]
 			},
 			{
 				label: "Accounts",
 				icon: ManageAccountsIcon,
-				href: "/management/accounts"
+				href: "/management/accounts",
+				roles: ["ADMIN"]
 			},
 			{
 				label: "Settings",
 				icon: SettingsIcon,
-				href: "/management/settings"
+				href: "/management/settings",
+				roles: ["ADMIN"]
 			}
 		]
 	},
@@ -35,12 +38,14 @@ export const menuItems = [
 			{
 				label: "Profiles",
 				icon: AssignmentIndIcon,
-				href: "/employees/profiles"
+				href: "/employees/profiles",
+				roles: ["ADMIN", "MANAGER"]
 			},
 			{
 				label: "Contracts",
 				icon: FilePresentIcon,
-				href: "/employees/contracts"
+				href: "/employees/contracts",
+				roles: ["ADMIN", "MANAGER"]
 			}
 		]
 	},
@@ -50,19 +55,27 @@ export const menuItems = [
 			{
 				label: "Departments",
 				icon: Diversity1Icon,
-				href: "/utilities/departments"
+				href: "/utilities/departments",
+				roles: ["ADMIN", "MANAGER", "HOD", "EMPLOYEE"]
 			},
 			{
 				label: "Projects",
 				icon: AccountTreeIcon,
-				href: "/utilities/projects"
+				href: "/utilities/projects",
+				roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"]
 			},
 			{
 				label: "Dispatches",
 				icon: AssignmentIcon,
-				href: "/utilities/dispatches"
+				href: "/utilities/dispatches",
+				roles: ["ADMIN", "MANAGER", "PM"]
 			},
-			{ label: "Tasks", icon: TaskAltIcon, href: "/utilities/tasks" }
+			{
+				label: "Tasks",
+				icon: TaskAltIcon,
+				href: "/utilities/tasks",
+				roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"]
+			}
 		]
 	}
 ]
