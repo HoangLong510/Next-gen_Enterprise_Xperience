@@ -1,10 +1,9 @@
 import api from "~/utils/axios.js";
 
-export const changeAvatarApi = async (token, form) => {
+export const changeAvatarApi = async (form) => {
     try {
         const res = await api.post("/employees/change-avatar", form, {
             headers: {
-                Authorization: `Bearer ${token}`,
                 "Content-Type": "multipart/form-data"
             }
         })
