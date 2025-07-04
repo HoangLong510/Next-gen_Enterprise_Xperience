@@ -15,5 +15,7 @@
 	"error-uploading-file": "Error uploading file, please try another file",
 	"invalid-image-type": "Invalid image type, only JPG, PNG, GIF files are supported",
 	"file-is-empty": "File is empty",
-	"file-too-large": "File too large, only supports files under 5mb in size"
+	"file-too-large": "File too large, only supports files under 5mb in size",
+	"new-password-same-as-old-password": "You cannot set a new password that is the same as the old password",
+	"change-password-successfully": "Password changed successfully, please log in again to continue"
 }

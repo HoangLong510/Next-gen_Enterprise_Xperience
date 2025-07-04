@@ -16,7 +16,7 @@ public class UploadFileService {
     @Value("${app.upload.folder}")
     private String uploadFolder;
 
-    public String storeImage(String supFolder, MultipartFile file) throws IOException {
+    public String storeFile(String supFolder, MultipartFile file) throws IOException {
         String exactFolderPath = uploadFolder + File.separator + supFolder;
         File directory = new File(exactFolderPath);
         if (!directory.exists()) {

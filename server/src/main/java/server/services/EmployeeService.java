@@ -93,7 +93,7 @@ public class EmployeeService {
             }
 
             // lưu file
-            String filePath = uploadFileService.storeImage("images", file).replace("\\", "/");
+            String filePath = uploadFileService.storeFile("images", file).replace("\\", "/");
 
             // nếu user đã có ảnh đại diện từ xóa cái cũ
             if(account.getEmployee().getAvatar() != null){

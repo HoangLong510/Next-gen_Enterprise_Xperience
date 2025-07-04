@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import server.dtos.ChangePasswordDto;
 import server.dtos.LoginDto;
 import server.services.AuthService;
 import server.utils.ApiResponse;
@@ -42,6 +43,21 @@ public class AuthController {
     public ResponseEntity<?> fetchData(HttpServletRequest request) {
         try {
             ApiResponse<?> response = authService.fetchData(request);
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } catch (Exception e) {
+            ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @RequestHeader("Authorization") String token,
+            @Valid @RequestBody ChangePasswordDto request,
+            BindingResult result
+    ) {
+        try {
+            ApiResponse<?> response = authService.changePassword(token, request, result);
             return ResponseEntity.status(response.getStatus()).body(response);
         } catch (Exception e) {
             ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
