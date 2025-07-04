@@ -56,3 +56,22 @@ export const logoutApi = async () => {
 		}
 	}
 }
+
+export const changePasswordApi = async (form) => {
+	try {
+		const res = await api.post("/auth/change-password", form, {
+			headers: {
+				"Content-Type": "application/json"
+			}
+		})
+		return res.data
+	} catch (error) {
+		if (error.response) {
+			return error.response.data
+		}
+		return {
+			status: 500,
+			message: "server-is-busy"
+		}
+	}
+}

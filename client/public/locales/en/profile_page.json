@@ -27,5 +27,6 @@
   "Joined": "Joined",
   "OngoingAndCompletedProjects": "Ongoing & completed projects",
   "TotalCompletedTasks": "Total completed tasks",
-  "CompanyJoinDate": "Company join date"
+  "CompanyJoinDate": "Company join date",
+  "Logout": "Logout"
 }

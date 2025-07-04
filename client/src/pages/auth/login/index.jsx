@@ -56,7 +56,7 @@ export default function Login() {
 					})
 				})
 			}
-			dispatch(setPopup({ type: "error", message: String(res.message) }))
+			dispatch(setPopup({ type: "error", message: res.message }))
 		} else {
 			localStorage.setItem("accessToken", res.data.accessToken)
 			localStorage.setItem("refreshToken", res.data.refreshToken)
@@ -67,7 +67,7 @@ export default function Login() {
 				dispatch(
 					setPopup({
 						type: "error",
-						message: String(fetchAccountData.message)
+						message: fetchAccountData.message
 					})
 				)
 			} else {

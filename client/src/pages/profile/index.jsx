@@ -14,6 +14,8 @@ import {
     Star,
     EmojiEvents,
     AssignmentTurnedIn,
+    Logout,
+    Key
 } from "@mui/icons-material"
 import {useDispatch, useSelector} from "react-redux";
 import {useTranslation} from "react-i18next";
@@ -23,6 +25,8 @@ import CustomAvatar from "~/components/custom-avatar/index.jsx";
 import {changeAvatarApi} from "~/services/employee.service.js";
 import {setPopup} from "~/libs/features/popup/popupSlice.js";
 import {setAccount} from "~/libs/features/account/accountSlice.js";
+import {setPopupLogout} from "~/libs/features/popupLogout/popupLogoutSlice";
+import {setChangePassword} from "~/libs/features/changePassword/changePasswordSlice.js"; // Import setPopupLogout
 
 export default function ProfilePage() {
     const theme = useTheme()
@@ -88,6 +92,11 @@ export default function ProfilePage() {
         value: formatDate(account.createdAt, i18n.language),
         subtitle: t("CompanyJoinDate"),
     },];
+
+    // Hàm xử lý khi nhấn nút "Logout"
+    const handleLogout = () => {
+        dispatch(setPopupLogout());
+    };
 
     return (
         <>
@@ -434,6 +443,7 @@ export default function ProfilePage() {
                                         variant="contained"
                                         startIcon={<Edit/>}
                                         sx={{
+                                            width: {xs: "100%", md: "auto"},
                                             textTransform: "none",
                                             background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
                                             boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.3)}`,
@@ -448,9 +458,12 @@ export default function ProfilePage() {
                                     </Button>
                                     <Button
                                         variant="outlined"
+                                        startIcon={<Key/>}
+                                        onClick={() => dispatch(setChangePassword())}
                                         sx={{
+                                            width: {xs: "100%", md: "auto"},
                                             textTransform: "none",
-                                            borderColor: alpha(theme.palette.primary.main, 0.3),
+                                            borderColor: alpha(theme.palette.primary.main, 0.4),
                                             color: theme.palette.primary.main,
                                             "&:hover": {
                                                 borderColor: theme.palette.primary.main,
@@ -460,6 +473,24 @@ export default function ProfilePage() {
                                         }}
                                     >
                                         {t("ChangePassword")}
+                                    </Button>
+                                    <Button
+                                        variant="outlined"
+                                        startIcon={<Logout/>}
+                                        onClick={handleLogout}
+                                        sx={{
+                                            width: {xs: "100%", md: "auto"},
+                                            textTransform: "none",
+                                            borderColor: alpha(theme.palette.error.main, 0.4),
+                                            color: theme.palette.error.main,
+                                            "&:hover": {
+                                                borderColor: theme.palette.error.main,
+                                                background: alpha(theme.palette.error.main, 0.05),
+                                            },
+                                            transition: "all 0.3s ease-in-out",
+                                        }}
+                                    >
+                                        {t("Logout")}
                                     </Button>
                                 </Box>
                             </CardContent>

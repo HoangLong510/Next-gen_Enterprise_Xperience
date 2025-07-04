@@ -271,7 +271,6 @@ export default function HeaderAuth() {
                 transformOrigin={{horizontal: "right", vertical: "top"}}
                 anchorOrigin={{horizontal: "right", vertical: "bottom"}}
             >
-                {/* User Info Header */}
                 <Box
                     sx={{
                         p: 3,
@@ -361,7 +360,6 @@ export default function HeaderAuth() {
                     </Box>
                 </Box>
 
-                {/* Language Toggle */}
                 <Box
                     sx={{
                         p: 2,

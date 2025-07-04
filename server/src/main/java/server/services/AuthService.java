@@ -1,11 +1,13 @@
 package server.services;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
+import server.dtos.ChangePasswordDto;
 import server.dtos.LoginDto;
 import server.dtos.ProfileDto;
 import server.dtos.TokenDto;
@@ -123,5 +125,41 @@ public class AuthService {
         profileDto.setAvatar(account.getEmployee().getAvatar());
 
         return ApiResponse.success(profileDto, "");
+    }
+
+    @Transactional
+    public ApiResponse<?> changePassword(String token, ChangePasswordDto request, BindingResult result) {
+        String accessToken = token.substring(7);
+        String username = jwtUtil.extractUsername(accessToken);
+        Account account = accountRepository.findByUsername(username).orElse(null);
+        if (account == null) {
+            return ApiResponse.badRequest("please-login-to-continue");
+        }
+
+        if (result.hasErrors()) {
+            return ApiResponse.badRequest(result);
+        }
+
+        if(!request.getNewPassword().equals(request.getConfirmNewPassword())) {
+            result.rejectValue("newConfirmPassword", "", "confirm-password-does-not-match");
+            return ApiResponse.badRequest(result);
+        }
+
+        if(!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
+            result.rejectValue("password", "", "password-does-not-match");
+            return ApiResponse.badRequest(result);
+        }
+
+        if(passwordEncoder.matches(request.getNewPassword(), account.getPassword())) {
+            result.rejectValue("newPassword", "", "do-not-set-the-same-password-as-the-old-one");
+            return ApiResponse.badRequest(result);
+        }
+
+        account.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        accountRepository.save(account);
+
+        tokenRepository.removeAllByAccount(account);
+
+        return ApiResponse.success(account, "change-password-successfully");
     }
 }
