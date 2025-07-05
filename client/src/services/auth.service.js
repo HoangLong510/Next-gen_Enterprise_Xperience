@@ -19,32 +19,11 @@ export const loginApi = async (form) => {
 	}
 }
 
-export const refreshTokenApi = async (refreshToken) => {
-	try {
-		const res = await api.get("/auth/refresh-token", {
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${refreshToken}`
-			}
-		})
-		return res.data
-	} catch (error) {
-		if (error.response) {
-			return error.response.data
-		}
-		return {
-			status: 500,
-			message: "server-is-busy"
-		}
-	}
-}
-
-export const fetchAccountDataApi = async (accessToken) => {
+export const fetchAccountDataApi = async () => {
 	try {
 		const res = await api.get("/auth/fetch-data", {
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${accessToken}`
 			}
 		})
 		return res.data
@@ -59,12 +38,30 @@ export const fetchAccountDataApi = async (accessToken) => {
 	}
 }
 
-export const logoutApi = async (accessToken) => {
+export const logoutApi = async () => {
 	try {
 		const res = await api.get("/auth/logout", {
 			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${accessToken}`
+				"Content-Type": "application/json"
+			}
+		})
+		return res.data
+	} catch (error) {
+		if (error.response) {
+			return error.response.data
+		}
+		return {
+			status: 500,
+			message: "server-is-busy"
+		}
+	}
+}
+
+export const changePasswordApi = async (form) => {
+	try {
+		const res = await api.post("/auth/change-password", form, {
+			headers: {
+				"Content-Type": "application/json"
 			}
 		})
 		return res.data

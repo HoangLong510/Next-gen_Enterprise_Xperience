@@ -56,6 +56,10 @@ public class ApiResponse<T> {
                 (null, "validation-errors", 400, errors);
     }
 
+    public static <T> ApiResponse<T> badRequest(String message) {
+        return new ApiResponse<>(null, message, 400, null);
+    }
+
     //unAuthorized
     public static <T> ApiResponse<T> unauthorized() {
         return new ApiResponse<>(null, "unauthorized", 401, null);

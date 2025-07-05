@@ -1,10 +1,10 @@
 package server.dtos;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.time.LocalDate;
 
 @Data
 public class CreateEmployeeDto {
@@ -60,6 +60,11 @@ public class CreateEmployeeDto {
             message = "invalid-gender"
     )
     private String gender;
+
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    @NotNull(message = "date-of-birth-cannot-be-null")
+    @Past(message = "date-of-birth-must-be-in-the-past")
+    private LocalDate dateBirth;
 
     @NotBlank(message = "role-is-required")
     @Pattern(

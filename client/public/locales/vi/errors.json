@@ -6,8 +6,10 @@
 	"username-already-exists": "Tên đăng nhập đã tồn tại",
 
 	"password-is-required": "Mật khẩu là bắt buộc",
-	"password-does-not-match": "Mật khẩu không khớp",
+	"password-does-not-match": "Mật khẩu không đúng",
 	"password-must-be-between-6-and-30-characters": "Mật khẩu phải từ 6 đến 30 ký tự",
+
+	"do-not-set-the-same-password-as-the-old-one": "Không đặt mật khẩu giống như mật khẩu cũ",
 
 	"confirm-password-is-required": "Xác nhận mật khẩu là bắt buộc",
 	"confirm-password-does-not-match": "Xác nhận mật khẩu không khớp",

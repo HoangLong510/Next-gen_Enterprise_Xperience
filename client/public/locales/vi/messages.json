@@ -10,5 +10,12 @@
 	"failed-to-register-user": "Đăng kí người dùng thất bại. Xin vui lòng thữ lại sau",
 	"registered-successfully": "Đăng kí người dùng thành công. Xin vui lòng đăng nhập để tiếp tục",
 	"employee-created-successfully": "Đã tạo nhân viên thành công",
-	"the-path-you-are-trying-to-access-is-invalid": "Đường dẫn bạn truy cập không hợp lệ"
+	"the-path-you-are-trying-to-access-is-invalid": "Đường dẫn bạn truy cập không hợp lệ",
+	"change-avatar-successfully": "Thay đổi ảnh đại diện thành công",
+	"error-uploading-file": "Có lỗi khi tải tệp lên, vui lòng thử tệp khác",
+	"invalid-image-type": "Loại hình ảnh không hợp lệ, chỉ hỗ trợ các tệp JPG, PNG, GIF",
+	"file-is-empty": "Tập tin trống",
+	"file-too-large": "Tệp quá lớn, chỉ hỗ trợ các tệp có kích thước dưới 5mb",
+	"new-password-same-as-old-password": "Bạn không thể đặt mật khẩu mới giống mật khẩu cũ",
+	"change-password-successfully": "Thay đổi mật khẩu thành công, vui lòng đăng nhập lại để tiếp tục"
 }

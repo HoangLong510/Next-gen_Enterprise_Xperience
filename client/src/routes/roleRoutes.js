@@ -1,5 +1,5 @@
 import DefaultLayout from "~/layouts/default_layout"
-import Home from "~/pages/home"
+import Home from "~/pages/index.jsx"
 import ListAccounts from "~/pages/management/accounts/list-accounts"
 import DocumentList from "~/pages/management/document/DocumentList"
 

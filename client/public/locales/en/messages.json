@@ -10,5 +10,12 @@
 	"failed-to-register-user": "User registration failed. Please try again later",
 	"registered-successfully": "User registration successful. Please login to continue.",
 	"employee-created-successfully": "Employee created successfully",
-	"the-path-you-are-trying-to-access-is-invalid": "The path you are trying to access is invalid"
+	"the-path-you-are-trying-to-access-is-invalid": "The path you are trying to access is invalid",
+	"change-avatar-successfully": "Change avatar successfully",
+	"error-uploading-file": "Error uploading file, please try another file",
+	"invalid-image-type": "Invalid image type, only JPG, PNG, GIF files are supported",
+	"file-is-empty": "File is empty",
+	"file-too-large": "File too large, only supports files under 5mb in size",
+	"new-password-same-as-old-password": "You cannot set a new password that is the same as the old password",
+	"change-password-successfully": "Password changed successfully, please log in again to continue"
 }
