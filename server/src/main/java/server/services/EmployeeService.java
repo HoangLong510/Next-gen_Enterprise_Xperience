@@ -1,6 +1,8 @@
 package server.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
@@ -14,8 +16,6 @@ import server.repositories.AccountRepository;
 import server.repositories.EmployeeRepository;
 import server.utils.ApiResponse;
 import server.utils.JwtUtil;
-
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -54,6 +54,7 @@ public class EmployeeService {
         account.setUsername(request.getUsername());
         account.setPassword(passwordEncoder.encode(request.getPassword()));
         account.setRole(Role.valueOf(request.getRole()));
+        account.setEnabled(true);
 
         Employee employee = new Employee();
         employee.setFirstName(request.getFirstName());
@@ -69,14 +70,11 @@ public class EmployeeService {
         return ApiResponse.created(null, "employee-created-successfully");
     }
 
-    public ApiResponse<?> changeAvatar(String token, MultipartFile file){
+    public ApiResponse<?> changeAvatar(MultipartFile file){
         try{
-            String accessToken = token.substring(7);
-            String username = jwtUtil.extractUsername(accessToken);
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
             Account account = accountRepository.findByUsername(username).orElse(null);
-            if (account == null) {
-                return ApiResponse.unauthorized();
-            }
 
             // nếu không có file
             if(file.isEmpty()){

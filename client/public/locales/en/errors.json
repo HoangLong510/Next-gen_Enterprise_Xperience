@@ -4,6 +4,7 @@
 	"username-must-start-with-a-lowercase-letter-and-contain-only-lowercase-letters-and-numbers": "Username must start with a lowercase letter and contain only lowercase letters and numbers",
 	"username-does-not-exist": "Username does not exist",
 	"username-already-exists": "Username already exists",
+	"account-is-disabled": "Account is disabled",
 
 	"password-is-required": "Password is required",
 	"password-does-not-match": "Password does not match",

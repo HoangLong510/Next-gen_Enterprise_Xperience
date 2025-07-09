@@ -51,13 +51,9 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
-    public ResponseEntity<?> changePassword(
-            @RequestHeader("Authorization") String token,
-            @Valid @RequestBody ChangePasswordDto request,
-            BindingResult result
-    ) {
+    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordDto request, BindingResult result) {
         try {
-            ApiResponse<?> response = authService.changePassword(token, request, result);
+            ApiResponse<?> response = authService.changePassword(request, result);
             return ResponseEntity.status(response.getStatus()).body(response);
         } catch (Exception e) {
             ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());

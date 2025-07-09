@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
@@ -27,8 +29,14 @@ public class AuthService {
     private final TokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final RecaptchaService recaptchaService;
 
     public ApiResponse<?> login(LoginDto request, BindingResult result) {
+        boolean captchaValid = recaptchaService.verify(request.getCaptchaToken());
+        if (!captchaValid) {
+            return ApiResponse.badRequest("captcha-verification-failed");
+        }
+
         if (result.hasErrors()) {
             return ApiResponse.badRequest(result);
         }
@@ -40,6 +48,11 @@ public class AuthService {
         if (!passwordEncoder.matches(request.getPassword(), account.get().getPassword())) {
             result.rejectValue("password", "", "password-does-not-match");
             return ApiResponse.badRequest(result);
+        }
+
+        if(!account.get().isEnabled()){
+            result.rejectValue("username", "", "account-is-disabled");
+            return ApiResponse.badRequest(result, "account-is-disabled");
         }
 
         String accessToken = jwtUtil.generateAccessToken(account.get());
@@ -128,12 +141,13 @@ public class AuthService {
     }
 
     @Transactional
-    public ApiResponse<?> changePassword(String token, ChangePasswordDto request, BindingResult result) {
-        String accessToken = token.substring(7);
-        String username = jwtUtil.extractUsername(accessToken);
+    public ApiResponse<?> changePassword(ChangePasswordDto request, BindingResult result) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
         Account account = accountRepository.findByUsername(username).orElse(null);
+
         if (account == null) {
-            return ApiResponse.badRequest("please-login-to-continue");
+            return ApiResponse.unauthorized();
         }
 
         if (result.hasErrors()) {

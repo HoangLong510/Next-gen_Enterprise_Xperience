@@ -17,7 +17,7 @@ import server.utils.ApiResponse;
 public class EmployeeController {
     private final EmployeeService employeeService;
 
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @PostMapping("/create")
     public ResponseEntity<?> create(@Valid @RequestBody CreateEmployeeDto request, BindingResult result) {
         try {
@@ -30,9 +30,9 @@ public class EmployeeController {
     }
 
     @PostMapping("/change-avatar")
-    public ResponseEntity<?> changeAvatar(@RequestHeader("Authorization") String token, @RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> changeAvatar(@RequestParam("file") MultipartFile file) {
         try{
-            ApiResponse<?> response = employeeService.changeAvatar(token, file);
+            ApiResponse<?> response = employeeService.changeAvatar(file);
             return ResponseEntity.status(response.getStatus()).body(response);
         } catch (Exception e) {
             ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());

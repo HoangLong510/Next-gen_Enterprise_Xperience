@@ -5,5 +5,6 @@
 	"Password": "Password",
 	"Forgot password": "Forgot password",
 	"Accounts are provided by the administrator only": "Accounts are provided by the administrator only",
-	"Verifying": "Verifying..."
+	"Verifying": "Verifying...",
+	"PleaseVerifyCaptcha": "You need to confirm that you are not a robot"
 }
