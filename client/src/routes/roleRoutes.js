@@ -1,6 +1,6 @@
 import DefaultLayout from "~/layouts/default_layout"
-import Home from "~/pages/index.jsx"
 import ListAccounts from "~/pages/management/accounts/list-accounts"
+import DocumentDetail from "~/pages/management/document/DocumentDetail"
 import DocumentList from "~/pages/management/document/DocumentList"
 
 const roleRoutes = [
@@ -8,14 +8,20 @@ const roleRoutes = [
 		path: "/management/accounts",
 		component: ListAccounts,
 		layout: DefaultLayout,
-		role: "ADMIN"
+		roles: ["ADMIN"]
 	},
 	{
 		path: "/management/documents",
 		component: DocumentList,
 		layout: DefaultLayout,
-		role: "ADMIN"
-	}
+		roles: ["ADMIN", "MANAGER", "PM"]
+	},
+	{
+        path: "/management/documents/:id",
+        component: DocumentDetail,
+        layout: DefaultLayout,
+        roles: ["ADMIN", "MANAGER", "PM"]
+    },
 ]
 
 export default roleRoutes
