@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react"
 import React from "react"
 import { Link } from "react-router-dom"
 import HeaderAuth from "./header-auth"
+import HeaderNotifaication from "./header-notifaication"
 
 export default function Header({ open, setOpen }) {
 	const ToggleMenu = () => {
@@ -38,7 +39,9 @@ export default function Header({ open, setOpen }) {
 			</Box>
 
 			<Box sx={{ display: "flex", alignItems: "center", gap: "20px" }}>
+				<HeaderNotifaication />
 				<HeaderAuth />
+				
 			</Box>
 		</Box>
 	)

@@ -15,7 +15,6 @@ import server.repositories.AccountRepository;
 import server.specification.AccountSpecifications;
 import server.utils.ApiResponse;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,5 +84,9 @@ public class AccountService {
         responseData.put("totalEnabled", totalEnabled);
 
         return ApiResponse.success(responseData, "get-accounts-page-success");
+    }
+  
+    public List<Account> getAccountsByRole(Role role) {
+        return accountRepository.findByRole(role);
     }
 }
