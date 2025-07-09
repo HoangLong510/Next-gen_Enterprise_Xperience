@@ -56,7 +56,7 @@ public class CreateEmployeeDto {
 
     @NotBlank(message = "gender-is-required")
     @Pattern(
-            regexp = "^(MALE|FEMALE|OTHER)$",
+            regexp = "^(MALE|FEMALE|ORTHER)$",
             message = "invalid-gender"
     )
     private String gender;

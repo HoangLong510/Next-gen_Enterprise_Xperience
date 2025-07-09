@@ -56,6 +56,18 @@ public class ApiResponse<T> {
                 (null, "validation-errors", 400, errors);
     }
 
+    public static <T> ApiResponse<T>
+    badRequest(BindingResult bindingResult, String message) {
+        Map<String, String> errors = new HashMap<>();
+
+        for (FieldError error : bindingResult.getFieldErrors()) {
+            errors.put(error.getField(), error.getDefaultMessage());
+        }
+
+        return new ApiResponse<>
+                (null, message, 400, errors);
+    }
+
     public static <T> ApiResponse<T> badRequest(String message) {
         return new ApiResponse<>(null, message, 400, null);
     }

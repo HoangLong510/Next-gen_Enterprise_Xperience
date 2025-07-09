@@ -17,5 +17,7 @@
 	"file-is-empty": "Tập tin trống",
 	"file-too-large": "Tệp quá lớn, chỉ hỗ trợ các tệp có kích thước dưới 5mb",
 	"new-password-same-as-old-password": "Bạn không thể đặt mật khẩu mới giống mật khẩu cũ",
-	"change-password-successfully": "Thay đổi mật khẩu thành công, vui lòng đăng nhập lại để tiếp tục"
+	"change-password-successfully": "Thay đổi mật khẩu thành công, vui lòng đăng nhập lại để tiếp tục",
+	"captcha-verification-failed": "Xác minh token thất bại",
+	"account-is-disabled": "Tài khoản của bạn đã bị khóa! Vui lòng liên hệ với quản trị viên để biết thêm thông tin chi tiết"
 }
