@@ -67,7 +67,7 @@ export const menuItems = [
 			{
 				label: "Dispatches",
 				icon: AssignmentIcon,
-				href: "/utilities/dispatches",
+				href: "/management/documents",
 				roles: ["ADMIN", "MANAGER", "PM"]
 			},
 			{

@@ -48,7 +48,8 @@ public class SecurityConfig {
                                 "/auth/login",
                                 "/auth/fetch-data",
                                 "/auth/refresh-token",
-                                "/uploads/**"
+                                "/uploads/**",
+                                "/ws/**", "/ws", "/ws/info" , "/ws/info/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

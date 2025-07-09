@@ -2,6 +2,7 @@ package server.dtos;
 
 import lombok.Data;
 import server.models.enums.DocumentStatus;
+import server.models.enums.DocumentType;
 
 import java.time.LocalDateTime;
 
@@ -12,9 +13,10 @@ public class DocumentResponseDto {
     private String content;
     private String fileUrl;
     private String createdBy;
-    private String projectManager;
+    private String receiver;
     private Long relatedProjectId;
     private LocalDateTime createdAt;
     private DocumentStatus status;
+    private DocumentType type;
     private byte[] file;
 }

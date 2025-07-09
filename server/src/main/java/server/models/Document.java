@@ -3,6 +3,7 @@ package server.models;
 import jakarta.persistence.*;
 import lombok.*;
 import server.models.enums.DocumentStatus;
+import server.models.enums.DocumentType;
 
 import java.time.LocalDateTime;
 
@@ -28,8 +29,8 @@ public class Document {
     private Account createdBy;
 
     @ManyToOne
-    @JoinColumn(name = "project_manager_id")
-    private Account projectManager;
+    @JoinColumn(name = "receiver_id")
+    private Account receiver;
 
 //    @ManyToOne
 //    @JoinColumn(name = "related_project_id", nullable = true)
@@ -39,4 +40,7 @@ public class Document {
 
     @Enumerated(EnumType.STRING)
     private DocumentStatus status;
+
+    @Enumerated(EnumType.STRING)
+    private DocumentType type;
 }

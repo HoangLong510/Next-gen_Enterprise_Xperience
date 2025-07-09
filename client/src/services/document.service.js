@@ -53,3 +53,31 @@ export const createDocumentApi = async (form, accessToken) => {
 		return { status: 500, message: "server-is-busy" }
 	}
 }
+
+// Xem chi tiết document (ADMIN, MANAGER, PM)
+export const fetchDocumentDetailApi = async (id) => {
+	try {
+		const res = await api.get(`/documents/${id}`);
+		return res.data;
+	} catch (error) {
+		if (error.response) {
+			return error.response.data;
+		}
+		return { status: 500, message: "server-is-busy" };
+	}
+}
+
+export const downloadDocumentFileApi = async (id) => {
+  try {
+    const res = await api.get(`/documents/download/${id}`, {
+      responseType: 'blob' // quan trọng: để nhận file dạng blob
+    });
+    return res;
+  } catch (error) {
+    if (error.response) {
+      return error.response.data;
+    }
+    return { status: 500, message: "server-is-busy" };
+  }
+}
+

@@ -34,9 +34,9 @@ public class NotificationService {
             case DOCUMENT -> {
                 Document doc = documentRepository.findById(referenceId)
                         .orElseThrow(() -> new IllegalArgumentException("Document not found"));
-                recipient = doc.getProjectManager();
+                recipient = doc.getReceiver();
                 if (recipient == null) {
-                    throw new IllegalArgumentException("Document has no project manager assigned");
+                    throw new IllegalArgumentException("Document has no receiver assigned");
                 }
                 title = "Công văn mới cần xử lý";
                 content = "Công văn: " + doc.getTitle();

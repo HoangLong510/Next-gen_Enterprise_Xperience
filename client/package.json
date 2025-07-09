@@ -23,6 +23,7 @@
 		"i18next-browser-languagedetector": "^8.2.0",
 		"i18next-http-backend": "^3.0.2",
 		"lucide-react": "^0.522.0",
+		"notistack": "^3.0.2",
 		"react": "^19.1.0",
 		"react-dom": "^19.1.0",
 		"react-google-recaptcha": "^3.1.0",

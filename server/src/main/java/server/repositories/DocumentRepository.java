@@ -10,5 +10,5 @@ import java.util.List;
 
 @Repository
 public interface DocumentRepository extends JpaRepository<Document, Long> {
-    List<Document> findByProjectManager(Account projectManager);
+    List<Document> findByReceiver(Account receiver);
 }
