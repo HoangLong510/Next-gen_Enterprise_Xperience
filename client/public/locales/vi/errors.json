@@ -4,6 +4,7 @@
 	"username-must-start-with-a-lowercase-letter-and-contain-only-lowercase-letters-and-numbers": "Tên đăng nhập phải bắt đầu bằng chữ thường và chỉ chứa chữ thường hoặc số",
 	"username-does-not-exist": "Tên đăng nhập không tồn tại",
 	"username-already-exists": "Tên đăng nhập đã tồn tại",
+	"account-is-disabled": "Tài khoản bị khóa",
 
 	"password-is-required": "Mật khẩu là bắt buộc",
 	"password-does-not-match": "Mật khẩu không đúng",

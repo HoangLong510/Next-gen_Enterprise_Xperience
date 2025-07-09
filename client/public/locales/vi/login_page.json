@@ -5,5 +5,6 @@
 	"Password": "Mật khẩu",
 	"Forgot password": "Quên mật khẩu",
 	"Accounts are provided by the administrator only": "Tài khoản được cung cấp bởi quản trị viên",
-	"Verifying": "Đang xác minh..."
+	"Verifying": "Đang xác minh...",
+	"PleaseVerifyCaptcha": "Bạn cần xác nhận rằng mình không phải là robot"
 }

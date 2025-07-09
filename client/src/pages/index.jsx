@@ -1,14 +1,11 @@
-import {useTranslation} from "react-i18next";
-import {Helmet} from "react-helmet-async";
+import { useTranslation } from "react-i18next"
 
 export default function HomePage() {
-	const {t} = useTranslation("home_page")
+	const { t } = useTranslation("home_page")
 
 	return (
 		<>
-			<Helmet>
-				<title>{t("homepage")}</title>
-			</Helmet>
+			<title>{t("homepage")}</title>
 			{/*  */}
 			Home
 		</>

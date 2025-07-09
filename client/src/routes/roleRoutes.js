@@ -1,13 +1,14 @@
 import DefaultLayout from "~/layouts/default_layout"
-import Home from "~/pages/index.jsx"
-import ListAccounts from "~/pages/management/accounts/list-accounts"
+import AccountsManagement from "~/pages/management/accounts/index.jsx";
 
 const roleRoutes = [
 	{
 		path: "/management/accounts",
-		component: ListAccounts,
+		component: AccountsManagement,
 		layout: DefaultLayout,
-		role: "ADMIN"
+		roles: [
+			"ADMIN"
+		]
 	}
 ]
 
