@@ -29,6 +29,22 @@ public class UploadFileService {
         return filePath;
     }
 
+    public String storeFileFromBytes(String supFolder, String fileName, byte[] fileBytes) throws IOException {
+        String exactFolderPath = uploadFolder + File.separator + supFolder;
+        File directory = new File(exactFolderPath);
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+        String uniqueFileName = UUID.randomUUID().toString() + "_" + fileName;
+        String filePath = exactFolderPath + File.separator + uniqueFileName;
+        Path destination = Paths.get(filePath);
+        Files.write(destination, fileBytes);
+
+        // Trả về URL public
+        return "/uploads/" + supFolder + "/" + uniqueFileName;
+    }
+
+
     public void deleteFile(String fileUrl) throws IOException {
         Path path = Paths.get(fileUrl);
         Files.deleteIfExists(path);

@@ -17,5 +17,10 @@
 	"file-is-empty": "File is empty",
 	"file-too-large": "File too large, only supports files under 5mb in size",
 	"new-password-same-as-old-password": "You cannot set a new password that is the same as the old password",
-	"change-password-successfully": "Password changed successfully, please log in again to continue"
+	"change-password-successfully": "Password changed successfully, please log in again to continue",
+	"captcha-verification-failed": "Captcha verification failed",
+	"account-is-disabled": "Your account has been disabled! Please contact the administrator for more details",
+	"create-department-success": "Create department successfully",
+	"edit-department-success": "Edit department successfully",
+	"update-department-success": "Update department successfully"
 }

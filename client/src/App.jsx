@@ -66,7 +66,7 @@ function App() {
 							key={route.path}
 							path={route.path}
 							element={
-								account && account.role === route.role ? (
+								account && route.roles && route.roles.includes(account.role) ? (
 									<Layout>
 										<Page />
 									</Layout>

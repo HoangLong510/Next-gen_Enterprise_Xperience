@@ -4,6 +4,7 @@
 	"username-must-start-with-a-lowercase-letter-and-contain-only-lowercase-letters-and-numbers": "Username must start with a lowercase letter and contain only lowercase letters and numbers",
 	"username-does-not-exist": "Username does not exist",
 	"username-already-exists": "Username already exists",
+	"account-is-disabled": "Account is disabled",
 
 	"password-is-required": "Password is required",
 	"password-does-not-match": "Password does not match",
@@ -35,5 +36,17 @@
 	"address-is-required": "Address is required",
 
 	"gender-is-required": "Gender is required",
-	"invalid-gender": "Invalid gender"
+	"invalid-gender": "Invalid gender",
+
+	"invalid-image-type": "Invalid image type, only JPG, PNG, GIF files are supported",
+	"file-is-empty": "File is empty",
+	"file-too-large": "File too large, only supports files under 5mb in size",
+
+	"department-already-exists": "Department already exists",
+	"hod-id-not-found": "Head of department not found",
+	"hod-role-is-invalid": "Head of department role is invalid",
+	"the-hod-has-a-department": "The head of department has a department",
+	"department-name-is-required": "Department name is required",
+	"department-description-is-required": "Department description is required",
+	"hod-is-required": "Head of department is required"
 }
