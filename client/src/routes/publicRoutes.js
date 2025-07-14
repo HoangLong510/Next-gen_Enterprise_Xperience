@@ -1,6 +1,8 @@
 import DefaultLayout from "~/layouts/default_layout"
 import HomePage from "~/pages/index.jsx"
+import LeaveRequest from "~/pages/leave-request"
 import ProfilePage from "~/pages/profile"
+
 
 const publicRoutes = [
 	{
@@ -11,6 +13,11 @@ const publicRoutes = [
 	{
 		path: "/profile",
 		component: ProfilePage,
+		layout: DefaultLayout
+	},
+	{
+		path: "/leave-request",
+		component: LeaveRequest,
 		layout: DefaultLayout
 	}
 ]
