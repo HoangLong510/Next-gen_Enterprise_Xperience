@@ -55,7 +55,7 @@ export const menuItems = [
 			{
 				label: "Departments",
 				icon: Diversity1Icon,
-				href: "/utilities/departments",
+				href: "/departments",
 				roles: ["ADMIN", "MANAGER", "HOD", "EMPLOYEE"]
 			},
 			{

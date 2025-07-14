@@ -137,6 +137,14 @@ public class AuthService {
         profileDto.setCreatedAt(account.getCreatedAt());
         profileDto.setAvatar(account.getEmployee().getAvatar());
 
+        if(account.getEmployee().getDepartment() != null) {
+            profileDto.setDepartment(account.getEmployee().getDepartment().getName());
+        }
+
+        if(account.getEmployee().getHodDepartment() != null) {
+            profileDto.setDepartment(account.getEmployee().getHodDepartment().getName());
+        }
+
         return ApiResponse.success(profileDto, "");
     }
 

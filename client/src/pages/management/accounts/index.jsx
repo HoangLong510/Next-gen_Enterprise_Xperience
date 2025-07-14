@@ -241,6 +241,7 @@ export default function AccountList() {
 						))}
 					</Box>
 				</Box>
+
 				{/* Stats Section */}
 				<Box
 					sx={{
@@ -440,6 +441,7 @@ export default function AccountList() {
 							)
 						})}
 					</Box>
+
 					{/* Controls Section */}
 					<Stack spacing={3} direction={{ xs: "column", sm: "row" }}>
 						{/* Search Field */}

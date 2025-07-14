@@ -1,27 +1,8 @@
-import api from "~/utils/axios.js"
+import api from "~/utils/axios"
 
-export const changeAvatarApi = async (form) => {
+export const getDepartmentsPageApi = async (body) => {
 	try {
-		const res = await api.post("/employees/change-avatar", form, {
-			headers: {
-				"Content-Type": "multipart/form-data"
-			}
-		})
-		return res.data
-	} catch (error) {
-		if (error.response) {
-			return error.response.data
-		}
-		return {
-			status: 500,
-			message: "server-is-busy"
-		}
-	}
-}
-
-export const getListHodApi = async () => {
-	try {
-		const res = await api.get("/employees/get-list-hod", {
+		const res = await api.post("/departments/get-departments-page", body, {
 			headers: {
 				"Content-Type": "application/json"
 			}
@@ -38,11 +19,30 @@ export const getListHodApi = async () => {
 	}
 }
 
-export const getEmployeesToAddToDepartmentApi = async (data) => {
+export const createDepartmentApi = async (form) => {
+	try {
+		const res = await api.post("/departments/create", form, {
+			headers: {
+				"Content-Type": "multipart/form-data"
+			}
+		})
+		return res.data
+	} catch (error) {
+		if (error.response) {
+			return error.response.data
+		}
+		return {
+			status: 500,
+			message: "server-is-busy"
+		}
+	}
+}
+
+export const toggleEmployeeToDepartmentApi = async (body) => {
 	try {
 		const res = await api.post(
-			"/employees/get-employees-to-add-to-department",
-			data,
+			"/departments/toggle-add-or-remove-employee",
+			body,
 			{
 				headers: {
 					"Content-Type": "application/json"

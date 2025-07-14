@@ -16,5 +16,6 @@ public class ProfileDto {
     private String gender;
     private String role;
     private String avatar;
+    private String department;
     private LocalDateTime createdAt;
 }
