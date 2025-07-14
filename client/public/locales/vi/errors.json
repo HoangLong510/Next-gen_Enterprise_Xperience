@@ -36,5 +36,17 @@
 	"address-is-required": "Địa chỉ là bắt buộc",
 
 	"gender-is-required": "Giới tính là bắt buộc",
-	"invalid-gender": "Giới tính không hợp lệ"
+	"invalid-gender": "Giới tính không hợp lệ",
+
+	"invalid-image-type": "Loại hình ảnh không hợp lệ, chỉ hỗ trợ các tệp JPG, PNG, GIF",
+	"file-is-empty": "Tập tin trống",
+	"file-too-large": "Tệp quá lớn, chỉ hỗ trợ các tệp có kích thước dưới 5mb",
+
+	"department-already-exists": "Phòng ban đã tồn tại",
+	"hod-id-not-found": "Không thể tìm thấy trưởng phòng này",
+	"hod-role-is-invalid": "Vai trò của trưởng phòng không hợp lệ",
+	"the-hod-has-a-department": "Trưởng phòng này đã có phòng ban khác",
+	"department-name-is-required": "Tên phòng ban là bắt buộc",
+	"department-description-is-required": "Mô tả của phòng ban là bắt buộc",
+	"hod-is-required": "Trưởng phòng là bắt buộc"
 }

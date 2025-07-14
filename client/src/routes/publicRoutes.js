@@ -2,6 +2,7 @@ import DefaultLayout from "~/layouts/default_layout"
 import NotificationsPage from "~/pages/notifaication/NotificationList"
 import HomePage from "~/pages/index.jsx"
 import ProfilePage from "~/pages/profile"
+import DepartmentPage from "~/pages/departments"
 
 const publicRoutes = [
 	{
@@ -17,9 +18,13 @@ const publicRoutes = [
 	{
 		path: "/notifications",
 		component: NotificationsPage,
-		layout: DefaultLayout,
-  	}
-
+		layout: DefaultLayout
+	},
+	{
+		path: "/departments",
+		component: DepartmentPage,
+		layout: DefaultLayout
+	}
 ]
 
 export default publicRoutes

@@ -4,6 +4,7 @@ import PersonIcon from "@mui/icons-material/Person"
 import TrendingUpIcon from "@mui/icons-material/TrendingUp"
 import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount"
 import AccountTreeIcon from "@mui/icons-material/AccountTree"
+import GroupIcon from "@mui/icons-material/Group"
 
 export const ROLE_CONFIGS = [
 	{
@@ -35,6 +36,11 @@ export const ROLE_CONFIGS = [
 		value: "EMPLOYEE",
 		color: "primary",
 		icon: PersonIcon
+	},
+	{
+		value: "HR",
+		color: "primary",
+		icon: GroupIcon
 	}
 ]
 

@@ -51,6 +51,14 @@ public class Employee {
     @JsonIgnoreProperties("employee")
     private Account account;
 
+    @ManyToOne
+    @JoinColumn(name = "department_id")
+    private Department department;
+
+    @OneToOne(mappedBy = "hod")
+    @JsonIgnoreProperties("hod")
+    private Department hodDepartment;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
