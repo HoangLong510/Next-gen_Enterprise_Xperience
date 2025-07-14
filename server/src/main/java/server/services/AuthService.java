@@ -31,6 +31,20 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final RecaptchaService recaptchaService;
 
+    //phần thêm của Quân
+    public Account getCurrentAccount(HttpServletRequest request) {
+        String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Bạn chưa đăng nhập!");
+        }
+        String accessToken = authHeader.substring(7);
+        String username = jwtUtil.extractUsername(accessToken);
+        return accountRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản: " + username));
+    }
+    //hết phần thêm
+
+
     public ApiResponse<?> login(LoginDto request, BindingResult result) {
         boolean captchaValid = recaptchaService.verify(request.getCaptchaToken());
         if (!captchaValid) {

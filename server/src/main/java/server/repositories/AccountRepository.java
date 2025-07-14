@@ -13,8 +13,15 @@ import java.util.Optional;
 public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpecificationExecutor<Account> {
     Optional<Account> findByUsername(String username);
 
+    // Lấy danh sách account theo nhiều role
+    List<Account> findByRoleIn(List<Role> roles);
+
+    // Đếm số account theo role
     long countByRole(Role role);
+
+    // Đếm số account theo trạng thái enabled
     long countByEnabled(boolean enabled);
 
+    // Lấy danh sách account theo 1 role
     List<Account> findByRole(Role role);
 }
