@@ -168,7 +168,7 @@ public class DepartmentService {
                 }
             }
 
-            if (!file.isEmpty()) {
+            if (file != null && !file.isEmpty()) {
                 String contentType = file.getContentType();
                 if (contentType == null ||
                         !(contentType.equals("image/jpeg") ||
@@ -183,7 +183,7 @@ public class DepartmentService {
                 return ApiResponse.badRequest(result);
             }
 
-            if (!file.isEmpty()) {
+            if (file != null && !file.isEmpty()) {
                 String filePath = uploadFileService.storeFile("images/departments", file).replace("\\", "/");
                 uploadFileService.deleteFile(department.getImage());
                 department.setImage(filePath);
@@ -217,5 +217,13 @@ public class DepartmentService {
         }
         employeeRepository.save(employee);
         return ApiResponse.success(null, "update-department-success");
+    }
+
+    public ApiResponse<?> getDepartmentById(Long id) {
+        Department department = departmentRepository.findById(id).orElse(null);
+        if (department == null) {
+            return ApiResponse.badRequest("department-not-found");
+        }
+        return ApiResponse.success(department, "get-department-success");
     }
 }

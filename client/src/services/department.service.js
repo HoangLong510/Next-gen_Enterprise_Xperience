@@ -38,6 +38,25 @@ export const createDepartmentApi = async (form) => {
 	}
 }
 
+export const editDepartmentApi = async (form) => {
+	try {
+		const res = await api.post("/departments/edit", form, {
+			headers: {
+				"Content-Type": "multipart/form-data"
+			}
+		})
+		return res.data
+	} catch (error) {
+		if (error.response) {
+			return error.response.data
+		}
+		return {
+			status: 500,
+			message: "server-is-busy"
+		}
+	}
+}
+
 export const toggleEmployeeToDepartmentApi = async (body) => {
 	try {
 		const res = await api.post(
@@ -49,6 +68,25 @@ export const toggleEmployeeToDepartmentApi = async (body) => {
 				}
 			}
 		)
+		return res.data
+	} catch (error) {
+		if (error.response) {
+			return error.response.data
+		}
+		return {
+			status: 500,
+			message: "server-is-busy"
+		}
+	}
+}
+
+export const getDepartmentByIdApi = async (id) => {
+	try {
+		const res = await api.get(`/departments/get-department-by-id/${id}`, {
+			headers: {
+				"Content-Type": "application/json"
+			}
+		})
 		return res.data
 	} catch (error) {
 		if (error.response) {

@@ -38,6 +38,9 @@
 	"gender-is-required": "Gender is required",
 	"invalid-gender": "Invalid gender",
 
+	"date-of-birth-cannot-be-null": "Date of birth cannot be null",
+	"date-of-birth-must-be-in-the-past": "Date of birth must be in the past",
+
 	"invalid-image-type": "Invalid image type, only JPG, PNG, GIF files are supported",
 	"file-is-empty": "File is empty",
 	"file-too-large": "File too large, only supports files under 5mb in size",

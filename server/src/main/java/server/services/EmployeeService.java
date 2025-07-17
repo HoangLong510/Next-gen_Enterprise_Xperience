@@ -16,16 +16,13 @@ import server.dtos.CreateEmployeeDto;
 import server.dtos.EmployeeDepartmentDto;
 import server.dtos.GetEmployeesToAddToDepartmentDto;
 import server.models.Account;
-import server.models.Department;
 import server.models.Employee;
 import server.models.enums.Gender;
 import server.models.enums.Role;
 import server.repositories.AccountRepository;
 import server.repositories.EmployeeRepository;
-import server.specification.DepartmentSpecifications;
 import server.specification.EmployeeSpecification;
 import server.utils.ApiResponse;
-import server.utils.JwtUtil;
 
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +35,6 @@ public class EmployeeService {
     private final PasswordEncoder passwordEncoder;
     private final AccountRepository accountRepository;
     private final UploadFileService uploadFileService;
-    private final JwtUtil jwtUtil;
 
     public ApiResponse<?> create(CreateEmployeeDto request, BindingResult result) {
         if (!request.getPassword().equals(request.getConfirmPassword())) {

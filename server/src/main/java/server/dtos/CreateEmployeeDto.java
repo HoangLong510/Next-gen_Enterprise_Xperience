@@ -36,7 +36,7 @@ public class CreateEmployeeDto {
     @Size(min = 2, max = 30, message = "last-name-must-be-between-2-and-30-characters")
     @Pattern(
             regexp = "^[\\p{L}\\s]+$",
-            message = "first-name-must-contain-only-letters-and-spaces"
+            message = "last-name-must-contain-only-letters-and-spaces"
     )
     private String lastName;
 
@@ -68,7 +68,7 @@ public class CreateEmployeeDto {
 
     @NotBlank(message = "role-is-required")
     @Pattern(
-            regexp = "^(ADMIN|MANAGER|PM|ACCOUNTANT|HOD|EMPLOYEE)$",
+            regexp = "^(ADMIN|MANAGER|PM|HR|ACCOUNTANT|HOD|EMPLOYEE)$",
             message = "invalid-role"
     )
     private String role;
