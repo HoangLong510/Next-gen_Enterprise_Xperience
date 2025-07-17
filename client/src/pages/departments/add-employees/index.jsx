@@ -41,7 +41,10 @@ import CustomAvatar from "~/components/custom-avatar"
 import { getEmployeesToAddToDepartmentApi } from "~/services/employee.service"
 import { useDispatch } from "react-redux"
 import { setPopup } from "~/libs/features/popup/popupSlice"
-import { toggleEmployeeToDepartmentApi } from "~/services/department.service"
+import {
+	getDepartmentByIdApi,
+	toggleEmployeeToDepartmentApi
+} from "~/services/department.service"
 import { useTranslation } from "react-i18next"
 
 export default function AddEmployeeDepartmentPage() {
@@ -50,6 +53,7 @@ export default function AddEmployeeDepartmentPage() {
 	const dispatch = useDispatch()
 	const { t } = useTranslation("department_page")
 
+	const [departmentName, setDepartmentName] = useState("")
 	const [employees, setEmployees] = useState([])
 	const [totalPage, setTotalPage] = useState(0)
 	const [pageNumber, setPageNumber] = useState(1)
@@ -102,6 +106,15 @@ export default function AddEmployeeDepartmentPage() {
 		setLoading(false)
 	}, [pageNumber, searchTerm, filterInDepartment, dispatch, id])
 
+	const handleGetDepartmentById = async () => {
+		setLoading(true)
+		const res = await getDepartmentByIdApi(id)
+		setLoading(false)
+		if (res.status === 200) {
+			setDepartmentName(res.data.name)
+		}
+	}
+
 	useEffect(() => {
 		setPageNumber(1)
 	}, [searchTerm, filterInDepartment])
@@ -114,8 +127,13 @@ export default function AddEmployeeDepartmentPage() {
 		return () => clearTimeout(delayDebounce)
 	}, [pageNumber, searchTerm, filterInDepartment, handleFetchData])
 
+	useEffect(() => {
+		handleGetDepartmentById()
+	}, [])
+
 	return (
-		<Box>
+		<>
+			<title>{t("department-members-management")}</title>
 			<Box>
 				{/* Header Section */}
 				<Box sx={{ mb: 4 }}>
@@ -191,15 +209,13 @@ export default function AddEmployeeDepartmentPage() {
 										variant="h5"
 										sx={{ fontWeight: 700, mb: 1 }}
 									>
-										{t("department-members-management")}
+										{departmentName}
 									</Typography>
 									<Typography
 										variant="body1"
 										sx={{ opacity: 0.9 }}
 									>
-										{t(
-											"add-or-remove-members-from-a-department"
-										)}
+										{t("department-members-management")}
 									</Typography>
 								</Box>
 							</Stack>
@@ -226,7 +242,7 @@ export default function AddEmployeeDepartmentPage() {
 								fullWidth
 								size="small"
 								placeholder={`${t(
-									"enter-name-or-username-to-search"
+									"enter-employees-to-search"
 								)}...`}
 								value={searchTerm}
 								onChange={(e) => setSearchTerm(e.target.value)}
@@ -348,7 +364,7 @@ export default function AddEmployeeDepartmentPage() {
 											fontSize: "1rem"
 										}}
 									>
-										Thông tin
+										{t("information")}
 									</TableCell>
 									<TableCell
 										sx={{
@@ -366,7 +382,7 @@ export default function AddEmployeeDepartmentPage() {
 											fontSize: "1rem"
 										}}
 									>
-										Phone
+										{t("phone-number")}
 									</TableCell>
 									<TableCell
 										sx={{
@@ -375,7 +391,7 @@ export default function AddEmployeeDepartmentPage() {
 											fontSize: "1rem"
 										}}
 									>
-										Trạng thái
+										{t("status")}
 									</TableCell>
 									<TableCell
 										sx={{
@@ -385,7 +401,7 @@ export default function AddEmployeeDepartmentPage() {
 											textAlign: "center"
 										}}
 									>
-										Thao tác
+										{t("action")}
 									</TableCell>
 								</TableRow>
 							</TableHead>
@@ -551,8 +567,12 @@ export default function AddEmployeeDepartmentPage() {
 															}
 															label={
 																employee.inDepartment
-																	? "Đã trong phòng ban"
-																	: "Chưa trong phòng ban"
+																	? t(
+																			"in-department"
+																	  )
+																	: t(
+																			"not-in-department"
+																	  )
 															}
 															color={
 																employee.inDepartment
@@ -691,10 +711,10 @@ export default function AddEmployeeDepartmentPage() {
 									fontWeight: 600
 								}}
 							>
-								Không tìm thấy nhân viên nào
+								{t("no-employees-found")}
 							</Typography>
 							<Typography variant="body2" color="text.secondary">
-								Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc
+								{t("no-employees-found-long")}
 							</Typography>
 						</Box>
 					)}
@@ -719,6 +739,6 @@ export default function AddEmployeeDepartmentPage() {
 					/>
 				</Box>
 			</Box>
-		</Box>
+		</>
 	)
 }

@@ -23,9 +23,17 @@
 	"members": "Members",
 	"department-members-management": "Department members management",
 	"add-or-remove-members-from-a-department": "Add or remove members from a department",
-	"enter-name-or-username-to-search": "Enter name or username to search",
-	"filter-by-status": "Filter by status",
+	"enter-employees-to-search": "Enter employee information to search",
 	"all": "All",
 	"in-department": "In department",
-	"not-in-department": "Not in department"
+	"not-in-department": "Not in department",
+	"information": "Information",
+	"phone-number": "Phone number",
+	"status": "Status",
+	"action": "Action",
+	"no-employees-found": "No employees found",
+	"no-employees-found-long": "No employees were found that matched your search keywords or were suitable for placement in the department",
+	"save": "Save",
+	"edit-department": "Edit department",
+	"edit-departments-in-your-organization": "Edit departments in your organization"
 }

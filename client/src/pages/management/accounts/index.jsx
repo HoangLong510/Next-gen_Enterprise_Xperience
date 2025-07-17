@@ -26,7 +26,8 @@ import {
 	IconButton,
 	Tooltip,
 	Skeleton,
-	Pagination
+	Pagination,
+	Button
 } from "@mui/material"
 import { useTranslation } from "react-i18next"
 import { formatLongDate } from "~/utils/function"
@@ -44,6 +45,8 @@ import { setPopup } from "~/libs/features/popup/popupSlice"
 import { useDispatch } from "react-redux"
 import { ROLE_CONFIGS } from "~/constants/account.constants"
 import RoleChip from "~/components/role-chip"
+import AddIcon from "@mui/icons-material/Add"
+import { Link } from "react-router-dom"
 
 export default function AccountList() {
 	const theme = useTheme()
@@ -464,7 +467,7 @@ export default function AccountList() {
 						{/* Filter Controls */}
 						<Stack
 							direction={{ xs: "column", sm: "row" }}
-							spacing={2}
+							spacing={3}
 							alignItems={{ xs: "stretch", sm: "flex-start" }}
 						>
 							{/* Role Filter */}
@@ -570,6 +573,19 @@ export default function AccountList() {
 								</Select>
 							</FormControl>
 						</Stack>
+						<Button
+							LinkComponent={Link}
+							to="/management/accounts/create"
+							variant="contained"
+							startIcon={<AddIcon />}
+							sx={{
+								textWrap: "nowrap",
+								px: 5,
+								textTransform: "capitalize"
+							}}
+						>
+							{t("AddNew")}
+						</Button>
 					</Stack>
 					{/* Active Filters Display */}
 					{(searchTerm || roleFilter || statusFilter) && (

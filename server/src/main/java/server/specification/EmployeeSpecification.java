@@ -20,6 +20,8 @@ public class EmployeeSpecification {
                     builder.like(builder.lower(accountJoin.get("username")), like),
                     builder.like(builder.lower(root.get("firstName")), like),
                     builder.like(builder.lower(root.get("lastName")), like),
+                    builder.like(builder.lower(root.get("email")), like),
+                    builder.like(builder.lower(root.get("phone")), like),
                     builder.like(
                             builder.lower(
                                     builder.concat(

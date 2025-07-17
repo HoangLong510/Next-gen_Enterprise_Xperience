@@ -158,404 +158,419 @@ export default function AddDepartmentPage() {
 	}, [])
 
 	return (
-		<Paper
-			sx={{
-				backgroundColor: theme.palette.background.default,
-				boxShadow: "0px 0px 15px rgba(0, 0, 0, 0.15)",
-				borderRadius: 3,
-				overflow: "hidden"
-			}}
-		>
-			{/* Header Section */}
-			<Box
+		<>
+			<title>{t("create-new-department")}</title>
+			<Paper
 				sx={{
-					background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-					color: "white",
-					p: 4,
-					position: "relative",
+					backgroundColor: theme.palette.background.default,
+					boxShadow: "0px 0px 15px rgba(0, 0, 0, 0.15)",
+					borderRadius: 3,
 					overflow: "hidden"
 				}}
 			>
-				<Avatar
+				{/* Header Section */}
+				<Box
 					sx={{
-						bgcolor: "rgba(255,255,255,0.2)",
-						width: 40,
-						height: 40,
-						mb: 1
+						background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+						color: "white",
+						p: 4,
+						position: "relative",
+						overflow: "hidden"
 					}}
 				>
-					<BusinessIcon sx={{ fontSize: 32 }} />
-				</Avatar>
-				<Box>
-					<Typography variant="h6" fontWeight="bold" gutterBottom>
-						{t("create-new-department")}
-					</Typography>
-					<Typography variant="body2" sx={{ opacity: 0.9 }}>
-						{t("add-a-new-department-to-your-organization")}
-					</Typography>
+					<Avatar
+						sx={{
+							bgcolor: "rgba(255,255,255,0.2)",
+							width: 40,
+							height: 40,
+							mb: 1
+						}}
+					>
+						<BusinessIcon sx={{ fontSize: 32 }} />
+					</Avatar>
+					<Box>
+						<Typography variant="h6" fontWeight="bold" gutterBottom>
+							{t("create-new-department")}
+						</Typography>
+						<Typography variant="body2" sx={{ opacity: 0.9 }}>
+							{t("add-a-new-department-to-your-organization")}
+						</Typography>
+					</Box>
 				</Box>
-			</Box>
 
-			{/* Form Section */}
-			<Box sx={{ p: 4, background: theme.palette.grey[50] }}>
-				<Box
-					component="form"
-					onSubmit={handleSubmit(onSubmit)}
-					noValidate
-				>
-					<Grid container spacing={4}>
-						{/* Department Name */}
-						<Grid size={12}>
-							<Stack spacing={1}>
-								<Stack
-									direction="row"
-									alignItems="center"
-									spacing={1}
-								>
-									<BusinessIcon color="primary" />
-									<Typography variant="h6" color="primary">
-										{t("department-information")}
-									</Typography>
-								</Stack>
-								<Divider />
-							</Stack>
-						</Grid>
-
-						<Grid size={12}>
-							<Controller
-								name="name"
-								control={control}
-								render={({ field }) => (
-									<TextField
-										{...field}
-										size="small"
-										label={t("department-name")}
-										variant="outlined"
-										fullWidth
-										error={!!errors.name}
-										helperText={tError(
-											errors.name?.message
-										)}
-										slotProps={{
-											inputLabel: { shrink: true }
-										}}
-										disabled={loading}
-										sx={{
-											"& .MuiOutlinedInput-root": {
-												borderRadius: 2,
-												backgroundColor:
-													theme.palette.background
-														.default
-											}
-										}}
-									/>
-								)}
-							/>
-						</Grid>
-
-						<Grid size={12}>
-							<Controller
-								name="description"
-								control={control}
-								render={({ field }) => (
-									<TextField
-										{...field}
-										size="small"
-										label={t("description")}
-										fullWidth
-										multiline
-										rows={4}
-										error={!!errors.description}
-										helperText={tError(
-											errors.description?.message
-										)}
-										disabled={loading}
-										variant="outlined"
-										slotProps={{
-											inputLabel: { shrink: true }
-										}}
-										sx={{
-											"& .MuiOutlinedInput-root": {
-												borderRadius: 2,
-												backgroundColor:
-													theme.palette.background
-														.default
-											}
-										}}
-									/>
-								)}
-							/>
-						</Grid>
-
-						{/* Head of Department */}
-						<Grid size={12}>
-							<Stack spacing={1}>
-								<Stack
-									direction="row"
-									alignItems="center"
-									spacing={1}
-								>
-									<PersonIcon color="primary" />
-									<Typography variant="h6" color="primary">
-										{t("leader")}
-									</Typography>
-								</Stack>
-								<Divider />
-							</Stack>
-						</Grid>
-
-						<Grid size={12}>
-							<Controller
-								name="hodId"
-								control={control}
-								render={({ field }) => (
-									<FormControl
-										fullWidth
-										size="small"
-										error={!!errors.hodId}
-										sx={{
-											"& .MuiOutlinedInput-root": {
-												borderRadius: 2,
-												backgroundColor:
-													theme.palette.background
-														.default
-											}
-										}}
+				{/* Form Section */}
+				<Box sx={{ p: 4, background: theme.palette.grey[50] }}>
+					<Box
+						component="form"
+						onSubmit={handleSubmit(onSubmit)}
+						noValidate
+					>
+						<Grid container spacing={4}>
+							{/* Department Name */}
+							<Grid size={12}>
+								<Stack spacing={1}>
+									<Stack
+										direction="row"
+										alignItems="center"
+										spacing={1}
 									>
-										<InputLabel shrink>
-											{t("hod")}
-										</InputLabel>
-										<Select
-											{...field}
-											label={t("hod")}
-											displayEmpty
-											disabled={loading}
+										<BusinessIcon color="primary" />
+										<Typography
+											variant="h6"
+											color="primary"
 										>
-											{hodList.map((hod) => (
-												<MenuItem
-													key={hod.id}
-													value={hod.id}
-												>
-													<Stack
-														direction="row"
-														alignItems="center"
-														spacing={1}
-													>
-														<CustomAvatar
-															src={hod.avatar}
-															sx={{
-																width: 24,
-																height: 24
-															}}
-														/>
-														<Typography>
-															{hod.firstName +
-																" " +
-																hod.lastName}
-														</Typography>
-													</Stack>
-												</MenuItem>
-											))}
-										</Select>
-										{errors.hodId && (
-											<FormHelperText>
-												{tError(errors.hodId.message)}
-											</FormHelperText>
-										)}
-									</FormControl>
-								)}
-							/>
-						</Grid>
-
-						{/* Image Upload */}
-						<Grid size={12}>
-							<Stack spacing={1}>
-								<Stack
-									direction="row"
-									alignItems="center"
-									spacing={1}
-								>
-									<CloudUploadIcon color="primary" />
-									<Typography variant="h6" color="primary">
-										{t("department-image")}
-									</Typography>
+											{t("department-information")}
+										</Typography>
+									</Stack>
+									<Divider />
 								</Stack>
-								<Divider />
-							</Stack>
-						</Grid>
+							</Grid>
 
-						<Grid size={{ xs: 12, md: 6 }}>
-							<Button
-								variant="outlined"
-								component="label"
-								fullWidth
-								startIcon={<CloudUploadIcon />}
-								sx={{
-									py: 2,
-									borderRadius: 2,
-									borderStyle: "dashed",
-									borderWidth: 2,
-									borderColor: errors.file
-										? theme.palette.error.main
-										: theme.palette.primary.main,
-									color: errors.file
-										? theme.palette.error.main
-										: theme.palette.primary.main,
-									"&:hover": {
-										borderColor: errors.file
-											? theme.palette.error.dark
-											: theme.palette.primary.dark,
-										backgroundColor: errors.file
-											? `${theme.palette.error.main}08`
-											: `${theme.palette.primary.main}08`
-									}
-								}}
-							>
-								{watchedFile
-									? t("change-image")
-									: t("upload-image")}
-								<input
-									type="file"
-									hidden
-									accept="image/jpeg,image/jpg,image/png,image/gif"
-									onChange={handleFileChange}
-								/>
-							</Button>
-							{errors.file && (
-								<FormHelperText error sx={{ mt: 1, mx: 2 }}>
-									{tError(errors.file.message)}
-								</FormHelperText>
-							)}
-						</Grid>
-
-						<Grid size={{ xs: 12, md: 6 }}>
-							<Box
-								sx={{
-									display: "flex",
-									justifyContent: "center",
-									alignItems: "center",
-									height: "100%",
-									minHeight: 120
-								}}
-							>
-								{preview ? (
-									<Stack alignItems="center" spacing={2}>
-										<Box
+							<Grid size={12}>
+								<Controller
+									name="name"
+									control={control}
+									render={({ field }) => (
+										<TextField
+											{...field}
+											size="small"
+											label={t("department-name")}
+											variant="outlined"
+											fullWidth
+											error={!!errors.name}
+											helperText={tError(
+												errors.name?.message
+											)}
+											slotProps={{
+												inputLabel: { shrink: true }
+											}}
+											disabled={loading}
 											sx={{
-												position: "relative"
+												"& .MuiOutlinedInput-root": {
+													borderRadius: 2,
+													backgroundColor:
+														theme.palette.background
+															.default
+												}
+											}}
+										/>
+									)}
+								/>
+							</Grid>
+
+							<Grid size={12}>
+								<Controller
+									name="description"
+									control={control}
+									render={({ field }) => (
+										<TextField
+											{...field}
+											size="small"
+											label={t("description")}
+											fullWidth
+											multiline
+											rows={4}
+											error={!!errors.description}
+											helperText={tError(
+												errors.description?.message
+											)}
+											disabled={loading}
+											variant="outlined"
+											slotProps={{
+												inputLabel: { shrink: true }
+											}}
+											sx={{
+												"& .MuiOutlinedInput-root": {
+													borderRadius: 2,
+													backgroundColor:
+														theme.palette.background
+															.default
+												}
+											}}
+										/>
+									)}
+								/>
+							</Grid>
+
+							{/* Head of Department */}
+							<Grid size={12}>
+								<Stack spacing={1}>
+									<Stack
+										direction="row"
+										alignItems="center"
+										spacing={1}
+									>
+										<PersonIcon color="primary" />
+										<Typography
+											variant="h6"
+											color="primary"
+										>
+											{t("leader")}
+										</Typography>
+									</Stack>
+									<Divider />
+								</Stack>
+							</Grid>
+
+							<Grid size={12}>
+								<Controller
+									name="hodId"
+									control={control}
+									render={({ field }) => (
+										<FormControl
+											fullWidth
+											size="small"
+											error={!!errors.hodId}
+											sx={{
+												"& .MuiOutlinedInput-root": {
+													borderRadius: 2,
+													backgroundColor:
+														theme.palette.background
+															.default
+												}
 											}}
 										>
+											<InputLabel shrink>
+												{t("hod")}
+											</InputLabel>
+											<Select
+												{...field}
+												label={t("hod")}
+												displayEmpty
+												disabled={loading}
+											>
+												{hodList.map((hod) => (
+													<MenuItem
+														key={hod.id}
+														value={hod.id}
+													>
+														<Stack
+															direction="row"
+															alignItems="center"
+															spacing={1}
+														>
+															<CustomAvatar
+																src={hod.avatar}
+																sx={{
+																	width: 24,
+																	height: 24
+																}}
+															/>
+															<Typography>
+																{hod.firstName +
+																	" " +
+																	hod.lastName}
+															</Typography>
+														</Stack>
+													</MenuItem>
+												))}
+											</Select>
+											{errors.hodId && (
+												<FormHelperText>
+													{tError(
+														errors.hodId.message
+													)}
+												</FormHelperText>
+											)}
+										</FormControl>
+									)}
+								/>
+							</Grid>
+
+							{/* Image Upload */}
+							<Grid size={12}>
+								<Stack spacing={1}>
+									<Stack
+										direction="row"
+										alignItems="center"
+										spacing={1}
+									>
+										<CloudUploadIcon color="primary" />
+										<Typography
+											variant="h6"
+											color="primary"
+										>
+											{t("department-image")}
+										</Typography>
+									</Stack>
+									<Divider />
+								</Stack>
+							</Grid>
+
+							<Grid size={{ xs: 12, md: 6 }}>
+								<Button
+									variant="outlined"
+									component="label"
+									fullWidth
+									startIcon={<CloudUploadIcon />}
+									sx={{
+										py: 2,
+										borderRadius: 2,
+										borderStyle: "dashed",
+										borderWidth: 2,
+										borderColor: errors.file
+											? theme.palette.error.main
+											: theme.palette.primary.main,
+										color: errors.file
+											? theme.palette.error.main
+											: theme.palette.primary.main,
+										"&:hover": {
+											borderColor: errors.file
+												? theme.palette.error.dark
+												: theme.palette.primary.dark,
+											backgroundColor: errors.file
+												? `${theme.palette.error.main}08`
+												: `${theme.palette.primary.main}08`
+										}
+									}}
+								>
+									{watchedFile
+										? t("change-image")
+										: t("upload-image")}
+									<input
+										type="file"
+										hidden
+										accept="image/jpeg,image/jpg,image/png,image/gif"
+										onChange={handleFileChange}
+									/>
+								</Button>
+								{errors.file && (
+									<FormHelperText error sx={{ mt: 1, mx: 2 }}>
+										{tError(errors.file.message)}
+									</FormHelperText>
+								)}
+							</Grid>
+
+							<Grid size={{ xs: 12, md: 6 }}>
+								<Box
+									sx={{
+										display: "flex",
+										justifyContent: "center",
+										alignItems: "center",
+										height: "100%",
+										minHeight: 120
+									}}
+								>
+									{preview ? (
+										<Stack alignItems="center" spacing={2}>
+											<Box
+												sx={{
+													position: "relative"
+												}}
+											>
+												<Avatar
+													src={preview}
+													alt="Preview"
+													sx={{
+														width: 100,
+														height: 100,
+														border: `3px solid ${theme.palette.primary.main}`,
+														boxShadow: `0 4px 20px ${theme.palette.primary.main}40`
+													}}
+													variant="rounded"
+												/>
+												<Button
+													size="small"
+													variant="contained"
+													color="error"
+													sx={{
+														position: "absolute",
+														top: -8,
+														right: -8,
+														minWidth: 32,
+														width: 32,
+														height: 32,
+														borderRadius: "50%",
+														p: 0
+													}}
+													onClick={handleRemoveImage}
+												>
+													<DeleteIcon
+														sx={{
+															fontSize: 16
+														}}
+													/>
+												</Button>
+											</Box>
+											<Chip
+												label="Image Preview"
+												color="primary"
+												size="small"
+												variant="outlined"
+											/>
+										</Stack>
+									) : (
+										<Stack alignItems="center" spacing={1}>
 											<Avatar
-												src={preview}
-												alt="Preview"
 												sx={{
 													width: 100,
 													height: 100,
-													border: `3px solid ${theme.palette.primary.main}`,
-													boxShadow: `0 4px 20px ${theme.palette.primary.main}40`
+													bgcolor: `${theme.palette.primary.main}15`,
+													border: `2px dashed ${theme.palette.primary.main}40`
 												}}
 												variant="rounded"
-											/>
-											<Button
-												size="small"
-												variant="contained"
-												color="error"
-												sx={{
-													position: "absolute",
-													top: -8,
-													right: -8,
-													minWidth: 32,
-													width: 32,
-													height: 32,
-													borderRadius: "50%",
-													p: 0
-												}}
-												onClick={handleRemoveImage}
 											>
-												<DeleteIcon
+												<CloudUploadIcon
 													sx={{
-														fontSize: 16
+														fontSize: 40,
+														color: `${theme.palette.primary.main}60`
 													}}
 												/>
-											</Button>
-										</Box>
-										<Chip
-											label="Image Preview"
-											color="primary"
-											size="small"
-											variant="outlined"
-										/>
-									</Stack>
-								) : (
-									<Stack alignItems="center" spacing={1}>
-										<Avatar
-											sx={{
-												width: 100,
-												height: 100,
-												bgcolor: `${theme.palette.primary.main}15`,
-												border: `2px dashed ${theme.palette.primary.main}40`
-											}}
-											variant="rounded"
-										>
-											<CloudUploadIcon
-												sx={{
-													fontSize: 40,
-													color: `${theme.palette.primary.main}60`
-												}}
-											/>
-										</Avatar>
-										<Typography
-											variant="caption"
-											color="text.secondary"
-											textAlign="center"
-										>
-											{t("no-image-selected")}
-										</Typography>
-									</Stack>
-								)}
-							</Box>
-						</Grid>
+											</Avatar>
+											<Typography
+												variant="caption"
+												color="text.secondary"
+												textAlign="center"
+											>
+												{t("no-image-selected")}
+											</Typography>
+										</Stack>
+									)}
+								</Box>
+							</Grid>
 
-						{/* Action Buttons */}
-						<Grid size={12}>
-							<Divider sx={{ my: 2 }} />
-							<Stack
-								direction={{ xs: "column", sm: "row" }}
-								spacing={2}
-								justifyContent="space-between"
-							>
-								{/* Back Button */}
-								<Button
-									variant="outlined"
-									size="medium"
-									startIcon={<ArrowBackIcon />}
-									sx={{
-										textTransform: "capitalize",
-										borderColor: theme.palette.primary.main
-									}}
-									LinkComponent={Link}
-									to="/departments"
+							{/* Action Buttons */}
+							<Grid size={12}>
+								<Divider sx={{ my: 2 }} />
+								<Stack
+									direction={{ xs: "column", sm: "row" }}
+									spacing={2}
+									justifyContent="space-between"
 								>
-									{t("back")}
-								</Button>
+									{/* Back Button */}
+									<Button
+										variant="outlined"
+										size="medium"
+										startIcon={<ArrowBackIcon />}
+										sx={{
+											textTransform: "capitalize",
+											borderColor:
+												theme.palette.primary.main
+										}}
+										LinkComponent={Link}
+										to="/departments"
+									>
+										{t("back")}
+									</Button>
 
-								{/* Create Button */}
-								<Button
-									type="submit"
-									variant="contained"
-									size="medium"
-									startIcon={<SaveIcon />}
-									sx={{
-										textTransform: "capitalize"
-									}}
-								>
-									{t("create")}
-								</Button>
-							</Stack>
+									{/* Create Button */}
+									<Button
+										type="submit"
+										variant="contained"
+										size="medium"
+										startIcon={<SaveIcon />}
+										sx={{
+											textTransform: "capitalize"
+										}}
+									>
+										{t("create")}
+									</Button>
+								</Stack>
+							</Grid>
 						</Grid>
-					</Grid>
+					</Box>
 				</Box>
-			</Box>
-		</Paper>
+			</Paper>
+		</>
 	)
 }

@@ -60,3 +60,22 @@ export const getEmployeesToAddToDepartmentApi = async (data) => {
 		}
 	}
 }
+
+export const createEmployeeApi = async (data) => {
+	try {
+		const res = await api.post("/employees/create", data, {
+			headers: {
+				"Content-Type": "application/json"
+			}
+		})
+		return res.data
+	} catch (error) {
+		if (error.response) {
+			return error.response.data
+		}
+		return {
+			status: 500,
+			message: "server-is-busy"
+		}
+	}
+}

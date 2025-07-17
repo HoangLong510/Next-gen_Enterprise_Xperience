@@ -38,6 +38,9 @@
 	"gender-is-required": "Giới tính là bắt buộc",
 	"invalid-gender": "Giới tính không hợp lệ",
 
+	"date-of-birth-cannot-be-null": "Ngày sinh không được bỏ trống",
+	"date-of-birth-must-be-in-the-past": "Ngày sinh phải là ngày quá khứ",
+
 	"invalid-image-type": "Loại hình ảnh không hợp lệ, chỉ hỗ trợ các tệp JPG, PNG, GIF",
 	"file-is-empty": "Tập tin trống",
 	"file-too-large": "Tệp quá lớn, chỉ hỗ trợ các tệp có kích thước dưới 5mb",

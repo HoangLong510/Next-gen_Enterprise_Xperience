@@ -4,10 +4,18 @@ import AccountsManagement from "~/pages/management/accounts/index.jsx"
 import DocumentList from "~/pages/management/document/DocumentList"
 import AddDepartmentPage from "~/pages/departments/add"
 import AddEmployeeDepartmentPage from "~/pages/departments/add-employees"
+import EditDepartmentPage from "~/pages/departments/edit"
+import CreateAccountManagementPage from "~/pages/management/accounts/create"
 const roleRoutes = [
 	{
 		path: "/management/accounts",
 		component: AccountsManagement,
+		layout: DefaultLayout,
+		roles: ["ADMIN"]
+	},
+	{
+		path: "/management/accounts/create",
+		component: CreateAccountManagementPage,
 		layout: DefaultLayout,
 		roles: ["ADMIN"]
 	},
@@ -32,6 +40,12 @@ const roleRoutes = [
 	{
 		path: "/departments/add-employees/:id",
 		component: AddEmployeeDepartmentPage,
+		layout: DefaultLayout,
+		roles: ["ADMIN"]
+	},
+	{
+		path: "/departments/edit/:id",
+		component: EditDepartmentPage,
 		layout: DefaultLayout,
 		roles: ["ADMIN"]
 	}
