@@ -8,17 +8,15 @@ import {
   alpha,
   useTheme,
   CircularProgress,
-  Grid,
 } from "@mui/material";
-import {
-  Person,
-  Work,
-  CalendarToday,
-  InfoOutlined,
-} from "@mui/icons-material";
+import { Grid } from "@mui/material";
+import { Person, Work, CalendarToday, InfoOutlined } from "@mui/icons-material";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { fetchDocumentDetailApi, downloadDocumentFileApi } from "~/services/document.service";
+import {
+  fetchDocumentDetailApi,
+  downloadDocumentFileApi,
+} from "~/services/document.service";
 
 export default function DocumentDetail() {
   const { id } = useParams();
@@ -42,8 +40,7 @@ export default function DocumentDetail() {
       const res = await downloadDocumentFileApi(id);
       if (res && res.data) {
         const blob = new Blob([res.data], {
-          type:
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -54,10 +51,10 @@ export default function DocumentDetail() {
         a.remove();
         window.URL.revokeObjectURL(url);
       } else {
-        alert("Tải file thất bại");
+        alert("Download failed");
       }
     } catch {
-      alert("Đã có lỗi xảy ra khi tải file");
+      alert("An error occurred while downloading the file");
     }
     setDownloading(false);
   };
@@ -75,7 +72,7 @@ export default function DocumentDetail() {
         color="text.secondary"
         sx={{ mt: 10, fontSize: 22, fontWeight: 600, textAlign: "center" }}
       >
-        Không tìm thấy công văn.
+        Document not found.
       </Typography>
     );
 
@@ -83,10 +80,11 @@ export default function DocumentDetail() {
     <Paper
       elevation={12}
       sx={{
-        maxWidth: 900,
+        maxWidth: 1200, // tăng rộng hơn
+        width: "90%", // hoặc width: '100%' nếu bạn muốn full container cha
         mx: "auto",
         mt: 6,
-        p: 5,
+        p: 3, // giảm padding cho gọn hơn
         borderRadius: 4,
         background: `linear-gradient(145deg, ${alpha(
           theme.palette.background.paper,
@@ -95,7 +93,7 @@ export default function DocumentDetail() {
         boxShadow: `0 25px 50px ${alpha(theme.palette.primary.main, 0.25)}`,
       }}
     >
-      {/* Tiêu đề */}
+      {/* Title */}
       <Typography
         variant="h3"
         fontWeight={800}
@@ -106,7 +104,7 @@ export default function DocumentDetail() {
         {doc.title}
       </Typography>
 
-      {/* Nội dung chính */}
+      {/* Main content */}
       <Box
         sx={{
           mb: 3,
@@ -118,15 +116,18 @@ export default function DocumentDetail() {
           borderRadius: 3,
           border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
           backgroundColor: alpha(theme.palette.primary.light, 0.1),
-          boxShadow: `inset 0 0 12px ${alpha(theme.palette.primary.main, 0.07)}`,
+          boxShadow: `inset 0 0 12px ${alpha(
+            theme.palette.primary.main,
+            0.07
+          )}`,
           maxHeight: 400,
           overflowY: "auto",
         }}
       >
-        {doc.content || "Không có nội dung chi tiết cho công văn này."}
+        {doc.content || "No detailed content for this document."}
       </Box>
 
-      {/* Nút tải file */}
+      {/* Download button */}
       {doc.fileUrl && (
         <Button
           variant="contained"
@@ -139,83 +140,104 @@ export default function DocumentDetail() {
             textTransform: "none",
             boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.5)}`,
             "&:hover": {
-              boxShadow: `0 12px 24px ${alpha(theme.palette.primary.main, 0.7)}`,
+              boxShadow: `0 12px 24px ${alpha(
+                theme.palette.primary.main,
+                0.7
+              )}`,
               transform: "translateY(-3px)",
             },
             width: { xs: "100%", sm: "auto" },
           }}
         >
-          {downloading ? "Đang tải..." : "Tải file Word"}
+          {downloading ? "Downloading..." : "Download Word file"}
         </Button>
       )}
 
       <Divider sx={{ mb: 5 }} />
 
-      {/* Thông tin chi tiết: chia 2 cột */}
-      <Grid container spacing={4}>
-        <Grid item xs={12} sm={6}>
+      {/* Info section: 2 columns */}
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={4}
+        flexWrap="wrap" // cho phép xuống dòng khi không đủ chỗ
+        justifyContent="space-between"
+      >
+        <Box sx={{ flex: "1 1 22%", minWidth: 150, maxWidth: 220 }}>
           <InfoRow
             icon={<Person />}
-            label="Người tạo"
+            label="Created by"
             value={doc.createdBy}
             theme={theme}
             color={theme.palette.success.main}
           />
-        </Grid>
-        <Grid item xs={12} sm={6}>
+        </Box>
+
+        <Box sx={{ flex: "1 1 22%", minWidth: 150, maxWidth: 220 }}>
           <InfoRow
             icon={<Work />}
-            label="Quản lý dự án"
-            value={doc.projectManager}
+            label="Project Manager"
+            value={doc.receiver}
             theme={theme}
             color={theme.palette.info.main}
           />
-        </Grid>
-        <Grid item xs={12} sm={6}>
+        </Box>
+
+        <Box sx={{ flex: "1 1 22%", minWidth: 150, maxWidth: 220 }}>
           <InfoRow
             icon={<CalendarToday />}
-            label="Ngày tạo"
+            label="Created at"
             value={new Date(doc.createdAt).toLocaleString()}
             theme={theme}
             color={theme.palette.warning.main}
           />
-        </Grid>
-        <Grid item xs={12} sm={6}>
+        </Box>
+
+        <Box sx={{ flex: "1 1 22%", minWidth: 150, maxWidth: 220 }}>
           <InfoRow
             icon={<InfoOutlined />}
-            label="Trạng thái"
+            label="Status"
             value={doc.status}
             theme={theme}
             color={theme.palette.error.main}
           />
-        </Grid>
-      </Grid>
+        </Box>
+      </Stack>
     </Paper>
   );
 }
 
 function InfoRow({ icon, label, value, theme, color }) {
   return (
-    <Stack direction="row" spacing={2} alignItems="center" sx={{ userSelect: "none" }}>
+    <Stack
+      direction="row"
+      spacing={3}
+      alignItems="center"
+      sx={{ userSelect: "none" }}
+    >
       <Box
         sx={{
           color: color,
           bgcolor: alpha(color, 0.15),
-          p: 1.3,
+          p: 1.5,
           borderRadius: 2,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          minWidth: 44,
-          minHeight: 44,
-          boxShadow: `0 6px 15px ${alpha(color, 0.25)}`,
+          minWidth: 50,
+          minHeight: 50,
+          boxShadow: `0 8px 20px ${alpha(color, 0.3)}`,
           flexShrink: 0,
         }}
       >
         {icon}
       </Box>
       <Box>
-        <Typography variant="subtitle2" fontWeight={700} color={color}>
+        <Typography
+          variant="subtitle1"
+          fontWeight={700}
+          color={color}
+          sx={{ mb: 0.5 }}
+        >
           {label}
         </Typography>
         <Typography

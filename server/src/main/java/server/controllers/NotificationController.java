@@ -16,19 +16,6 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
-    // Nếu cần test create tay thì uncomment bên dưới
-//    @PostMapping
-//    public ResponseEntity<?> create(@RequestBody NotificationRequest request) {
-//        try {
-//            NotificationResponse saved = notificationService.createManualNotification(request);
-//            return ResponseEntity.status(201)
-//                    .body(ApiResponse.created(saved, "Notification created manually"));
-//        } catch (Exception e) {
-//            ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
-//            return ResponseEntity.status(response.getStatus()).body(response);
-//        }
-//    }
-
     @GetMapping("/{recipientUsername}")
     public ResponseEntity<?> getByRecipient(@PathVariable String recipientUsername) {
         try {

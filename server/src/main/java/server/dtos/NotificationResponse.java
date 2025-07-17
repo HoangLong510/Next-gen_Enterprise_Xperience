@@ -15,4 +15,8 @@ public class NotificationResponse {
     private LocalDateTime createdAt;
     private NotificationType type;
     private Long referenceId;
+
+    private String senderUsername;
+    private String senderFullName;
+    private String senderAvatar;
 }

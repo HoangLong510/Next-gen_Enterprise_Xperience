@@ -9,6 +9,7 @@ import server.dtos.leave_requests.*;
 import server.models.Account;
 import server.models.Employee;
 import server.models.LeaveRequest;
+import server.models.enums.NotificationType;
 import server.models.enums.Role;
 import server.repositories.AccountRepository;
 import server.repositories.LeaveRequestRepository;
@@ -31,6 +32,7 @@ public class LeaveRequestService {
     private final LeaveRequestRepository leaveRequestRepository;
     private final AccountRepository accountRepository;
     private final AuthService authService;
+    private final NotificationService notificationService;
 
     // Tạo đơn nghỉ phép
     public ApiResponse<LeaveRequestResponse> create(HttpServletRequest request, LeaveRequestCreateRequest dto) {
@@ -79,7 +81,7 @@ public class LeaveRequestService {
         entity.setReceiver(receiver);
 
         leaveRequestRepository.save(entity);
-
+        notificationService.createNotification(NotificationType.LEAVE_REQUEST, entity.getId(), false);
         LeaveRequestResponse response = toResponse(entity);
         return ApiResponse.created(response, "Tạo đơn nghỉ phép thành công");
     }
@@ -241,6 +243,7 @@ public class LeaveRequestService {
             entity.setStatus(LeaveStatus.REJECTED);
         }
         leaveRequestRepository.save(entity);
+        notificationService.createNotification(NotificationType.LEAVE_REQUEST, entity.getId(), true);
 
         return ApiResponse.success(toResponse(entity), (approve ? "Duyệt" : "Từ chối") + " đơn nghỉ phép thành công");
     }

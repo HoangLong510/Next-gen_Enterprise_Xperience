@@ -19,4 +19,5 @@ public class DocumentResponseDto {
     private DocumentStatus status;
     private DocumentType type;
     private byte[] file;
+    private String signature;
 }

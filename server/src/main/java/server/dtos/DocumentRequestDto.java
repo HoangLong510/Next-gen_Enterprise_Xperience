@@ -10,4 +10,5 @@ public class DocumentRequestDto {
     private String fileUrl;
     private Long receiverId;
     private DocumentType type;
+    private String signature;
 }
