@@ -43,4 +43,7 @@ public class Document {
 
     @Enumerated(EnumType.STRING)
     private DocumentType type;
+
+    @Column(columnDefinition = "TEXT")
+    private String signature;
 }

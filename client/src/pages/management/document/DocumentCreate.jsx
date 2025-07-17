@@ -14,17 +14,22 @@ import * as yup from "yup";
 import { useEffect, useState } from "react";
 import { createDocumentApi } from "~/services/document.service";
 import { fetchPMsApi } from "~/services/account.service";
+import SignatureCanvas from "react-signature-canvas";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 
 const schema = yup.object().shape({
-  title: yup.string().required("Vui lòng nhập tiêu đề"),
-  content: yup.string().required("Vui lòng nhập nội dung"),
-  type: yup.string().required("Vui lòng chọn kiểu công văn"),
+  title: yup.string().required("Please enter the title"),
+  content: yup.string().required("Please enter the content"),
+  type: yup.string().required("Please select document type"),
   projectManagerId: yup
     .string()
     .nullable()
     .when("type", (type, schema) => {
       return type === "PROJECT"
-        ? schema.required("Chọn quản lý dự án")
+        ? schema.required("Select Project Manager")
         : schema.nullable();
     }),
 });
@@ -32,6 +37,10 @@ const schema = yup.object().shape({
 export default function DocumentCreate({ onSuccess, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [pmList, setPmList] = useState([]);
+  const [signDialogOpen, setSignDialogOpen] = useState(false);
+  const [signaturePad, setSignaturePad] = useState(null);
+  const [signatureBase64, setSignatureBase64] = useState("");
+  const [signError, setSignError] = useState("");
 
   const {
     register,
@@ -65,6 +74,11 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
   }, []);
 
   const onSubmit = async (data) => {
+    if (!signatureBase64) {
+      setSignError("You must sign before creating the document!");
+      setSignDialogOpen(true);
+      return;
+    }
     setLoading(true);
     const token = localStorage.getItem("accessToken");
     const payload = {
@@ -72,6 +86,7 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
       content: data.content,
       type: data.type,
       receiverId: data.type === "PROJECT" ? data.projectManagerId : null,
+      signature: signatureBase64,
     };
     const res = await createDocumentApi(payload, token);
     setLoading(false);
@@ -85,10 +100,11 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
         type: "",
         projectManagerId: null,
       });
+      setSignatureBase64("");
     } else {
       setError("title", {
         type: "manual",
-        message: res.message || "Tạo công văn thất bại",
+        message: res.message || "Create document failed",
       });
     }
   };
@@ -107,7 +123,7 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "congvan.docx");
+    link.setAttribute("download", "document.docx");
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -134,13 +150,13 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
         color="primary.main"
         mb={2}
       >
-        Tạo công văn mới
+        Create New Document
       </Typography>
 
       <form onSubmit={handleSubmit(onSubmit)} autoComplete="off">
         <TextField
-          label="Tiêu đề"
-          placeholder="Nhập tiêu đề công văn"
+          label="Title"
+          placeholder="Enter document title"
           fullWidth
           margin="normal"
           error={!!errors.title}
@@ -151,8 +167,8 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
         />
 
         <TextField
-          label="Nội dung"
-          placeholder="Nhập nội dung ngắn gọn..."
+          label="Content"
+          placeholder="Enter a short description..."
           fullWidth
           multiline
           rows={4}
@@ -164,10 +180,9 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
           InputProps={{ sx: { borderRadius: 2 } }}
         />
 
-        {/* Thêm input chọn kiểu công văn */}
         <TextField
           select
-          label="Kiểu công văn"
+          label="Document Type"
           fullWidth
           margin="normal"
           error={!!errors.type}
@@ -176,18 +191,17 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
           onChange={(e) => setValue("type", e.target.value)}
           InputProps={{ sx: { borderRadius: 2 } }}
         >
-          <MenuItem value="">-- Chọn kiểu công văn --</MenuItem>
-          <MenuItem value="PROJECT">Công văn dự án</MenuItem>
-          <MenuItem value="ADMINISTRATIVE">Công văn hành chính</MenuItem>
-          <MenuItem value="OTHER">Công văn khác</MenuItem>
+          <MenuItem value="">-- Select document type --</MenuItem>
+          <MenuItem value="PROJECT">Project Document</MenuItem>
+          <MenuItem value="ADMINISTRATIVE">Administrative Document</MenuItem>
+          <MenuItem value="OTHER">Other Document</MenuItem>
         </TextField>
 
-        {/* Chỉ hiện trường PM khi kiểu là PROJECT */}
         {type === "PROJECT" && (
           <TextField
             select
-            label="Quản lý dự án"
-            placeholder="Chọn quản lý dự án"
+            label="Project Manager"
+            placeholder="Select Project Manager"
             fullWidth
             margin="normal"
             error={!!errors.projectManagerId}
@@ -196,10 +210,10 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
             onChange={(e) => setValue("projectManagerId", e.target.value)}
             InputProps={{ sx: { borderRadius: 2 } }}
           >
-            <MenuItem value="">-- Chọn quản lý dự án --</MenuItem>
+            <MenuItem value="">-- Select Project Manager --</MenuItem>
             {pmList.length === 0 ? (
               <MenuItem disabled value="">
-                Không có PM nào
+                No Project Managers found
               </MenuItem>
             ) : (
               pmList.map((pm) => (
@@ -212,6 +226,23 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
             )}
           </TextField>
         )}
+
+        {/* Signature area */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 2 }}>
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={() => setSignDialogOpen(true)}
+            sx={{ borderRadius: 2, minWidth: 140 }}
+          >
+            {signatureBase64 ? "Signed" : "Sign Document"}
+          </Button>
+          {signatureBase64 && (
+            <Typography color="success.main" fontSize={13}>
+              ✓ Signed
+            </Typography>
+          )}
+        </Box>
 
         <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
           <Button
@@ -230,7 +261,7 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
               loading ? <CircularProgress size={20} color="inherit" /> : null
             }
           >
-            {loading ? "Đang tạo..." : "Tạo công văn"}
+            {loading ? "Creating..." : "Create Document"}
           </Button>
 
           <Button
@@ -242,10 +273,70 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
             disabled={loading}
             sx={{ fontWeight: 600, borderRadius: 2, background: "#f8fafc" }}
           >
-            Hủy
+            Cancel
           </Button>
         </Box>
       </form>
+
+      {/* Signature Dialog */}
+      <Dialog
+        open={signDialogOpen}
+        onClose={() => setSignDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Sign Document</DialogTitle>
+        <DialogContent>
+          <SignatureCanvas
+            penColor="black"
+            canvasProps={{
+              width: 350,
+              height: 120,
+              className: "sigCanvas"
+            }}
+            ref={setSignaturePad}
+            backgroundColor="#fff"
+          />
+          <Box
+            sx={{
+              mt: 1,
+              display: "flex",
+              justifyContent: "space-between"
+            }}
+          >
+            <Button
+              onClick={() => signaturePad && signaturePad.clear()}
+            >
+              Clear
+            </Button>
+            <Typography color="error" variant="caption">
+              {signError}
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setSignDialogOpen(false)}
+            color="secondary"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              if (!signaturePad || signaturePad.isEmpty()) {
+                setSignError("Please sign before saving!");
+                return;
+              }
+              setSignatureBase64(signaturePad.toDataURL());
+              setSignDialogOpen(false);
+              setSignError("");
+            }}
+          >
+            Save Signature
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Loading overlay */}
       <Fade in={loading}>

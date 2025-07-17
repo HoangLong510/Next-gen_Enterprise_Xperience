@@ -18,6 +18,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useNotificationRealtime } from "~/hooks/useNotificationRealtime";
+import CustomAvatar from "~/components/custom-avatar";
 
 export default function HeaderNotification() {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -26,16 +27,42 @@ export default function HeaderNotification() {
   const open = Boolean(anchorEl);
   const navigate = useNavigate();
   const account = useSelector((state) => state.account.value);
-  const { enqueueSnackbar } = useSnackbar();
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
-  // Callback để xử lý notification mới realtime
+  const navigateToDetail = useCallback(
+    (noti) => {
+      if (!noti.referenceId) return;
+
+      switch (noti.type) {
+        case "DOCUMENT":
+          navigate(`/management/documents/${noti.referenceId}`);
+          break;
+        case "LEAVE_REQUEST":
+          navigate(`/leave-request`);
+          break;
+        case "PROJECT":
+          navigate(`/management/projects/${noti.referenceId}`);
+          break;
+        case "TASK":
+          navigate(`/management/tasks/${noti.referenceId}`);
+          break;
+        case "ORDER":
+          navigate(`/management/orders/${noti.referenceId}`);
+          break;
+        default:
+          navigate("/notifications");
+      }
+    },
+    [navigate]
+  );
+
   const handleNewNotification = useCallback(
     (newNoti) => {
       setNotifications((prev) => [newNoti, ...prev].slice(0, 5));
       if (!newNoti.read) {
         setTotalUnread((prevTotal) => prevTotal + 1);
       }
-      enqueueSnackbar(`Bạn vừa nhận công văn mới: ${newNoti.title}`, {
+      enqueueSnackbar(`You have a new notification: ${newNoti.title}`, {
         variant: "info",
         persist: false,
         autoHideDuration: 5000,
@@ -44,40 +71,36 @@ export default function HeaderNotification() {
         action: (key) => (
           <Button
             onClick={() => {
-              navigate(`/management/documents/${newNoti.referenceId}`);
-              enqueueSnackbar.closeSnackbar(key);
+              navigateToDetail(newNoti);
+              closeSnackbar(key);
             }}
             color="inherit"
             size="small"
             sx={{ textTransform: "none" }}
           >
-            Xem chi tiết
+            View Details
           </Button>
         ),
         onClick: () => {
-          if (newNoti.referenceId) {
-            navigate(`/management/documents/${newNoti.referenceId}`);
-          }
+          navigateToDetail(newNoti);
         },
       });
     },
-    [enqueueSnackbar, navigate]
+    [enqueueSnackbar, closeSnackbar, navigateToDetail]
   );
 
   useEffect(() => {
-    if (account.username) {
+    if (account?.username) {
       fetchNotificationsApi(account.username).then((res) => {
         if (res.status === 200 && Array.isArray(res.data)) {
-          // chỉ cập nhật số chưa đọc thôi, không set notifications
           setTotalUnread(res.data.filter((n) => !n.read).length);
         }
       });
     }
-  }, [account.username]);
+  }, [account?.username]);
 
-  // Lấy 5 thông báo mới nhất khi mở menu
   useEffect(() => {
-    if (open && account.username) {
+    if (open && account?.username) {
       fetchNotificationsApi(account.username).then((res) => {
         if (res.status === 200 && Array.isArray(res.data)) {
           setNotifications(res.data.slice(0, 5));
@@ -85,9 +108,8 @@ export default function HeaderNotification() {
         }
       });
     }
-  }, [open, account.username]);
+  }, [open, account?.username]);
 
-  // Kết nối websocket nhận realtime notification
   useNotificationRealtime(account?.username, handleNewNotification);
 
   const handleClick = (event) => setAnchorEl(event.currentTarget);
@@ -100,7 +122,7 @@ export default function HeaderNotification() {
   const handleItemClick = async (noti) => {
     handleClose();
     if (!noti.referenceId) {
-      alert("Thông báo này không liên kết tới công văn!");
+      alert("This notification does not link to details!");
       return;
     }
     if (!noti.read) {
@@ -114,7 +136,7 @@ export default function HeaderNotification() {
         setTotalUnread((prev) => (prev > 0 ? prev - 1 : 0));
       }
     }
-    navigate(`/management/documents/${noti.referenceId}`);
+    navigateToDetail(noti);
   };
 
   return (
@@ -134,7 +156,7 @@ export default function HeaderNotification() {
         slotProps={{
           paper: {
             sx: {
-              minWidth: 340,
+              minWidth: 360,
               borderRadius: 3,
               p: 1,
               mt: 1.5,
@@ -142,12 +164,12 @@ export default function HeaderNotification() {
           },
         }}
       >
-        <Box sx={{ px: 2, py: 1, fontWeight: 600 }}>Thông báo</Box>
+        <Box sx={{ px: 2, py: 1, fontWeight: 600 }}>Notifications</Box>
         {notifications.length === 0 ? (
           <Box
             sx={{ px: 2, py: 3, color: "text.secondary", textAlign: "center" }}
           >
-            Không có thông báo mới
+            No new notifications
           </Box>
         ) : (
           notifications.map((noti) => (
@@ -156,9 +178,16 @@ export default function HeaderNotification() {
               sx={{
                 alignItems: "flex-start",
                 bgcolor: !noti.read ? "rgba(24,144,255,0.08)" : "unset",
+                gap: 1.5,
               }}
               onClick={() => handleItemClick(noti)}
             >
+              {/* Sender avatar */}
+              <CustomAvatar
+                alt={noti.senderFullName || noti.senderUsername || "User"}
+                src={noti.senderAvatar}
+                sx={{ width: 40, height: 40 }}
+              />
               <ListItemText
                 primary={
                   <Typography
@@ -209,7 +238,7 @@ export default function HeaderNotification() {
           }}
         >
           <Button fullWidth size="small" variant="text" onClick={handleViewAll}>
-            Xem tất cả thông báo
+            View all notifications
           </Button>
         </Box>
       </Menu>
