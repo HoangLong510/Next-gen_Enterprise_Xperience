@@ -8,7 +8,7 @@ import FilePresentIcon from "@mui/icons-material/FilePresent"
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney"
 import TaskAltIcon from "@mui/icons-material/TaskAlt"
 import DescriptionIcon from "@mui/icons-material/Description"
-
+import WorkIcon from '@mui/icons-material/Work';
 export const menuItems = [
 	{
 		title: "Management",
@@ -61,9 +61,9 @@ export const menuItems = [
 			},
 			{
 				label: "Projects",
-				icon: AccountTreeIcon,
-				href: "/utilities/projects",
-				roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"]
+				icon: WorkIcon,
+				href: "/management/projects",
+				roles: ["ADMIN", "MANAGER", "PM"]
 			},
 			{
 				label: "Dispatches",

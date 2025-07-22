@@ -9,6 +9,7 @@ export const store = configureStore({
 		popup: popupReducer,
 		account: accountReducer,
 		popupLogout: popupLogoutReducer,
-		changePassword: changePasswordReducer
+		changePassword: changePasswordReducer,
+
 	}
 })

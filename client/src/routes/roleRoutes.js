@@ -6,6 +6,8 @@ import AddDepartmentPage from "~/pages/departments/add"
 import AddEmployeeDepartmentPage from "~/pages/departments/add-employees"
 import EditDepartmentPage from "~/pages/departments/edit"
 import CreateAccountManagementPage from "~/pages/management/accounts/create"
+import ProjectManagement from "~/pages/management/project/list-project"
+import ProjectDetailPage from "~/pages/management/project/ProjectDetailPage"
 const roleRoutes = [
 	{
 		path: "/management/accounts",
@@ -25,6 +27,19 @@ const roleRoutes = [
 		layout: DefaultLayout,
 		roles: ["ADMIN", "MANAGER", "PM"]
 	},
+	{
+		path: "/management/projects",
+		component: ProjectManagement,
+		layout: DefaultLayout,
+		roles: ["ADMIN", "MANAGER", "PM"]
+	},
+	{
+		path: "/management/projects/:id",
+		component: ProjectDetailPage,
+		layout: DefaultLayout,
+		roles: ["ADMIN", "MANAGER", "PM"]
+	},
+
 	{
 		path: "/management/documents/:id",
 		component: DocumentDetail,

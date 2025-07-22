@@ -1,3 +1,4 @@
+// ~/pages/management/document/DocumentDetail.jsx
 import {
   Box,
   Typography,
@@ -17,6 +18,7 @@ import {
   fetchDocumentDetailApi,
   downloadDocumentFileApi,
 } from "~/services/document.service";
+import ProjectFormCreate from "~/components/project/form/ProjectFormCreate";
 
 export default function DocumentDetail() {
   const { id } = useParams();
@@ -24,6 +26,7 @@ export default function DocumentDetail() {
   const [doc, setDoc] = useState(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -77,92 +80,105 @@ export default function DocumentDetail() {
     );
 
   return (
-    <Paper
-      elevation={12}
-      sx={{
-        maxWidth: 1200, // tăng rộng hơn
-        width: "90%", // hoặc width: '100%' nếu bạn muốn full container cha
-        mx: "auto",
-        mt: 6,
-        p: 3, // giảm padding cho gọn hơn
-        borderRadius: 4,
-        background: `linear-gradient(145deg, ${alpha(
-          theme.palette.background.paper,
-          0.95
-        )}, ${alpha(theme.palette.primary.light, 0.15)})`,
-        boxShadow: `0 25px 50px ${alpha(theme.palette.primary.main, 0.25)}`,
-      }}
-    >
-      {/* Title */}
-      <Typography
-        variant="h3"
-        fontWeight={800}
-        color={theme.palette.primary.dark}
-        gutterBottom
-        sx={{ letterSpacing: 1 }}
-      >
-        {doc.title}
-      </Typography>
-
-      {/* Main content */}
-      <Box
+    <>
+      <Paper
+        elevation={12}
         sx={{
-          mb: 3,
-          color: theme.palette.text.primary,
-          whiteSpace: "pre-line",
-          lineHeight: 1.7,
-          fontSize: 16,
+          maxWidth: 1200,
+          width: "90%",
+          mx: "auto",
+          mt: 6,
           p: 3,
-          borderRadius: 3,
-          border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
-          backgroundColor: alpha(theme.palette.primary.light, 0.1),
-          boxShadow: `inset 0 0 12px ${alpha(
-            theme.palette.primary.main,
-            0.07
-          )}`,
-          maxHeight: 400,
-          overflowY: "auto",
+          borderRadius: 4,
+          background: `linear-gradient(145deg, ${alpha(
+            theme.palette.background.paper,
+            0.95
+          )}, ${alpha(theme.palette.primary.light, 0.15)})`,
+          boxShadow: `0 25px 50px ${alpha(theme.palette.primary.main, 0.25)}`,
         }}
       >
-        {doc.content || "No detailed content for this document."}
-      </Box>
+        <Typography
+          variant="h3"
+          fontWeight={800}
+          color={theme.palette.primary.dark}
+          gutterBottom
+          sx={{ letterSpacing: 1 }}
+        >
+          {doc.title}
+        </Typography>
 
-      {/* Download button */}
-      {doc.fileUrl && (
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleDownload}
-          disabled={downloading}
+        <Box
           sx={{
-            mb: 5,
-            fontWeight: 700,
-            textTransform: "none",
-            boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.5)}`,
-            "&:hover": {
-              boxShadow: `0 12px 24px ${alpha(
-                theme.palette.primary.main,
-                0.7
-              )}`,
-              transform: "translateY(-3px)",
-            },
-            width: { xs: "100%", sm: "auto" },
+            mb: 3,
+            color: theme.palette.text.primary,
+            whiteSpace: "pre-line",
+            lineHeight: 1.7,
+            fontSize: 16,
+            p: 3,
+            borderRadius: 3,
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
+            backgroundColor: alpha(theme.palette.primary.light, 0.1),
+            boxShadow: `inset 0 0 12px ${alpha(
+              theme.palette.primary.main,
+              0.07
+            )}`,
+            maxHeight: 400,
+            overflowY: "auto",
           }}
         >
-          {downloading ? "Downloading..." : "Download Word file"}
-        </Button>
-      )}
+          {doc.content || "No detailed content for this document."}
+        </Box>
 
-      <Divider sx={{ mb: 5 }} />
+        {doc.fileUrl && (
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleDownload}
+            disabled={downloading}
+            sx={{
+              mb: 4,
+              fontWeight: 700,
+              textTransform: "none",
+              boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.5)}`,
+              "&:hover": {
+                boxShadow: `0 12px 24px ${alpha(
+                  theme.palette.primary.main,
+                  0.7
+                )}`,
+                transform: "translateY(-3px)",
+              },
+              width: { xs: "100%", sm: "auto" },
+            }}
+          >
+            {downloading ? "Downloading..." : "Download Word file"}
+          </Button>
+        )}
 
-      {/* Info section: 2 columns */}
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        spacing={4}
-        flexWrap="wrap" // cho phép xuống dòng khi không đủ chỗ
-        justifyContent="space-between"
-      >
-        <Box sx={{ flex: "1 1 22%", minWidth: 150, maxWidth: 220 }}>
+        {/* 👉 Nút Tạo Project */}
+        {!doc.project && (
+          <Button
+            variant="outlined"
+            color="success"
+            onClick={() => setFormOpen(true)}
+            sx={{
+              fontWeight: 700,
+              borderRadius: 2,
+              textTransform: "none",
+              mb: 4,
+            }}
+          >
+            Create Project
+          </Button>
+        )}
+
+        <Divider sx={{ mb: 5 }} />
+
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={4}
+          flexWrap="wrap"
+          justifyContent="space-between"
+        >
           <InfoRow
             icon={<Person />}
             label="Created by"
@@ -170,9 +186,6 @@ export default function DocumentDetail() {
             theme={theme}
             color={theme.palette.success.main}
           />
-        </Box>
-
-        <Box sx={{ flex: "1 1 22%", minWidth: 150, maxWidth: 220 }}>
           <InfoRow
             icon={<Work />}
             label="Project Manager"
@@ -180,9 +193,6 @@ export default function DocumentDetail() {
             theme={theme}
             color={theme.palette.info.main}
           />
-        </Box>
-
-        <Box sx={{ flex: "1 1 22%", minWidth: 150, maxWidth: 220 }}>
           <InfoRow
             icon={<CalendarToday />}
             label="Created at"
@@ -190,9 +200,6 @@ export default function DocumentDetail() {
             theme={theme}
             color={theme.palette.warning.main}
           />
-        </Box>
-
-        <Box sx={{ flex: "1 1 22%", minWidth: 150, maxWidth: 220 }}>
           <InfoRow
             icon={<InfoOutlined />}
             label="Status"
@@ -200,9 +207,17 @@ export default function DocumentDetail() {
             theme={theme}
             color={theme.palette.error.main}
           />
-        </Box>
-      </Stack>
-    </Paper>
+        </Stack>
+      </Paper>
+
+      {/* 💼 Form tạo project */}
+      <ProjectFormCreate
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        documentId={doc.id}
+        pmName={doc.receiver}
+      />
+    </>
   );
 }
 
@@ -212,7 +227,7 @@ function InfoRow({ icon, label, value, theme, color }) {
       direction="row"
       spacing={3}
       alignItems="center"
-      sx={{ userSelect: "none" }}
+      sx={{ userSelect: "none", mb: 2 }}
     >
       <Box
         sx={{

@@ -32,9 +32,8 @@ public class Document {
     @JoinColumn(name = "receiver_id")
     private Account receiver;
 
-//    @ManyToOne
-//    @JoinColumn(name = "related_project_id", nullable = true)
-//    private Project relatedProject;
+    @OneToOne(mappedBy = "document")
+    private Project project;
 
     private LocalDateTime createdAt;
 
