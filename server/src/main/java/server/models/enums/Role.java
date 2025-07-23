@@ -8,4 +8,5 @@ public enum Role {
     HR,
     HOD,
     EMPLOYEE,
+    SECRETARY,
 }

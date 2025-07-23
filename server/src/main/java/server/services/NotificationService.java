@@ -5,8 +5,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import server.dtos.NotificationResponse;
 import server.models.*;
-import server.models.enums.LeaveStatus;
-import server.models.enums.NotificationType;
+import server.models.enums.*;
 import server.repositories.*;
 
 import java.time.LocalDateTime;
@@ -28,27 +27,46 @@ public class NotificationService {
 
     public NotificationResponse createNotification(NotificationType type, Long referenceId, boolean isResult) {
 
-        Account recipient;
-        Account sender;
-        String title;
-        String content;
+        Account recipient = null;
+        Account sender = null;
+        String title = "";
+        String content = "";
 
         switch (type) {
             case DOCUMENT -> {
                 Document doc = documentRepository.findById(referenceId)
                         .orElseThrow(() -> new IllegalArgumentException("Document not found"));
                 if (isResult) {
-                    // Ví dụ xử lý kết quả document (nếu có)
-                    recipient = doc.getCreatedBy();
-                    sender = doc.getReceiver();
-                    title = "Kết quả xử lý công văn";
-                    content = "Công văn '" + doc.getTitle() + "' đã được xử lý.";
+                    // Nếu document đã ký nhưng chưa hoàn thành => gửi cho PM
+                    if (doc.getStatus() == DocumentStatus.SIGNED) {
+                        recipient = doc.getReceiver(); // PM nhận xử lý
+                        sender = accountRepository.findByRole(Role.MANAGER)
+                                .stream().findFirst().orElse(null);
+                        title = "Công văn đã được ký";
+                        content = "Công văn '" + doc.getTitle() + "' đã được giám đốc ký, bạn cần xử lý.";
+                    }
+                    // Nếu PM xử lý hoàn thành (ví dụ trạng thái COMPLETED)
+                    else if (doc.getStatus() == DocumentStatus.COMPLETED) {
+                        recipient = doc.getCreatedBy(); // Thư ký/người tạo nhận kết quả
+                        sender = doc.getReceiver(); // PM là người gửi kết quả
+                        title = "Kết quả xử lý công văn";
+                        content = "Công văn '" + doc.getTitle() + "' đã được xử lý.";
+                    }
                 } else {
-                    recipient = doc.getReceiver();
-                    if (recipient == null) throw new IllegalArgumentException("Document has no receiver assigned");
-                    sender = doc.getCreatedBy();
-                    title = "Công văn mới cần xử lý";
-                    content = "Công văn: " + doc.getTitle();
+                    // Khi vừa tạo công văn PROJECT
+                    if (doc.getType() == DocumentType.PROJECT) {
+                        recipient = accountRepository.findByRole(Role.MANAGER)
+                                .stream().findFirst().orElseThrow(() -> new IllegalArgumentException("Manager not found"));
+                        sender = doc.getCreatedBy();
+                        title = "Công văn dự án mới cần ký";
+                        content = "Bạn có công văn dự án mới cần ký duyệt.";
+                    } else {
+                        recipient = doc.getReceiver();
+                        if (recipient == null) throw new IllegalArgumentException("Document has no receiver assigned");
+                        sender = doc.getCreatedBy();
+                        title = "Công văn mới cần xử lý";
+                        content = "Công văn: " + doc.getTitle();
+                    }
                 }
             }
             case LEAVE_REQUEST -> {
@@ -119,6 +137,7 @@ public class NotificationService {
             notificationRepository.save(n);
         });
     }
+
 
     private NotificationResponse mapToResponse(Notification n) {
         var dto = new NotificationResponse();

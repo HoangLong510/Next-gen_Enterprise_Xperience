@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 @Data
 public class DocumentResponseDto {
     private Long id;
+    private String code;
     private String title;
     private String content;
     private String fileUrl;
@@ -20,4 +21,5 @@ public class DocumentResponseDto {
     private DocumentType type;
     private byte[] file;
     private String signature;
+    private String previewHtml;
 }
