@@ -139,6 +139,7 @@ public class AuthService {
         Account account = accountOptional.get();
 
         ProfileDto profileDto = new ProfileDto();
+        profileDto.setId(account.getId());
         profileDto.setUsername(username);
         profileDto.setFirstName(account.getEmployee().getFirstName());
         profileDto.setLastName(account.getEmployee().getLastName());

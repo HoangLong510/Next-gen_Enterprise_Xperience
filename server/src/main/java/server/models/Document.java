@@ -18,6 +18,9 @@ public class Document {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false, length = 32)
+    private String code;
+
     private String title;
 
     private String content;

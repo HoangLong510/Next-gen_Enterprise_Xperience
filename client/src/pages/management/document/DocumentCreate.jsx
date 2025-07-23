@@ -14,11 +14,6 @@ import * as yup from "yup";
 import { useEffect, useState } from "react";
 import { createDocumentApi } from "~/services/document.service";
 import { fetchPMsApi } from "~/services/account.service";
-import SignatureCanvas from "react-signature-canvas";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
 
 const schema = yup.object().shape({
   title: yup.string().required("Please enter the title"),
@@ -37,10 +32,6 @@ const schema = yup.object().shape({
 export default function DocumentCreate({ onSuccess, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [pmList, setPmList] = useState([]);
-  const [signDialogOpen, setSignDialogOpen] = useState(false);
-  const [signaturePad, setSignaturePad] = useState(null);
-  const [signatureBase64, setSignatureBase64] = useState("");
-  const [signError, setSignError] = useState("");
 
   const {
     register,
@@ -74,11 +65,6 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
   }, []);
 
   const onSubmit = async (data) => {
-    if (!signatureBase64) {
-      setSignError("You must sign before creating the document!");
-      setSignDialogOpen(true);
-      return;
-    }
     setLoading(true);
     const token = localStorage.getItem("accessToken");
     const payload = {
@@ -86,48 +72,24 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
       content: data.content,
       type: data.type,
       receiverId: data.type === "PROJECT" ? data.projectManagerId : null,
-      signature: signatureBase64,
     };
     const res = await createDocumentApi(payload, token);
     setLoading(false);
 
     if (res.status === 201) {
       onSuccess && onSuccess(res.data);
-      downloadWordFile(res.data.file);
       reset({
         title: "",
         content: "",
         type: "",
         projectManagerId: null,
       });
-      setSignatureBase64("");
     } else {
       setError("title", {
         type: "manual",
         message: res.message || "Create document failed",
       });
     }
-  };
-
-  const downloadWordFile = (base64Data) => {
-    const byteCharacters = atob(base64Data);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], {
-      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    });
-
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "document.docx");
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
   };
 
   return (
@@ -227,23 +189,6 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
           </TextField>
         )}
 
-        {/* Signature area */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 2 }}>
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={() => setSignDialogOpen(true)}
-            sx={{ borderRadius: 2, minWidth: 140 }}
-          >
-            {signatureBase64 ? "Signed" : "Sign Document"}
-          </Button>
-          {signatureBase64 && (
-            <Typography color="success.main" fontSize={13}>
-              ✓ Signed
-            </Typography>
-          )}
-        </Box>
-
         <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
           <Button
             type="submit"
@@ -278,67 +223,6 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
         </Box>
       </form>
 
-      {/* Signature Dialog */}
-      <Dialog
-        open={signDialogOpen}
-        onClose={() => setSignDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Sign Document</DialogTitle>
-        <DialogContent>
-          <SignatureCanvas
-            penColor="black"
-            canvasProps={{
-              width: 350,
-              height: 120,
-              className: "sigCanvas"
-            }}
-            ref={setSignaturePad}
-            backgroundColor="#fff"
-          />
-          <Box
-            sx={{
-              mt: 1,
-              display: "flex",
-              justifyContent: "space-between"
-            }}
-          >
-            <Button
-              onClick={() => signaturePad && signaturePad.clear()}
-            >
-              Clear
-            </Button>
-            <Typography color="error" variant="caption">
-              {signError}
-            </Typography>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setSignDialogOpen(false)}
-            color="secondary"
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => {
-              if (!signaturePad || signaturePad.isEmpty()) {
-                setSignError("Please sign before saving!");
-                return;
-              }
-              setSignatureBase64(signaturePad.toDataURL());
-              setSignDialogOpen(false);
-              setSignError("");
-            }}
-          >
-            Save Signature
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Loading overlay */}
       <Fade in={loading}>
         <Backdrop
           open={loading}

@@ -51,6 +51,10 @@ public class Account implements UserDetails {
     @JsonIgnoreProperties("account")
     private Employee employee;
 
+    @OneToMany(mappedBy = "account")
+    @JsonIgnoreProperties("account")
+    private List<Attendance> attendances;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

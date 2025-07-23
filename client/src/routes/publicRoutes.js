@@ -4,6 +4,7 @@ import HomePage from "~/pages/index.jsx";
 import LeaveRequest from "~/pages/leave-request";
 import ProfilePage from "~/pages/profile";
 import DepartmentPage from "~/pages/departments";
+import FaceCameraVerify from "~/pages/attendance/FaceCameraVerify";
 
 const publicRoutes = [
   {
@@ -29,6 +30,11 @@ const publicRoutes = [
   {
     path: "/departments",
     component: DepartmentPage,
+    layout: DefaultLayout,
+  },
+  {
+    path: "/attendance",
+    component: FaceCameraVerify,
     layout: DefaultLayout,
   },
 ];
