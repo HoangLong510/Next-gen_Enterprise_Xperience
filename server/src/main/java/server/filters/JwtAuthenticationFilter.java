@@ -32,7 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
 
         // BYPASS filter cho websocket endpoint, sockjs endpoint
-        if (path.startsWith("/ws")) {
+        if (path.startsWith("/ws") || path.startsWith("/github/login") || path.startsWith("/github/callback")) {
             filterChain.doFilter(request, response);
             return;
         }

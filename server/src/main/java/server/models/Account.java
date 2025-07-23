@@ -44,7 +44,9 @@ public class Account implements UserDetails {
     @OneToMany(mappedBy = "account")
     @JsonIgnoreProperties("account")
     private List<Token> tokens;
-
+    @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
+    @JsonIgnoreProperties("account")
+    private GitHubToken gitHubToken;
     @OneToOne(mappedBy = "account")
     @JsonIgnoreProperties("account")
     private Employee employee;
