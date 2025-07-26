@@ -11,6 +11,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import server.models.enums.AccountStatus;
 import server.models.enums.Role;
 
 import java.time.LocalDateTime;
@@ -61,6 +62,11 @@ public class Account implements UserDetails {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    private LocalDateTime lastActiveAt;
+
+    @Enumerated(EnumType.STRING)
+    private AccountStatus status;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

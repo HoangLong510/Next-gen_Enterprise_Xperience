@@ -50,6 +50,23 @@ export const menuItems = [
 			}
 		]
 	},
+   {
+    title: "Finance",
+    items: [
+      {
+        label: "Fund",
+        icon: AssignmentIndIcon,
+        href: "/finance/fund",
+        roles: ["ADMIN", "MANAGER"],
+      },
+      {
+        label: "Salary",
+        icon: FilePresentIcon,
+        href: "/finance/salary/create",
+        roles: ["ADMIN", "MANAGER"],
+      },
+    ],
+  },
 	{
 		title: "Utilities",
 		items: [
@@ -86,3 +103,4 @@ export const menuItems = [
 		]
 	}
 ]
+
