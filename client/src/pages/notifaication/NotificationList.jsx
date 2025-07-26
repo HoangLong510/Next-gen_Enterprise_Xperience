@@ -35,9 +35,34 @@ export default function NotificationList() {
     loadNotifications();
   }, [account?.username]);
 
+  // Hàm điều hướng theo loại thông báo
+  const navigateToDetail = (noti) => {
+    if (!noti.referenceId) return;
+
+    switch (noti.type) {
+      case "DOCUMENT":
+        navigate(`/management/documents/${noti.referenceId}`);
+        break;
+      case "LEAVE_REQUEST":
+        navigate(`/leave-request`);
+        break;
+      case "PROJECT":
+        navigate(`/management/projects/${noti.referenceId}`);
+        break;
+      case "TASK":
+        navigate(`/management/tasks/${noti.referenceId}`);
+        break;
+      case "ORDER":
+        navigate(`/management/orders/${noti.referenceId}`);
+        break;
+      default:
+        navigate("/notifications");
+    }
+  };
+
   const handleItemClick = async (noti) => {
     if (!noti.referenceId) {
-      alert("Thông báo này không liên kết tới công văn!");
+      alert("Thông báo này không liên kết tới chi tiết!");
       return;
     }
     if (!noti.read) {
@@ -50,7 +75,7 @@ export default function NotificationList() {
         );
       }
     }
-    navigate(`/management/documents/${noti.referenceId}`);
+    navigateToDetail(noti);
   };
 
   if (loading) {

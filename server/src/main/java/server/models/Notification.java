@@ -25,6 +25,10 @@ public class Notification {
     @JoinColumn(name = "recipient_id")
     private Account recipient;
 
+    @ManyToOne
+    @JoinColumn(name = "created_by_id")
+    private Account createdBy;
+
     @Column(name = "`read`")
     private boolean read;
 

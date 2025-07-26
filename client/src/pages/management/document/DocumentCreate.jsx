@@ -16,15 +16,15 @@ import { createDocumentApi } from "~/services/document.service";
 import { fetchPMsApi } from "~/services/account.service";
 
 const schema = yup.object().shape({
-  title: yup.string().required("Vui lòng nhập tiêu đề"),
-  content: yup.string().required("Vui lòng nhập nội dung"),
-  type: yup.string().required("Vui lòng chọn kiểu công văn"),
+  title: yup.string().required("Please enter the title"),
+  content: yup.string().required("Please enter the content"),
+  type: yup.string().required("Please select document type"),
   projectManagerId: yup
     .string()
     .nullable()
     .when("type", (type, schema) => {
       return type === "PROJECT"
-        ? schema.required("Chọn quản lý dự án")
+        ? schema.required("Select Project Manager")
         : schema.nullable();
     }),
 });
@@ -78,7 +78,6 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
 
     if (res.status === 201) {
       onSuccess && onSuccess(res.data);
-      downloadWordFile(res.data.file);
       reset({
         title: "",
         content: "",
@@ -88,30 +87,9 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
     } else {
       setError("title", {
         type: "manual",
-        message: res.message || "Tạo công văn thất bại",
+        message: res.message || "Create document failed",
       });
     }
-  };
-
-  const downloadWordFile = (base64Data) => {
-    const byteCharacters = atob(base64Data);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], {
-      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    });
-
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "congvan.docx");
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
   };
 
   return (
@@ -134,13 +112,13 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
         color="primary.main"
         mb={2}
       >
-        Tạo công văn mới
+        Create New Document
       </Typography>
 
       <form onSubmit={handleSubmit(onSubmit)} autoComplete="off">
         <TextField
-          label="Tiêu đề"
-          placeholder="Nhập tiêu đề công văn"
+          label="Title"
+          placeholder="Enter document title"
           fullWidth
           margin="normal"
           error={!!errors.title}
@@ -151,8 +129,8 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
         />
 
         <TextField
-          label="Nội dung"
-          placeholder="Nhập nội dung ngắn gọn..."
+          label="Content"
+          placeholder="Enter a short description..."
           fullWidth
           multiline
           rows={4}
@@ -164,10 +142,9 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
           InputProps={{ sx: { borderRadius: 2 } }}
         />
 
-        {/* Thêm input chọn kiểu công văn */}
         <TextField
           select
-          label="Kiểu công văn"
+          label="Document Type"
           fullWidth
           margin="normal"
           error={!!errors.type}
@@ -176,18 +153,17 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
           onChange={(e) => setValue("type", e.target.value)}
           InputProps={{ sx: { borderRadius: 2 } }}
         >
-          <MenuItem value="">-- Chọn kiểu công văn --</MenuItem>
-          <MenuItem value="PROJECT">Công văn dự án</MenuItem>
-          <MenuItem value="ADMINISTRATIVE">Công văn hành chính</MenuItem>
-          <MenuItem value="OTHER">Công văn khác</MenuItem>
+          <MenuItem value="">-- Select document type --</MenuItem>
+          <MenuItem value="PROJECT">Project Document</MenuItem>
+          <MenuItem value="ADMINISTRATIVE">Administrative Document</MenuItem>
+          <MenuItem value="OTHER">Other Document</MenuItem>
         </TextField>
 
-        {/* Chỉ hiện trường PM khi kiểu là PROJECT */}
         {type === "PROJECT" && (
           <TextField
             select
-            label="Quản lý dự án"
-            placeholder="Chọn quản lý dự án"
+            label="Project Manager"
+            placeholder="Select Project Manager"
             fullWidth
             margin="normal"
             error={!!errors.projectManagerId}
@@ -196,10 +172,10 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
             onChange={(e) => setValue("projectManagerId", e.target.value)}
             InputProps={{ sx: { borderRadius: 2 } }}
           >
-            <MenuItem value="">-- Chọn quản lý dự án --</MenuItem>
+            <MenuItem value="">-- Select Project Manager --</MenuItem>
             {pmList.length === 0 ? (
               <MenuItem disabled value="">
-                Không có PM nào
+                No Project Managers found
               </MenuItem>
             ) : (
               pmList.map((pm) => (
@@ -230,7 +206,7 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
               loading ? <CircularProgress size={20} color="inherit" /> : null
             }
           >
-            {loading ? "Đang tạo..." : "Tạo công văn"}
+            {loading ? "Creating..." : "Create Document"}
           </Button>
 
           <Button
@@ -242,12 +218,11 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
             disabled={loading}
             sx={{ fontWeight: 600, borderRadius: 2, background: "#f8fafc" }}
           >
-            Hủy
+            Cancel
           </Button>
         </Box>
       </form>
 
-      {/* Loading overlay */}
       <Fade in={loading}>
         <Backdrop
           open={loading}

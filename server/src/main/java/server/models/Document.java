@@ -18,6 +18,9 @@ public class Document {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false, length = 32)
+    private String code;
+
     private String title;
 
     private String content;
@@ -32,9 +35,8 @@ public class Document {
     @JoinColumn(name = "receiver_id")
     private Account receiver;
 
-//    @ManyToOne
-//    @JoinColumn(name = "related_project_id", nullable = true)
-//    private Project relatedProject;
+    @OneToOne(mappedBy = "document")
+    private Project project;
 
     private LocalDateTime createdAt;
 
@@ -43,4 +45,7 @@ public class Document {
 
     @Enumerated(EnumType.STRING)
     private DocumentType type;
+
+    @Column(columnDefinition = "TEXT")
+    private String signature;
 }

@@ -8,56 +8,122 @@ import {
   Stack,
   alpha,
   useTheme,
+  Pagination,
+  TextField,
+  MenuItem,
+  InputAdornment,
+  TableSortLabel,
 } from "@mui/material";
-import { Work, Person, CalendarToday } from "@mui/icons-material";
-import { useEffect, useState } from "react";
+import { Work, Person, CalendarToday, Search } from "@mui/icons-material";
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  fetchDocumentsApi,
-  fetchMyDocumentsApi,
+  fetchDocumentsPageApi,
+  fetchMyDocumentsPageApi,
 } from "~/services/document.service";
 import DocumentCreate from "./DocumentCreate";
 import { useSelector } from "react-redux";
 
+const STATUS_OPTIONS = [
+  { value: "", label: "All Status" },
+  { value: "NEW", label: "NEW" },
+  { value: "IN_PROGRESS", label: "IN_PROGRESS" },
+  { value: "COMPLETED", label: "COMPLETED" },
+  { value: "REJECTED", label: "REJECTED" },
+];
+
+const TYPE_OPTIONS = [
+  { value: "", label: "All Type" },
+  { value: "PROJECT", label: "PROJECT" },
+  { value: "ADMINISTRATIVE", label: "ADMINISTRATIVE" },
+  { value: "OTHER", label: "Khác" },
+];
+
+// Hàm chuyển status sang màu
+const statusColor = (status) => {
+  switch (status) {
+    case "COMPLETED":
+    case "Hoàn thành":
+      return "success";
+    case "PROCESSING":
+    case "Đang xử lý":
+      return "warning";
+    case "NEW":
+    case "Chờ duyệt":
+      return "info";
+    case "REJECTED":
+      return "error";
+    default:
+      return "default";
+  }
+};
+
 export default function DocumentList() {
   const theme = useTheme();
+  const account = useSelector((state) => state.account.value);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+
+  // State filter, sort, page
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("desc");
+  const [page, setPage] = useState(1); // phân trang base 1
+  const [rowsPerPage] = useState(6);
+  const [totalPage, setTotalPage] = useState(0);
 
-  const account = useSelector((state) => state.account.value);
-  const accessToken = localStorage.getItem("accessToken");
+  const navigate = useNavigate();
+  const handleCardClick = (id) => {
+    navigate(`/management/documents/${id}`);
+  };
 
-  const fetchList = async () => {
+  // Lấy danh sách
+  const fetchList = useCallback(async () => {
     setLoading(true);
     let res;
+    const payload = {
+      pageNumber: page,
+      pageSize: rowsPerPage,
+      searchTerm,
+      sortBy,
+      statusFilter, // <-- thêm
+      typeFilter, // <-- thêm
+    };
     if (account.role === "ADMIN" || account.role === "MANAGER") {
-      res = await fetchDocumentsApi(accessToken);
-    } else if (account.role === "PM" || account.role === "ACCOUNTANT") {
-      res = await fetchMyDocumentsApi(accessToken);
+      res = await fetchDocumentsPageApi(payload);
+    } else if (["PM", "ACCOUNTANT"].includes(account.role)) {
+      res = await fetchMyDocumentsPageApi(payload);
     } else {
-      res = { status: 403, data: [] };
+      res = { status: 403, data: { documents: [], totalPage: 0 } };
     }
-    if (res.status === 200) setDocuments(res.data);
-    else setDocuments([]);
+    if (res.status === 200) {
+      setDocuments(res.data.documents);
+      setTotalPage(res.data.totalPage || 1);
+    } else {
+      setDocuments([]);
+      setTotalPage(1);
+    }
     setLoading(false);
-  };
+  }, [
+    account.role,
+    page,
+    rowsPerPage,
+    searchTerm,
+    sortBy,
+    statusFilter,
+    typeFilter,
+  ]);
 
+  // Debounce searchTerm
   useEffect(() => {
-    fetchList();
-  }, [account.role]);
-
-  const statusColor = (status) => {
-    switch (status) {
-      case "Hoàn thành":
-        return "success";
-      case "Đang xử lý":
-        return "warning";
-      case "Chờ duyệt":
-        return "info";
-      default:
-        return "default";
-    }
-  };
+    setPage(1);
+  }, [searchTerm, sortBy, statusFilter, typeFilter]);
+  useEffect(() => {
+    const timer = setTimeout(() => fetchList(), 350);
+    return () => clearTimeout(timer);
+  }, [fetchList, page, searchTerm, sortBy]);
 
   const iconColors = {
     createdBy: theme.palette.success.main,
@@ -75,6 +141,7 @@ export default function DocumentList() {
           mb: 5,
           borderBottom: `2px solid ${alpha(theme.palette.primary.main, 0.3)}`,
           pb: 1,
+          flexWrap: "wrap",
         }}
       >
         <Typography
@@ -85,7 +152,7 @@ export default function DocumentList() {
             color: theme.palette.primary.main,
           }}
         >
-          Danh sách công văn
+          Dispatch List
         </Typography>
         {(account.role === "ADMIN" || account.role === "MANAGER") && (
           <Button
@@ -106,10 +173,73 @@ export default function DocumentList() {
               transition: "all 0.3s ease-in-out",
             }}
           >
-            Tạo công văn mới
+            Create new dispatch
           </Button>
         )}
       </Box>
+
+      {/* Thanh search & sort */}
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        gap={2}
+        mb={4}
+        flexWrap="wrap"
+      >
+        <TextField
+          size="small"
+          placeholder="Search title/content..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search sx={{ fontSize: 20 }} />
+              </InputAdornment>
+            ),
+            sx: { borderRadius: 2 },
+          }}
+          sx={{ width: { xs: "100%", sm: 250 } }}
+        />
+
+        <TextField
+          select
+          size="small"
+          label="Status"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          sx={{ minWidth: 150 }}
+        >
+          {STATUS_OPTIONS.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
+
+        <TextField
+          select
+          size="small"
+          label="Type"
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          sx={{ minWidth: 170 }}
+        >
+          {TYPE_OPTIONS.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
+
+        <TableSortLabel
+          active
+          direction={sortBy}
+          onClick={() => setSortBy((prev) => (prev === "asc" ? "desc" : "asc"))}
+          sx={{ fontWeight: 600, ml: { xs: 0, sm: 2 } }}
+        >
+          Sort by creation date ({sortBy === "asc" ? "Oldest" : "Latest"})
+        </TableSortLabel>
+      </Stack>
 
       {/* Modal tạo công văn */}
       {showCreate && (
@@ -153,6 +283,7 @@ export default function DocumentList() {
           {documents.map((doc) => (
             <Card
               key={doc.id}
+              onClick={() => handleCardClick(doc.id)}
               sx={{
                 borderRadius: 3,
                 boxShadow: `0 20px 40px ${alpha(
@@ -204,7 +335,6 @@ export default function DocumentList() {
                   )}`,
                 }}
               >
-                {/* Title */}
                 <Typography
                   variant="h6"
                   fontWeight={700}
@@ -214,17 +344,13 @@ export default function DocumentList() {
                 >
                   {doc.title}
                 </Typography>
-
-                {/* Mô tả ngắn */}
                 <Typography
                   variant="body2"
                   color="text.secondary"
                   sx={{ mb: 1.5, lineHeight: 1.4, userSelect: "none" }}
                 >
-                  {doc.description || "Mô tả vắn tắt công văn..."}
+                  {doc.description || "Brief description of the document..."}
                 </Typography>
-
-                {/* Status chip */}
                 <Chip
                   label={doc.status}
                   color={statusColor(doc.status)}
@@ -242,8 +368,6 @@ export default function DocumentList() {
                     borderRadius: 3,
                   }}
                 />
-
-                {/* Background decor */}
                 <Box
                   sx={{
                     position: "absolute",
@@ -259,7 +383,6 @@ export default function DocumentList() {
                   }}
                 />
               </Box>
-
               {/* Right side: info boxes */}
               <Stack
                 direction={{ xs: "column", sm: "row" }}
@@ -268,7 +391,6 @@ export default function DocumentList() {
                 justifyContent="space-between"
                 flexWrap="wrap"
               >
-                {/* Người tạo */}
                 <Box
                   sx={{
                     flexBasis: "30%",
@@ -295,7 +417,7 @@ export default function DocumentList() {
                         mb: 0.5,
                       }}
                     >
-                      Người tạo
+                      Creator
                     </Typography>
                     <Typography
                       variant="body1"
@@ -307,30 +429,20 @@ export default function DocumentList() {
                     </Typography>
                   </Box>
                 </Box>
-
-                {/* Người nhận (receiver) */}
                 <Box
                   sx={{
                     flexBasis: "30%",
                     borderRadius: 2,
-                    border: `1px solid ${alpha(
-                      iconColors.receiver,
-                      0.4
-                    )}`,
+                    border: `1px solid ${alpha(iconColors.receiver, 0.4)}`,
                     backgroundColor: alpha(iconColors.receiver, 0.15),
                     display: "flex",
                     alignItems: "center",
                     gap: 2,
                     p: 3,
-                    boxShadow: `0 8px 20px ${alpha(
-                      iconColors.receiver,
-                      0.15
-                    )}`,
+                    boxShadow: `0 8px 20px ${alpha(iconColors.receiver, 0.15)}`,
                   }}
                 >
-                  <Work
-                    sx={{ color: iconColors.receiver, fontSize: 34 }}
-                  />
+                  <Work sx={{ color: iconColors.receiver, fontSize: 34 }} />
                   <Box>
                     <Typography
                       variant="subtitle2"
@@ -340,7 +452,7 @@ export default function DocumentList() {
                         mb: 0.5,
                       }}
                     >
-                      Người nhận
+                      Receiver
                     </Typography>
                     <Typography
                       variant="body1"
@@ -352,8 +464,6 @@ export default function DocumentList() {
                     </Typography>
                   </Box>
                 </Box>
-
-                {/* Ngày tạo */}
                 <Box
                   sx={{
                     flexBasis: "30%",
@@ -382,7 +492,7 @@ export default function DocumentList() {
                         mb: 0.5,
                       }}
                     >
-                      Ngày tạo
+                      Creation Date
                     </Typography>
                     <Typography
                       variant="body1"
@@ -399,6 +509,16 @@ export default function DocumentList() {
           ))}
         </Stack>
       )}
+
+      {/* Pagination */}
+      <Box mt={5} display="flex" justifyContent="flex-end">
+        <Pagination
+          color="primary"
+          count={totalPage}
+          page={page}
+          onChange={(e, v) => setPage(v)}
+        />
+      </Box>
     </Box>
   );
 }

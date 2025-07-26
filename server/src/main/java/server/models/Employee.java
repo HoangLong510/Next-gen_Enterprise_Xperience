@@ -13,6 +13,7 @@ import java.util.Arrays;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "employees")
@@ -64,7 +65,10 @@ public class Employee {
     @OneToOne(mappedBy = "hod")
     @JsonIgnoreProperties("hod")
     private Department hodDepartment;
-
+    @ManyToMany(mappedBy = "employees")
+    private List<Project> projects;
+    @OneToMany(mappedBy = "assignee")
+    private List<SubTask> subTasks;
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
