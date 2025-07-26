@@ -9,8 +9,8 @@ export default function DefaultLayout({ children }) {
 	const theme = useTheme()
 
 	return (
-		<SimplebarReact>
-			<Box sx={{ width: "100%" }}>
+		<SimplebarReact style={{ width: "100%", overflowX: "hidden" }}>
+			<Box sx={{ width: "100%", overflowX: "hidden" }}>
 				{/* Header */}
 				<Header open={open} setOpen={setOpen} />
 

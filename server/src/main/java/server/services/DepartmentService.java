@@ -137,6 +137,11 @@ public class DepartmentService {
             department.setImage(filePath);
 
             departmentRepository.save(department);
+            if (hod.getCode() == null || hod.getCode().isBlank()) {
+                hod.setDepartment(department);
+                hod.setCode(hod.generateCode());
+                employeeRepository.save(hod);
+            }
             return ApiResponse.created(null, "create-department-success");
         } catch (Exception e) {
             return ApiResponse.badRequest("error-uploading-file");
@@ -214,6 +219,9 @@ public class DepartmentService {
             employee.setDepartment(null);
         } else {
             employee.setDepartment(department);
+            if (employee.getCode() == null || employee.getCode().isBlank()) {
+                employee.setCode(employee.generateCode());
+            }
         }
         employeeRepository.save(employee);
         return ApiResponse.success(null, "update-department-success");
@@ -226,4 +234,5 @@ public class DepartmentService {
         }
         return ApiResponse.success(department, "get-department-success");
     }
+
 }

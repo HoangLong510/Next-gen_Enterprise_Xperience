@@ -19,6 +19,7 @@
 		"@stomp/stompjs": "^7.1.1",
 		"aos": "^2.3.4",
 		"axios": "^1.10.0",
+		"file-saver": "^2.0.5",
 		"i18next": "^25.2.1",
 		"i18next-browser-languagedetector": "^8.2.0",
 		"i18next-http-backend": "^3.0.2",
@@ -35,6 +36,8 @@
 		"simplebar": "^6.3.1",
 		"simplebar-react": "^3.3.1",
 		"sockjs-client": "^1.6.1",
+		"xlsx": "^0.18.5",
+		"xlsx-style": "^0.8.13",
 		"yup": "^1.6.1"
 	},
 	"devDependencies": {
