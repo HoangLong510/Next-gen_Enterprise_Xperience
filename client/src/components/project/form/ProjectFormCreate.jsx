@@ -69,7 +69,6 @@ useEffect(() => {
       deadline: document.projectDeadline
         ? dayjs(document.projectDeadline).format("YYYY-MM-DD")
         : dayjs().add(7, "day").format("YYYY-MM-DD"),
-      note: "",
     });
   } else if (initialData) {
     reset({ ...defaultValues, ...initialData });
@@ -172,24 +171,6 @@ useEffect(() => {
                 disabled
                 error={!!errors.priority}
                 helperText={errors.priority?.message}
-              />
-            )}
-          />
-
-          {/* Ghi chú (optional) */}
-          <Controller
-            name="note"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Note (optional)"
-                fullWidth
-                size="small"
-                multiline
-                rows={2}
-                error={!!errors.note}
-                helperText={errors.note?.message}
               />
             )}
           />

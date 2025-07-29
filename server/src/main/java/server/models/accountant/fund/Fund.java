@@ -8,6 +8,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import server.models.Account;
+import server.models.Document;
 
 import java.time.LocalDateTime;
 
@@ -46,6 +47,10 @@ public class Fund {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @OneToOne
+    @JoinColumn(name = "document_id", unique = true)
+    private Document document;
 
     @Column(name = "locked_until")
     private LocalDateTime lockedUntil;

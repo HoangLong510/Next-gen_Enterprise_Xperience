@@ -63,13 +63,13 @@ export const menuItems = [
         label: "Fund",
         icon: AssignmentIndIcon,
         href: "/finance/fund",
-        roles: ["ADMIN", "MANAGER"],
+        roles: ["ADMIN", "MANAGER","ACCOUNTANT"],
       },
       {
         label: "Salary",
         icon: FilePresentIcon,
         href: "/finance/salary/create",
-        roles: ["ADMIN", "MANAGER"],
+        roles: ["ADMIN", "MANAGER","ACCOUNTANT"],
       },
     ],
   },
@@ -92,7 +92,7 @@ export const menuItems = [
 				label: "Dispatches",
 				icon: AssignmentIcon,
 				href: "/management/documents",
-				roles: ["ADMIN", "MANAGER", "PM"]
+				roles: ["ADMIN", "MANAGER", "PM","ACCOUNTANT"]
 			},
 			{
 				label: "Tasks",

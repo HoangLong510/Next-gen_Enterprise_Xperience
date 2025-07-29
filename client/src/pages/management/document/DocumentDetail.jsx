@@ -30,6 +30,8 @@ import {
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { setPopup } from "~/libs/features/popup/popupSlice";
 import {
   fetchDocumentDetailApi,
   downloadDocumentFileApi,
@@ -49,6 +51,7 @@ export default function DocumentDetail() {
   const [signError, setSignError] = useState("");
   const signaturePadRef = useRef(null);
   const account = useSelector((state) => state.account.value);
+  const dispatch = useDispatch();
 
   const fetchDetail = async () => {
     setLoading(true);
@@ -103,9 +106,10 @@ export default function DocumentDetail() {
     setLoading(false);
     setSignDialogOpen(false);
     if (res.status === 200) {
+      dispatch(setPopup({ type: "success", message: "Ký công văn thành công" }));
       fetchDetail();
     } else {
-      alert(res.message || "Ký công văn thất bại!");
+      dispatch(setPopup({ type: "error", message: res.message || "Ký công văn thất bại!" }));
     }
   };
 
@@ -341,7 +345,7 @@ export default function DocumentDetail() {
                     )}
 
                   {/* Create Project Button */}
-                  {!doc.project && (
+                  {!doc.project && account?.id === doc.pmId && (
                     <Button
                       variant="outlined"
                       color="success"
@@ -389,7 +393,7 @@ export default function DocumentDetail() {
                     <InfoRow
                       icon={<Work />}
                       label="Project Manager"
-                      value={doc.receiver}
+                      value={doc.pmName}
                       theme={theme}
                       color={theme.palette.info.main}
                     />

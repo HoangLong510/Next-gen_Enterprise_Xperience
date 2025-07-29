@@ -29,7 +29,7 @@ const roleRoutes = [
 		path: "/management/documents",
 		component: DocumentList,
 		layout: DefaultLayout,
-		roles: ["ADMIN", "MANAGER", "PM"]
+		roles: ["ADMIN", "MANAGER", "PM","ACCOUNTANT"]
 	},
 	{
 		path: "/management/projects",
@@ -48,7 +48,7 @@ const roleRoutes = [
 		path: "/management/documents/:id",
 		component: DocumentDetail,
 		layout: DefaultLayout,
-		roles: ["ADMIN", "MANAGER", "PM"]
+		roles: ["ADMIN", "MANAGER", "PM","ACCOUNTANT"]
 	},
 	{
 		path: "/departments/add",
