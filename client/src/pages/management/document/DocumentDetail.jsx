@@ -1,4 +1,5 @@
-// ~/pages/management/document/DocumentDetail.jsx
+"use client";
+
 import {
   Box,
   Typography,
@@ -13,17 +14,28 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Card,
+  CardContent,
+  Grid,
 } from "@mui/material";
-import { Person, Work, CalendarToday, InfoOutlined } from "@mui/icons-material";
-import React, { useEffect, useState, useRef } from "react";
+import {
+  Person,
+  Work,
+  CalendarToday,
+  InfoOutlined,
+  Download,
+  Edit,
+  FilePresent,
+} from "@mui/icons-material";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
   fetchDocumentDetailApi,
   downloadDocumentFileApi,
-  signDocumentApi, // <--- Thêm api ký
+  signDocumentApi,
 } from "~/services/document.service";
-import SignatureCanvas from "react-signature-canvas"; // cần cài gói này nếu ký hình
+import SignatureCanvas from "react-signature-canvas";
 import ProjectFormCreate from "~/components/project/form/ProjectFormCreate";
 
 export default function DocumentDetail() {
@@ -33,14 +45,11 @@ export default function DocumentDetail() {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
-
   const [signDialogOpen, setSignDialogOpen] = useState(false);
   const [signError, setSignError] = useState("");
   const signaturePadRef = useRef(null);
-
   const account = useSelector((state) => state.account.value);
 
-  // Fetch document detail
   const fetchDetail = async () => {
     setLoading(true);
     const res = await fetchDocumentDetailApi(id);
@@ -80,7 +89,6 @@ export default function DocumentDetail() {
     setDownloading(false);
   };
 
-  // Xử lý ký điện tử
   const handleSign = () => setSignDialogOpen(true);
 
   const handleSaveSign = async () => {
@@ -95,182 +103,351 @@ export default function DocumentDetail() {
     setLoading(false);
     setSignDialogOpen(false);
     if (res.status === 200) {
-      fetchDetail(); // reload lại doc detail
+      fetchDetail();
     } else {
       alert(res.message || "Ký công văn thất bại!");
     }
   };
 
-  // Loading
+  // Loading state
   if (loading)
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "400px",
+        }}
+      >
         <CircularProgress size={40} />
       </Box>
     );
 
   if (!doc)
     return (
-      <Typography
-        color="text.secondary"
-        sx={{ mt: 10, fontSize: 22, fontWeight: 600, textAlign: "center" }}
-      >
-        Document not found.
-      </Typography>
-    );
-
-  return (
-    <Paper
-      elevation={12}
-      sx={{
-        maxWidth: 1200,
-        width: "90%",
-        mx: "auto",
-        mt: 6,
-        p: 3,
-        borderRadius: 4,
-        background: `linear-gradient(145deg, ${alpha(
-          theme.palette.background.paper,
-          0.95
-        )}, ${alpha(theme.palette.primary.light, 0.15)})`,
-        boxShadow: `0 25px 50px ${alpha(theme.palette.primary.main, 0.25)}`,
-      }}
-    >
-      {/* Title */}
-      <Typography
-        variant="h3"
-        fontWeight={800}
-        color={theme.palette.primary.dark}
-        gutterBottom
-        sx={{ letterSpacing: 1 }}
-      >
-        {doc.title}
-      </Typography>
-
-      {/* Xem trước file Word nếu có */}
-      {doc.previewHtml && (
-        <Box
-          sx={{
-            mb: 4,
-            borderRadius: 3,
-            background: "#fff",
-            border: `2px solid ${theme.palette.primary.light}`,
-            p: 0,
-            overflow: "hidden",
-            boxShadow: `0 2px 12px ${alpha(theme.palette.primary.light, 0.2)}`,
-          }}
-        >
-          <Box
-            sx={{
-              bgcolor: theme.palette.primary.light,
-              px: 3,
-              py: 1.5,
-              borderBottom: `1px solid ${theme.palette.primary.main}`,
-            }}
-          >
-            <Typography fontWeight={700} color="primary.dark" fontSize={18}>
-              Xem trước công văn (bản Word)
-            </Typography>
-          </Box>
-          <Box
-            sx={{
-              p: 3,
-              fontFamily: "'Times New Roman', Times, serif",
-              fontSize: 16,
-              lineHeight: 1.8,
-              maxHeight: 450,
-              overflowY: "auto",
-              background: "#fafbff",
-            }}
-            dangerouslySetInnerHTML={{ __html: doc.previewHtml }}
-          />
-        </Box>
-      )}
-
-      {/* Main content */}
       <Box
-    <>
-      <Paper
-        elevation={12}
         sx={{
-          maxWidth: 1200,
-          width: "90%",
-          mx: "auto",
-          mt: 6,
-          p: 3,
-          borderRadius: 4,
-          background: `linear-gradient(145deg, ${alpha(
-            theme.palette.background.paper,
-            0.95
-          )}, ${alpha(theme.palette.primary.light, 0.15)})`,
-          boxShadow: `0 25px 50px ${alpha(theme.palette.primary.main, 0.25)}`,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "400px",
         }}
       >
         <Typography
-          variant="h3"
-          fontWeight={800}
-          color={theme.palette.primary.dark}
-          gutterBottom
-          sx={{ letterSpacing: 1 }}
+          color="text.secondary"
+          sx={{ fontSize: 22, fontWeight: 600, textAlign: "center" }}
         >
-          {doc.title}
+          Document not found.
         </Typography>
+      </Box>
+    );
 
-        <Box
+  return (
+    <>
+      <Box sx={{ maxWidth: 1400, mx: "auto", p: { xs: 2, sm: 3, md: 4 } }}>
+        <Paper
+          elevation={12}
           sx={{
-            mb: 3,
-            color: theme.palette.text.primary,
-            whiteSpace: "pre-line",
-            lineHeight: 1.7,
-            fontSize: 16,
-            p: 3,
-            borderRadius: 3,
-            border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
-            backgroundColor: alpha(theme.palette.primary.light, 0.1),
-            boxShadow: `inset 0 0 12px ${alpha(
-              theme.palette.primary.main,
-              0.07
-            )}`,
-            maxHeight: 400,
-            overflowY: "auto",
+            borderRadius: 4,
+            background: `linear-gradient(145deg, ${alpha(
+              theme.palette.background.paper,
+              0.95
+            )}, ${alpha(theme.palette.primary.light, 0.15)})`,
+            boxShadow: `0 25px 50px ${alpha(theme.palette.primary.main, 0.25)}`,
+            overflow: "hidden",
           }}
         >
-          {doc.content || "No detailed content for this document."}
-        </Box>
-
-      {/* Nút ký điện tử - chỉ hiện cho giám đốc, trạng thái NEW, chưa ký */}
-      {account?.role === "MANAGER" &&
-        doc.status === "NEW" &&
-        !doc.signature && (
-          <Button
-            variant="contained"
-            color="success"
-            sx={{ mb: 2, fontWeight: 600 }}
-            onClick={handleSign}
+          {/* Header Section */}
+          <Box
+            sx={{
+              background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+              color: "white",
+              p: { xs: 2, sm: 3, md: 3 }, // giảm padding
+              textAlign: "center",
+            }}
           >
-            Ký điện tử công văn
-          </Button>
-        )}
+            <FilePresent
+              sx={{
+                fontSize: { xs: 30, sm: 40, md: 45 },
+                mb: 1,
+                opacity: 0.85,
+              }}
+            />{" "}
+            {/* giảm size icon */}
+            <Typography
+              variant="h4"
+              fontWeight={700}
+              sx={{
+                letterSpacing: 0.5,
+                fontSize: {
+                  xs: "1.2rem",
+                  sm: "1.6rem",
+                  md: "2rem",
+                  lg: "2.4rem",
+                }, // giảm font
+                lineHeight: 1.1, // giảm khoảng cách dòng
+                textShadow: "0 1px 3px rgba(0,0,0,0.25)",
+              }}
+            >
+              {doc.title}
+            </Typography>
+          </Box>
+
+          <Box sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
+            {/* Preview Word file if available */}
+            {doc.previewHtml && (
+              <Card
+                elevation={4}
+                sx={{
+                  mb: 4,
+                  borderRadius: 3,
+                  overflow: "hidden",
+                  border: `2px solid ${theme.palette.primary.light}`,
+                }}
+              >
+                <Box
+                  sx={{
+                    bgcolor: theme.palette.primary.light,
+                    px: 3,
+                    py: 2,
+                    borderBottom: `1px solid ${theme.palette.primary.main}`,
+                  }}
+                >
+                  <Typography
+                    fontWeight={700}
+                    color="primary.dark"
+                    fontSize={18}
+                  >
+                    📄 Xem trước công văn (bản Word)
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    p: { xs: 2, sm: 3 },
+                    fontFamily: "'Times New Roman', Times, serif",
+                    fontSize: { xs: 14, sm: 16 },
+                    lineHeight: 1.8,
+                    maxHeight: { xs: 300, sm: 450 },
+                    overflowY: "auto",
+                    background: "#fafbff",
+                  }}
+                  dangerouslySetInnerHTML={{ __html: doc.previewHtml }}
+                />
+              </Card>
+            )}
+
+            {/* Main content box */}
+            <Card elevation={3} sx={{ mb: 4, borderRadius: 3 }}>
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Typography
+                  variant="h6"
+                  fontWeight={600}
+                  color="primary.main"
+                  sx={{ mb: 2 }}
+                >
+                  📝 Nội dung chi tiết
+                </Typography>
+                <Box
+                  sx={{
+                    color: theme.palette.text.primary,
+                    whiteSpace: "pre-line",
+                    lineHeight: 1.7,
+                    fontSize: { xs: 14, sm: 16 },
+                    p: { xs: 2, sm: 3 },
+                    borderRadius: 2,
+                    border: `1px solid ${alpha(
+                      theme.palette.primary.main,
+                      0.15
+                    )}`,
+                    backgroundColor: alpha(theme.palette.primary.light, 0.05),
+                    maxHeight: { xs: 250, sm: 400 },
+                    overflowY: "auto",
+                  }}
+                >
+                  {doc.content || "No detailed content for this document."}
+                </Box>
+              </CardContent>
+            </Card>
+
+            {/* Action Buttons Section */}
+            <Card elevation={3} sx={{ mb: 4, borderRadius: 3 }}>
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Typography
+                  variant="h6"
+                  fontWeight={600}
+                  color="primary.main"
+                  sx={{ mb: 3 }}
+                >
+                  🔧 Thao tác
+                </Typography>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={2}
+                  sx={{ flexWrap: "wrap", gap: { xs: 2, sm: 1 } }}
+                >
+                  {/* Download Button */}
+                  {doc.fileUrl && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<Download />}
+                      onClick={handleDownload}
+                      disabled={downloading}
+                      sx={{
+                        fontWeight: 700,
+                        textTransform: "none",
+                        borderRadius: 2,
+                        px: 3,
+                        py: 1.5,
+                        boxShadow: `0 4px 12px ${alpha(
+                          theme.palette.primary.main,
+                          0.3
+                        )}`,
+                        "&:hover": {
+                          boxShadow: `0 6px 16px ${alpha(
+                            theme.palette.primary.main,
+                            0.4
+                          )}`,
+                          transform: "translateY(-2px)",
+                        },
+                        minWidth: { xs: "100%", sm: "auto" },
+                      }}
+                    >
+                      {downloading ? "Downloading..." : "Download Word file"}
+                    </Button>
+                  )}
+
+                  {/* Sign Button */}
+                  {account?.role === "MANAGER" &&
+                    doc.status === "NEW" &&
+                    !doc.signature && (
+                      <Button
+                        variant="contained"
+                        color="success"
+                        startIcon={<Edit />}
+                        onClick={handleSign}
+                        sx={{
+                          fontWeight: 600,
+                          textTransform: "none",
+                          borderRadius: 2,
+                          px: 3,
+                          py: 1.5,
+                          minWidth: { xs: "100%", sm: "auto" },
+                        }}
+                      >
+                        Ký điện tử công văn
+                      </Button>
+                    )}
+
+                  {/* Create Project Button */}
+                  {!doc.project && (
+                    <Button
+                      variant="outlined"
+                      color="success"
+                      onClick={() => setFormOpen(true)}
+                      sx={{
+                        fontWeight: 700,
+                        borderRadius: 2,
+                        textTransform: "none",
+                        px: 3,
+                        py: 1.5,
+                        minWidth: { xs: "100%", sm: "auto" },
+                      }}
+                    >
+                      Create Project
+                    </Button>
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
+
+            <Divider sx={{ mb: 4 }} />
+
+            {/* Info Section */}
+            <Card elevation={3} sx={{ borderRadius: 3 }}>
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Typography
+                  variant="h6"
+                  fontWeight={600}
+                  color="primary.main"
+                  sx={{ mb: 3 }}
+                >
+                  ℹ️ Thông tin chi tiết
+                </Typography>
+                <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <InfoRow
+                      icon={<Person />}
+                      label="Created by"
+                      value={doc.createdBy}
+                      theme={theme}
+                      color={theme.palette.success.main}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <InfoRow
+                      icon={<Work />}
+                      label="Project Manager"
+                      value={doc.receiver}
+                      theme={theme}
+                      color={theme.palette.info.main}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <InfoRow
+                      icon={<CalendarToday />}
+                      label="Created at"
+                      value={new Date(doc.createdAt).toLocaleString()}
+                      theme={theme}
+                      color={theme.palette.warning.main}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <InfoRow
+                      icon={<InfoOutlined />}
+                      label="Status"
+                      value={doc.status}
+                      theme={theme}
+                      color={theme.palette.error.main}
+                    />
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          </Box>
+        </Paper>
+      </Box>
 
       {/* Dialog ký điện tử */}
       <Dialog
         open={signDialogOpen}
         onClose={() => setSignDialogOpen(false)}
-        maxWidth="xs"
+        maxWidth="sm"
         fullWidth
       >
-        <DialogTitle fontWeight={700} fontSize={20}>
-          Ký điện tử công văn
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            fontSize: 20,
+            textAlign: "center",
+            background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+            color: "white",
+            mb: 2,
+          }}
+        >
+          ✍️ Ký điện tử công văn
         </DialogTitle>
-        <DialogContent>
-          <Typography fontWeight={600} fontSize={14} mb={1}>
+        <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Typography fontWeight={600} fontSize={14} mb={2} textAlign="center">
             Chữ ký điện tử của bạn
           </Typography>
           <Box
             sx={{
               border: "2px dashed #1976d2",
               borderRadius: 2,
-              width: 360,
+              width: "100%",
+              maxWidth: 400,
               mx: "auto",
               background: "#fff",
               py: 2,
@@ -283,8 +460,8 @@ export default function DocumentDetail() {
               penColor="#1976d2"
               ref={signaturePadRef}
               canvasProps={{
-                width: 320,
-                height: 100,
+                width: Math.min(350, window.innerWidth - 100),
+                height: 120,
                 style: {
                   background: "#f4f7fa",
                   borderRadius: 8,
@@ -293,126 +470,56 @@ export default function DocumentDetail() {
               }}
             />
           </Box>
-          <Box sx={{ mt: 1, display: "flex", justifyContent: "space-between" }}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mt: 2 }}
+          >
             <Button
               onClick={() =>
                 signaturePadRef.current && signaturePadRef.current.clear()
               }
+              size="small"
+              color="secondary"
             >
-              Xóa chữ ký
+              🗑️ Xóa chữ ký
             </Button>
-            <Typography color="error" variant="caption">
+            <Typography
+              color="error"
+              variant="caption"
+              sx={{ fontWeight: 500 }}
+            >
               {signError}
             </Typography>
-          </Box>
+          </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSignDialogOpen(false)} color="secondary">
+        <DialogActions sx={{ p: 3, gap: 2 }}>
+          <Button
+            onClick={() => setSignDialogOpen(false)}
+            color="secondary"
+            variant="outlined"
+            sx={{ minWidth: 100 }}
+          >
             Hủy
           </Button>
-          <Button variant="contained" onClick={handleSaveSign}>
-            Xác nhận ký
+          <Button
+            variant="contained"
+            onClick={handleSaveSign}
+            sx={{ minWidth: 100 }}
+          >
+            ✅ Xác nhận ký
           </Button>
         </DialogActions>
       </Dialog>
 
-      <Divider sx={{ mb: 5 }} />
-
-      {/* Info section: 2 columns */}
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        spacing={4}
-        flexWrap="wrap"
-        justifyContent="space-between"
-      >
-        <Box sx={{ flex: "1 1 22%", minWidth: 150, maxWidth: 220 }}>
-        {doc.fileUrl && (
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleDownload}
-            disabled={downloading}
-            sx={{
-              mb: 4,
-              fontWeight: 700,
-              textTransform: "none",
-              boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.5)}`,
-              "&:hover": {
-                boxShadow: `0 12px 24px ${alpha(
-                  theme.palette.primary.main,
-                  0.7
-                )}`,
-                transform: "translateY(-3px)",
-              },
-              width: { xs: "100%", sm: "auto" },
-            }}
-          >
-            {downloading ? "Downloading..." : "Download Word file"}
-          </Button>
-        )}
-
-        {/* 👉 Nút Tạo Project */}
-        {!doc.project && (
-          <Button
-            variant="outlined"
-            color="success"
-            onClick={() => setFormOpen(true)}
-            sx={{
-              fontWeight: 700,
-              borderRadius: 2,
-              textTransform: "none",
-              mb: 4,
-            }}
-          >
-            Create Project
-          </Button>
-        )}
-
-        <Divider sx={{ mb: 5 }} />
-
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={4}
-          flexWrap="wrap"
-          justifyContent="space-between"
-        >
-          <InfoRow
-            icon={<Person />}
-            label="Created by"
-            value={doc.createdBy}
-            theme={theme}
-            color={theme.palette.success.main}
-          />
-          <InfoRow
-            icon={<Work />}
-            label="Project Manager"
-            value={doc.receiver}
-            theme={theme}
-            color={theme.palette.info.main}
-          />
-          <InfoRow
-            icon={<CalendarToday />}
-            label="Created at"
-            value={new Date(doc.createdAt).toLocaleString()}
-            theme={theme}
-            color={theme.palette.warning.main}
-          />
-          <InfoRow
-            icon={<InfoOutlined />}
-            label="Status"
-            value={doc.status}
-            theme={theme}
-            color={theme.palette.error.main}
-          />
-        </Stack>
-      </Paper>
-
-      {/* 💼 Form tạo project */}
+      {/* Form tạo project */}
       <ProjectFormCreate
         open={formOpen}
         onClose={() => setFormOpen(false)}
         documentId={doc.id}
-        pmName={doc.receiver}
+        document={doc}
+        pmName={doc.pmName}
       />
     </>
   );
@@ -420,46 +527,60 @@ export default function DocumentDetail() {
 
 function InfoRow({ icon, label, value, theme, color }) {
   return (
-    <Stack
-      direction="row"
-      spacing={3}
-      alignItems="center"
-      sx={{ userSelect: "none", mb: 2 }}
+    <Card
+      elevation={2}
+      sx={{
+        height: "100%",
+        borderRadius: 2,
+        transition: "all 0.3s ease",
+        "&:hover": {
+          transform: "translateY(-2px)",
+          boxShadow: `0 8px 20px ${alpha(color, 0.2)}`,
+        },
+      }}
     >
-      <Box
-        sx={{
-          color: color,
-          bgcolor: alpha(color, 0.15),
-          p: 1.5,
-          borderRadius: 2,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minWidth: 50,
-          minHeight: 50,
-          boxShadow: `0 8px 20px ${alpha(color, 0.3)}`,
-          flexShrink: 0,
-        }}
-      >
-        {icon}
-      </Box>
-      <Box>
-        <Typography
-          variant="subtitle1"
-          fontWeight={700}
-          color={color}
-          sx={{ mb: 0.5 }}
-        >
-          {label}
-        </Typography>
-        <Typography
-          variant="body1"
-          color={theme.palette.text.primary}
-          sx={{ maxWidth: 550, wordBreak: "break-word" }}
-        >
-          {value || "N/A"}
-        </Typography>
-      </Box>
-    </Stack>
+      <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Box
+            sx={{
+              color: color,
+              bgcolor: alpha(color, 0.15),
+              p: 1.5,
+              borderRadius: 2,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minWidth: 48,
+              minHeight: 48,
+              boxShadow: `0 4px 12px ${alpha(color, 0.2)}`,
+              flexShrink: 0,
+            }}
+          >
+            {icon}
+          </Box>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography
+              variant="subtitle2"
+              fontWeight={700}
+              color={color}
+              sx={{ mb: 0.5, fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
+            >
+              {label}
+            </Typography>
+            <Typography
+              variant="body2"
+              color={theme.palette.text.primary}
+              sx={{
+                wordBreak: "break-word",
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                lineHeight: 1.4,
+              }}
+            >
+              {value || "N/A"}
+            </Typography>
+          </Box>
+        </Stack>
+      </CardContent>
+    </Card>
   );
 }
