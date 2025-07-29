@@ -17,7 +17,7 @@ import server.models.enums.Role;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
-
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "accounts")
 @Data

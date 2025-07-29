@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import server.models.enums.DocumentStatus;
 import server.models.enums.DocumentType;
+import server.models.enums.ProjectPriority;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -27,6 +29,19 @@ public class Document {
 
     private String fileUrl;
 
+    @Column(name = "project_name")
+    private String projectName;
+
+    @Column(name = "project_description", columnDefinition = "TEXT")
+    private String projectDescription;
+
+    @Column(name = "project_deadline")
+    private LocalDate projectDeadline;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "project_priority")
+    private ProjectPriority projectPriority;
+
     @ManyToOne
     @JoinColumn(name = "created_by_id")
     private Account createdBy;
@@ -34,6 +49,14 @@ public class Document {
     @ManyToOne
     @JoinColumn(name = "receiver_id")
     private Account receiver;
+
+    @ManyToOne
+    @JoinColumn(name = "pm_id")
+    private Account pm;
+
+    @ManyToOne
+    @JoinColumn(name = "accountant_id")
+    private Account accountant;
 
     @OneToOne(mappedBy = "document")
     private Project project;

@@ -55,23 +55,35 @@ public class DocumentService {
                 .orElseThrow(() -> new IllegalArgumentException("Creator not found"));
 
         Account receiver = null;
+        Account pm = null;
+        Account accountant =null;
 
         if (request.getType() == null) {
             throw new IllegalArgumentException("Document type must be specified");
         }
 
         if (request.getType() == DocumentType.PROJECT) {
-            if (request.getReceiverId() == null) {
+            // 1. Người nhận luôn là MANAGER (giám đốc)
+            receiver = accountRepository.findByRole(Role.MANAGER)
+                    .stream().findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Manager not found"));
+            // 2. PM lấy từ request.pmId
+            if (request.getPmId() == null) {
                 throw new IllegalArgumentException("Project Manager must be selected for Project document");
             }
-            receiver = accountRepository.findById(request.getReceiverId())
+            pm = accountRepository.findById(request.getPmId())
                     .orElseThrow(() -> new IllegalArgumentException("Project Manager not found"));
 
-            if (receiver.getRole() != Role.PM) {
-                throw new IllegalArgumentException("Receiver must be a Project Manager for Project documents");
+            if (pm.getRole() != Role.PM) {
+                throw new IllegalArgumentException("Selected user is not a Project Manager");
             }
         } else if (request.getType() == DocumentType.ADMINISTRATIVE) {
-            receiver = accountRepository.findByRole(Role.ACCOUNTANT)
+            receiver = accountRepository.findByRole(Role.MANAGER)
+                    .stream().findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Manager not found"));
+
+            // Lấy kế toán để hiển thị sau
+            accountant = accountRepository.findByRole(Role.ACCOUNTANT)
                     .stream()
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Accountant not found"));
@@ -82,7 +94,7 @@ public class DocumentService {
             }
         }
 
-        Document doc = Document.builder()
+        Document.DocumentBuilder builder = Document.builder()
                 .title(request.getTitle())
                 .content(request.getContent())
                 .fileUrl(null)
@@ -91,8 +103,18 @@ public class DocumentService {
                 .createdAt(LocalDateTime.now())
                 .status(DocumentStatus.NEW)
                 .type(request.getType())
-                .signature(null) // Không có signature lúc tạo
-                .build();
+                .signature(null)
+                .code("TEMP");
+
+        if (request.getType() == DocumentType.PROJECT) {
+            builder.projectName(request.getProjectName());
+            builder.projectDescription(request.getProjectDescription());
+            builder.projectDeadline(request.getProjectDeadline());
+            builder.projectPriority(request.getProjectPriority());
+            builder.pm(pm);
+        }
+        Document doc = builder.build();
+
         Document saved = documentRepository.save(doc);
 
         String code = String.format("CV-%s-%04d",
@@ -103,14 +125,39 @@ public class DocumentService {
 
         // Prepare placeholders for Word template
         Map<String, String> placeholders = new HashMap<>();
-        placeholders.put("soVanBan", saved.getCode());  // <-- Dùng code thay vì id!
+        placeholders.put("soVanBan", saved.getCode());
         placeholders.put("tenDonVi", creator.getUsername());
         placeholders.put("nguoiNhan", receiver != null ? receiver.getUsername() : "");
         placeholders.put("noiDung", saved.getContent());
-        placeholders.put("kyTen", ""); // Chưa ký
+        placeholders.put("kyTen", ""); // hoặc chữ ký scan
         LocalDateTime ngayTao = saved.getCreatedAt();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd 'tháng' MM 'năm' yyyy");
         placeholders.put("ngayTao", ngayTao.format(formatter));
+
+// Nếu là công văn dự án thì bổ sung thông tin dự án
+        if (saved.getType() == DocumentType.PROJECT) {
+            placeholders.put("tenDuAn", saved.getProjectName() != null ? saved.getProjectName() : "");
+            placeholders.put("moTaDuAn", saved.getProjectDescription() != null ? saved.getProjectDescription() : "");
+            placeholders.put("hanHoanThanh", saved.getProjectDeadline() != null ?
+                    saved.getProjectDeadline().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "");
+            placeholders.put("mucDoUuTien", saved.getProjectPriority() != null ? saved.getProjectPriority().toString() : "");
+            // Lấy tên PM
+            if (saved.getPm() != null && saved.getPm().getEmployee() != null) {
+                var emp = saved.getPm().getEmployee();
+                placeholders.put("tenPM", emp.getFirstName() + " " + emp.getLastName());
+            } else if (saved.getPm() != null) {
+                placeholders.put("tenPM", saved.getPm().getUsername());
+            } else {
+                placeholders.put("tenPM", "");
+            }
+        } else {
+            // Nếu không phải công văn dự án thì placeholder để trống
+            placeholders.put("tenDuAn", "");
+            placeholders.put("moTaDuAn", "");
+            placeholders.put("hanHoanThanh", "");
+            placeholders.put("mucDoUuTien", "");
+            placeholders.put("tenPM", "");
+        }
 
         byte[] wordFile = exportDocumentToWord(placeholders);
 
@@ -154,6 +201,22 @@ public class DocumentService {
         dto.setStatus(doc.getStatus());
         dto.setCreatedAt(doc.getCreatedAt());
         dto.setSignature(doc.getSignature());
+
+        dto.setProjectName(doc.getProjectName());
+        dto.setProjectDescription(doc.getProjectDescription());
+        dto.setProjectPriority(doc.getProjectPriority() != null ? doc.getProjectPriority().toString() : null);
+        dto.setProjectDeadline(doc.getProjectDeadline() != null ? doc.getProjectDeadline().toString() : null);
+
+        // BỔ SUNG PM
+        if (doc.getPm() != null) {
+            dto.setPmId(doc.getPm().getId());
+            if (doc.getPm().getEmployee() != null) {
+                var emp = doc.getPm().getEmployee();
+                dto.setPmName(emp.getFirstName() + " " + emp.getLastName());
+            } else {
+                dto.setPmName(doc.getPm().getUsername());
+            }
+        }
 
         if (doc.getFileUrl() != null) {
             try {
@@ -225,13 +288,38 @@ public class DocumentService {
 
         // Prepare placeholders lại, lần này có signature
         Map<String, String> placeholders = new HashMap<>();
-        placeholders.put("soVanBan", doc.getId().toString());
+        placeholders.put("soVanBan", doc.getCode());
         placeholders.put("tenDonVi", doc.getCreatedBy().getUsername());
         placeholders.put("nguoiNhan", doc.getReceiver() != null ? doc.getReceiver().getUsername() : "");
         placeholders.put("noiDung", doc.getContent());
         placeholders.put("kyTen", signature); // Đã ký
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd 'tháng' MM 'năm' yyyy");
         placeholders.put("ngayTao", doc.getCreatedAt().format(formatter));
+
+        // Bổ sung trường PROJECT nếu là công văn dự án
+        if (doc.getType() == DocumentType.PROJECT) {
+            placeholders.put("tenDuAn", doc.getProjectName() != null ? doc.getProjectName() : "");
+            placeholders.put("moTaDuAn", doc.getProjectDescription() != null ? doc.getProjectDescription() : "");
+            placeholders.put("hanHoanThanh", doc.getProjectDeadline() != null
+                    ? doc.getProjectDeadline().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    : "");
+            placeholders.put("mucDoUuTien", doc.getProjectPriority() != null ? doc.getProjectPriority().toString() : "");
+            // Lấy tên PM
+            if (doc.getPm() != null && doc.getPm().getEmployee() != null) {
+                var emp = doc.getPm().getEmployee();
+                placeholders.put("tenPM", emp.getFirstName() + " " + emp.getLastName());
+            } else if (doc.getPm() != null) {
+                placeholders.put("tenPM", doc.getPm().getUsername());
+            } else {
+                placeholders.put("tenPM", "");
+            }
+        } else {
+            placeholders.put("tenDuAn", "");
+            placeholders.put("moTaDuAn", "");
+            placeholders.put("hanHoanThanh", "");
+            placeholders.put("mucDoUuTien", "");
+            placeholders.put("tenPM", "");
+        }
 
         byte[] wordFile = exportDocumentToWord(placeholders);
 
@@ -254,15 +342,23 @@ public class DocumentService {
     }
 
 
+
     public ApiResponse<?> getDocumentsPage(GetDocumentsPageDto req) {
         return getDocumentsPageInternal(req, null);
     }
 
     public ApiResponse<?> getMyDocumentsPage(GetDocumentsPageDto req, String username) {
-        Account receiver = accountRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Receiver not found"));
-        Specification<Document> filterByReceiver = (root, query, cb) -> cb.equal(root.get("receiver"), receiver);
-        return getDocumentsPageInternal(req, filterByReceiver);
+        Account user = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Specification<Document> filterByMe = (root, query, cb) -> {
+            // Là người nhận hoặc là PM được giao
+            return cb.or(
+                    cb.equal(root.get("receiver"), user),
+                    cb.equal(root.get("pm"), user)
+            );
+        };
+        return getDocumentsPageInternal(req, filterByMe);
     }
 
 

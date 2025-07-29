@@ -6,5 +6,6 @@ public enum NotificationType {
     TASK,
     ORDER,      // thêm loại thông báo đơn hàng
     GENERAL,     // thông báo chung không liên quan id nào
-    LEAVE_REQUEST
+    LEAVE_REQUEST,
+    ATTENDANCE
 }

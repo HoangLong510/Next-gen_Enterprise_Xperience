@@ -7,6 +7,7 @@ import {
   Typography,
   Fade,
   Backdrop,
+  Grid,
 } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -15,6 +16,7 @@ import { useEffect, useState } from "react";
 import { createDocumentApi } from "~/services/document.service";
 import { fetchPMsApi } from "~/services/account.service";
 
+// -------- VALIDATION --------
 const schema = yup.object().shape({
   title: yup.string().required("Please enter the title"),
   content: yup.string().required("Please enter the content"),
@@ -22,10 +24,48 @@ const schema = yup.object().shape({
   projectManagerId: yup
     .string()
     .nullable()
-    .when("type", (type, schema) => {
-      return type === "PROJECT"
-        ? schema.required("Select Project Manager")
-        : schema.nullable();
+    .when("type", {
+      is: "PROJECT",
+      then: s => s.required("Select Project Manager"),
+      otherwise: s => s.nullable(),
+    }),
+  projectName: yup
+    .string()
+    .nullable()
+    .when("type", {
+      is: "PROJECT",
+      then: s => s.required("Project name is required").min(3).max(100),
+      otherwise: s => s.nullable(),
+    }),
+  projectDescription: yup
+    .string()
+    .nullable()
+    .when("type", {
+      is: "PROJECT",
+      then: s => s.required("Description is required").min(10).max(1000),
+      otherwise: s => s.nullable(),
+    }),
+  projectDeadline: yup
+    .date()
+    .nullable()
+    .when("type", {
+      is: "PROJECT",
+      then: s =>
+        s
+          .required("Deadline is required")
+          .min(new Date(), "Deadline must be today or later"),
+      otherwise: s => s.nullable(),
+    }),
+  projectPriority: yup
+    .string()
+    .nullable()
+    .when("type", {
+      is: "PROJECT",
+      then: s =>
+        s
+          .required("Priority is required")
+          .oneOf(["LOW", "MEDIUM", "HIGH"], "Select valid priority"),
+      otherwise: s => s.nullable(),
     }),
 });
 
@@ -48,22 +88,29 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
       content: "",
       type: "",
       projectManagerId: null,
+      projectName: "",
+      projectDescription: "",
+      projectDeadline: "",
+      projectPriority: "",
     },
   });
 
   const type = watch("type");
   const projectManagerId = watch("projectManagerId");
 
+  // Fetch PM list
   useEffect(() => {
-    async function fetchPMs() {
-      const token = localStorage.getItem("accessToken");
-      const res = await fetchPMsApi(token);
-      if (res.status === 200) setPmList(res.data);
-      else setPmList([]);
+    if (type === "PROJECT") {
+      async function fetchPMs() {
+        const token = localStorage.getItem("accessToken");
+        const res = await fetchPMsApi(token);
+        setPmList(res.status === 200 ? res.data : []);
+      }
+      fetchPMs();
     }
-    fetchPMs();
-  }, []);
+  }, [type]);
 
+  // Submit handler
   const onSubmit = async (data) => {
     setLoading(true);
     const token = localStorage.getItem("accessToken");
@@ -72,18 +119,19 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
       content: data.content,
       type: data.type,
       receiverId: data.type === "PROJECT" ? data.projectManagerId : null,
+      pmId: data.type === "PROJECT" ? data.projectManagerId : null, // Dự phòng cho BE nếu cần
+      projectName: data.type === "PROJECT" ? data.projectName : null,
+      projectDescription:
+        data.type === "PROJECT" ? data.projectDescription : null,
+      projectDeadline: data.type === "PROJECT" ? data.projectDeadline : null,
+      projectPriority: data.type === "PROJECT" ? data.projectPriority : null,
     };
     const res = await createDocumentApi(payload, token);
     setLoading(false);
 
     if (res.status === 201) {
       onSuccess && onSuccess(res.data);
-      reset({
-        title: "",
-        content: "",
-        type: "",
-        projectManagerId: null,
-      });
+      reset();
     } else {
       setError("title", {
         type: "manual",
@@ -95,7 +143,7 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
   return (
     <Box
       sx={{
-        maxWidth: 480,
+        maxWidth: 540,
         bgcolor: "#fff",
         borderRadius: 3,
         p: 4,
@@ -159,34 +207,101 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
           <MenuItem value="OTHER">Other Document</MenuItem>
         </TextField>
 
+        {/* Nếu là công văn dự án, hiển thị các trường nhập thông tin dự án */}
         {type === "PROJECT" && (
-          <TextField
-            select
-            label="Project Manager"
-            placeholder="Select Project Manager"
-            fullWidth
-            margin="normal"
-            error={!!errors.projectManagerId}
-            helperText={errors.projectManagerId?.message}
-            value={projectManagerId || ""}
-            onChange={(e) => setValue("projectManagerId", e.target.value)}
-            InputProps={{ sx: { borderRadius: 2 } }}
-          >
-            <MenuItem value="">-- Select Project Manager --</MenuItem>
-            {pmList.length === 0 ? (
-              <MenuItem disabled value="">
-                No Project Managers found
-              </MenuItem>
-            ) : (
-              pmList.map((pm) => (
-                <MenuItem key={pm.id} value={pm.id}>
-                  {pm.fullName
-                    ? `${pm.fullName} (${pm.username})`
-                    : pm.username}
-                </MenuItem>
-              ))
-            )}
-          </TextField>
+          <>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Project Name"
+                  placeholder="Enter project name"
+                  fullWidth
+                  margin="normal"
+                  error={!!errors.projectName}
+                  helperText={errors.projectName?.message}
+                  {...register("projectName")}
+                  autoComplete="off"
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  select
+                  label="Project Manager"
+                  placeholder="Select Project Manager"
+                  fullWidth
+                  margin="normal"
+                  error={!!errors.projectManagerId}
+                  helperText={errors.projectManagerId?.message}
+                  value={projectManagerId || ""}
+                  onChange={(e) => setValue("projectManagerId", e.target.value)}
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                >
+                  <MenuItem value="">-- Select Project Manager --</MenuItem>
+                  {pmList.length === 0 ? (
+                    <MenuItem disabled value="">
+                      No Project Managers found
+                    </MenuItem>
+                  ) : (
+                    pmList.map((pm) => (
+                      <MenuItem key={pm.id} value={pm.id}>
+                        {pm.fullName
+                          ? `${pm.fullName} (${pm.username})`
+                          : pm.username}
+                      </MenuItem>
+                    ))
+                  )}
+                </TextField>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Project Deadline"
+                  type="date"
+                  fullWidth
+                  margin="normal"
+                  error={!!errors.projectDeadline}
+                  helperText={errors.projectDeadline?.message}
+                  {...register("projectDeadline")}
+                  InputLabelProps={{ shrink: true }}
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  select
+                  label="Project Priority"
+                  fullWidth
+                  margin="normal"
+                  error={!!errors.projectPriority}
+                  helperText={errors.projectPriority?.message}
+                  {...register("projectPriority")}
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                >
+                  <MenuItem value="">-- Select priority --</MenuItem>
+                  <MenuItem value="LOW">Low</MenuItem>
+                  <MenuItem value="MEDIUM">Medium</MenuItem>
+                  <MenuItem value="HIGH">High</MenuItem>
+                </TextField>
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  label="Project Description"
+                  placeholder="Enter project description"
+                  fullWidth
+                  multiline
+                  rows={2}
+                  margin="normal"
+                  error={!!errors.projectDescription}
+                  helperText={errors.projectDescription?.message}
+                  {...register("projectDescription")}
+                  autoComplete="off"
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                />
+              </Grid>
+            </Grid>
+          </>
         )}
 
         <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
