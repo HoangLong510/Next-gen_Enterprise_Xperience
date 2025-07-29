@@ -15,11 +15,13 @@ import server.dtos.DocumentResponseDto;
 import server.dtos.GetDocumentsPageDto;
 import server.models.*;
 import server.models.Document;
+import server.models.accountant.fund.Fund;
 import server.models.enums.DocumentStatus;
 import server.models.enums.DocumentType;
 import server.models.enums.NotificationType;
 import server.models.enums.Role;
 import server.repositories.*;
+import server.repositories.accountant.fund.FundRepository;
 import server.specification.DocumentSpecifications;
 import org.springframework.data.domain.*;
 import server.utils.ApiResponse;
@@ -45,6 +47,7 @@ public class DocumentService {
     private final AccountRepository accountRepository;
     private final NotificationService notificationService;
     private final UploadFileService uploadFileService;
+    private final FundRepository fundRepository;
 
     @Getter
     @Value("${app.upload.folder}")
@@ -113,6 +116,14 @@ public class DocumentService {
             builder.projectPriority(request.getProjectPriority());
             builder.pm(pm);
         }
+
+        if (request.getType() == DocumentType.ADMINISTRATIVE) {
+            builder.accountant(accountant);
+            builder.fundName(request.getFundName());
+            builder.fundBalance(request.getFundBalance());
+            builder.fundPurpose(request.getFundPurpose());
+        }
+
         Document doc = builder.build();
 
         Document saved = documentRepository.save(doc);
@@ -159,7 +170,22 @@ public class DocumentService {
             placeholders.put("tenPM", "");
         }
 
-        byte[] wordFile = exportDocumentToWord(placeholders);
+        if (saved.getType() == DocumentType.ADMINISTRATIVE) {
+            placeholders.put("tenKeToan", accountant != null ? accountant.getUsername() : "");
+            placeholders.put("tenQuy", defaultStr(saved.getFundName()));
+            placeholders.put("soTienQuy", saved.getFundBalance() != null ? saved.getFundBalance().toString() : "");
+            placeholders.put("mucDichQuy", defaultStr(saved.getFundPurpose()));
+        } else {
+            placeholders.put("tenKeToan", "");
+            placeholders.put("tenQuy", "");
+            placeholders.put("soTienQuy", "");
+            placeholders.put("mucDichQuy", "");
+        }
+
+        byte[] wordFile = exportWordFromTemplate(
+                saved.getType() == DocumentType.ADMINISTRATIVE ? "admin_template.docx" : "template.docx",
+                placeholders
+        );
 
         String logicalFileName = "congvan_" + saved.getId() + ".docx";
         String fileUrl = uploadFileService.storeFileFromBytes("documents", logicalFileName, wordFile);
@@ -175,6 +201,10 @@ public class DocumentService {
         responseDto.setFile(null); // Không trả file luôn
         responseDto.setPreviewHtml(previewHtml);
         return responseDto;
+    }
+
+    private String defaultStr(String val) {
+        return val != null ? val : "";
     }
 
     public DocumentResponseDto getDocumentById(Long id) {
@@ -218,6 +248,15 @@ public class DocumentService {
             }
         }
 
+        if (doc.getAccountant() != null) {
+            dto.setAccountantName(doc.getAccountant().getUsername());
+        }
+
+        // Quỹ (chỉ dành cho ADMINISTRATIVE)
+        dto.setFundName(doc.getFundName());
+        dto.setFundBalance(doc.getFundBalance());
+        dto.setFundPurpose(doc.getFundPurpose());
+
         if (doc.getFileUrl() != null) {
             try {
                 dto.setPreviewHtml(convertDocxToHtml(doc.getFileUrl()));
@@ -226,6 +265,9 @@ public class DocumentService {
             }
         } else {
             dto.setPreviewHtml(null);
+        }
+        if (doc.getProject() != null) {
+            dto.setRelatedProjectId(doc.getProject().getId());
         }
 
         return dto;
@@ -284,7 +326,11 @@ public class DocumentService {
         }
 
         doc.setSignature(signature);
-        doc.setStatus(DocumentStatus.SIGNED);
+        if (doc.getType() == DocumentType.ADMINISTRATIVE) {
+            doc.setStatus(DocumentStatus.IN_PROGRESS); // ✅ Chuyển trạng thái ngay
+        } else {
+            doc.setStatus(DocumentStatus.SIGNED); // Các loại khác vẫn là SIGNED
+        }
 
         // Prepare placeholders lại, lần này có signature
         Map<String, String> placeholders = new HashMap<>();
@@ -321,7 +367,41 @@ public class DocumentService {
             placeholders.put("tenPM", "");
         }
 
-        byte[] wordFile = exportDocumentToWord(placeholders);
+        if (doc.getType() == DocumentType.ADMINISTRATIVE) {
+            Account accountant = doc.getAccountant();
+
+            // Tạo Fund
+            Fund fund = new Fund();
+            fund.setName(doc.getFundName());
+            fund.setBalance(doc.getFundBalance());
+            fund.setPurpose(doc.getFundPurpose());
+            fund.setCreatedBy(accountant);
+            fund.setUpdatedBy(accountant);
+            fund.setCreatedAt(LocalDateTime.now());
+            fund.setStatus("ACTIVE");
+            fund.setDocument(doc);
+
+            fundRepository.save(fund);
+            doc.setRelatedFund(fund);
+
+            // Thêm placeholder cho tài chính
+            placeholders.put("tenKeToan", accountant != null ? accountant.getUsername() : "");
+            placeholders.put("tenQuy", defaultStr(doc.getFundName()));
+            placeholders.put("soTienQuy", doc.getFundBalance() != null ? doc.getFundBalance().toString() : "");
+            placeholders.put("mucDichQuy", defaultStr(doc.getFundPurpose()));
+        } else {
+            placeholders.put("tenKeToan", "");
+            placeholders.put("tenQuy", "");
+            placeholders.put("soTienQuy", "");
+            placeholders.put("mucDichQuy", "");
+        }
+
+        // Chọn template phù hợp
+        String templateName = doc.getType() == DocumentType.ADMINISTRATIVE
+                ? "admin_template.docx"
+                : "template.docx";
+
+        byte[] wordFile = exportWordFromTemplate(templateName, placeholders);
 
         String logicalFileName = "congvan_" + doc.getId() + ".docx";
         String fileUrl = uploadFileService.storeFileFromBytes("documents", logicalFileName, wordFile);
@@ -355,7 +435,8 @@ public class DocumentService {
             // Là người nhận hoặc là PM được giao
             return cb.or(
                     cb.equal(root.get("receiver"), user),
-                    cb.equal(root.get("pm"), user)
+                    cb.equal(root.get("pm"), user),
+                    cb.equal(root.get("accountant"), user)
             );
         };
         return getDocumentsPageInternal(req, filterByMe);
@@ -419,17 +500,18 @@ public class DocumentService {
     }
 
 
-    public byte[] exportDocumentToWord(Map<String, String> data) throws IOException {
-        try (InputStream template = new ClassPathResource("templates/template.docx").getInputStream();
+    public byte[] exportWordFromTemplate(String templateName, Map<String, String> data) throws IOException {
+        try (InputStream template = new ClassPathResource("templates/" + templateName).getInputStream();
              XWPFDocument document = new XWPFDocument(template)) {
 
-            // Replace in all paragraphs (outside tables)
+            // Replace outside tables
             for (XWPFParagraph p : document.getParagraphs()) {
                 replacePlaceholdersInParagraph(p, data);
             }
-            // Replace in all paragraphs (inside tables)
-            for (XWPFTable tbl : document.getTables()) {
-                for (XWPFTableRow row : tbl.getRows()) {
+
+            // Replace inside tables
+            for (XWPFTable table : document.getTables()) {
+                for (XWPFTableRow row : table.getRows()) {
                     for (XWPFTableCell cell : row.getTableCells()) {
                         for (XWPFParagraph p : cell.getParagraphs()) {
                             replacePlaceholdersInParagraph(p, data);
@@ -442,7 +524,7 @@ public class DocumentService {
             document.write(baos);
             return baos.toByteArray();
         } catch (InvalidFormatException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Invalid Word template format", e);
         }
     }
 }

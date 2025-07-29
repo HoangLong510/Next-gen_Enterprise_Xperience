@@ -89,13 +89,14 @@ public class ProjectService {
                 .build();
 
         projectRepository.save(project);
+        projectRepository.flush();
 
         document.setProject(project);
         document.setStatus(DocumentStatus.IN_PROGRESS);
         documentRepository.save(document);
         notificationService.createNotification(
-                NotificationType.DOCUMENT,
-                document.getId(),
+                NotificationType.PROJECT,
+                project.getId(),
                 false
         );
         return ApiResponse.success(null, "project-created");

@@ -2,6 +2,7 @@ package server.models;
 
 import jakarta.persistence.*;
 import lombok.*;
+import server.models.accountant.fund.Fund;
 import server.models.enums.DocumentStatus;
 import server.models.enums.DocumentType;
 import server.models.enums.ProjectPriority;
@@ -60,6 +61,18 @@ public class Document {
 
     @OneToOne(mappedBy = "document")
     private Project project;
+
+    @OneToOne(mappedBy = "document")
+    private Fund relatedFund;
+
+    @Column(name = "fund_name")
+    private String fundName;
+
+    @Column(name = "fund_balance")
+    private Double fundBalance;
+
+    @Column(name = "fund_purpose", columnDefinition = "TEXT")
+    private String fundPurpose;
 
     private LocalDateTime createdAt;
 

@@ -42,18 +42,33 @@ public class NotificationService {
         String content = "";
 
         switch (type) {
-            case DOCUMENT -> {
+            case PROJECT -> {
                 Document doc = documentRepository.findById(referenceId)
                         .orElseThrow(() -> new IllegalArgumentException("Document not found"));
-                // Trường hợp tạo project từ công văn
-                if (doc.getStatus() == DocumentStatus.IN_PROGRESS && doc.getProject() != null && !isResult) {
-                    // Gửi cho thư ký/người tạo và GIÁM ĐỐC (nếu muốn)
+
+                Project project = doc.getProject();
+                if (project == null) return null;
+
+                if (!isResult) {
+                    // Dự án vừa được tạo
                     List<Account> recipients = List.of(doc.getCreatedBy(), doc.getReceiver());
                     sender = doc.getPm();
                     title = "Dự án mới đã được khởi tạo";
                     content = "Công văn '" + doc.getTitle() + "' đã được PM tạo dự án thành công.";
-                    notifyMany(recipients, sender, title, content, type, referenceId);
-                    return null; // vì có thể trả về nhiều noti, ở đây trả về 1 cũng được
+
+                    notifyMany(recipients, sender, title, content, NotificationType.PROJECT, project.getId());
+                }
+
+                return null;
+            }
+            case DOCUMENT -> {
+                Document doc = documentRepository.findById(referenceId)
+                        .orElseThrow(() -> new IllegalArgumentException("Document not found"));
+                if (isResult && doc.getType() == DocumentType.ADMINISTRATIVE && doc.getStatus() == DocumentStatus.IN_PROGRESS) {
+                    recipient = doc.getAccountant();
+                    sender = doc.getReceiver();
+                    title = "Công văn tài chính đã được ký";
+                    content = "Bạn nhận được công văn tài chính đã được giám đốc ký hãy bắt đầu dự án: '" + doc.getTitle() + "'.";
                 }
                 // Nếu document đã ký nhưng chưa hoàn thành => gửi cho PM
                 else if (isResult && doc.getStatus() == DocumentStatus.SIGNED) {
@@ -62,6 +77,7 @@ public class NotificationService {
                     title = "Công văn đã được ký";
                     content = "Công văn '" + doc.getTitle() + "' đã được giám đốc ký, bạn cần xử lý.";
                 }
+
                 // Nếu PM xử lý hoàn thành (COMPLETED)
                 else if (isResult && doc.getStatus() == DocumentStatus.COMPLETED) {
                     recipient = doc.getCreatedBy(); // Thư ký/người tạo nhận kết quả
@@ -89,6 +105,30 @@ public class NotificationService {
                                 type, referenceId
                         );
                     }
+                    return null;
+                }
+
+                else if (!isResult && doc.getType() == DocumentType.ADMINISTRATIVE) {
+                    // Gửi cho giám đốc (người ký)
+                    if (doc.getReceiver() == null) throw new IllegalArgumentException("Document has no receiver assigned");
+                    saveAndSendNotification(
+                            doc.getReceiver(),
+                            doc.getCreatedBy(),
+                            "Công văn tài chính mới cần ký",
+                            "Bạn có công văn tài chính mới cần ký duyệt.",
+                            type, referenceId
+                    );
+
+                    // Gửi cho kế toán (người xử lý)
+                    if (doc.getAccountant() == null) throw new IllegalArgumentException("Document has no accountant assigned");
+                    saveAndSendNotification(
+                            doc.getAccountant(),
+                            doc.getCreatedBy(),
+                            "Công văn tài chính mới cần xử lý",
+                            "Bạn được giao xử lý công văn tài chính: '" + doc.getTitle() + "'.",
+                            type, referenceId
+                    );
+
                     return null;
                 }
 
