@@ -1,6 +1,7 @@
 package server.services;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -42,6 +43,32 @@ public class UploadFileService {
 
         // Trả về URL public
         return "/uploads/" + supFolder + "/" + uniqueFileName;
+    }
+
+    public ByteArrayResource createByteArrayResourceFromFile(String relativeOrAbsolutePath) throws IOException {
+        String cleanedPath = relativeOrAbsolutePath;
+
+        // Loại bỏ prefix "uploads/" hoặc "uploads\" nếu có để tránh lặp
+        if (cleanedPath.startsWith("uploads/")) {
+            cleanedPath = cleanedPath.substring("uploads/".length());
+        } else if (cleanedPath.startsWith("uploads\\")) {
+            cleanedPath = cleanedPath.substring("uploads\\".length());
+        }
+
+        Path originalPath = Paths.get(cleanedPath);
+        final Path filePath = originalPath.isAbsolute() ? originalPath : Paths.get(uploadFolder).resolve(cleanedPath);
+
+        if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
+            throw new IOException("File does not exist: " + filePath.toString());
+        }
+
+        byte[] fileBytes = Files.readAllBytes(filePath);
+        return new ByteArrayResource(fileBytes) {
+            @Override
+            public String getFilename() {
+                return filePath.getFileName().toString();
+            }
+        };
     }
 
 

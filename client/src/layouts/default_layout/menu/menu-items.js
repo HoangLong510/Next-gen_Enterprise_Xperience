@@ -1,14 +1,14 @@
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts"
 import Diversity1Icon from "@mui/icons-material/Diversity1"
 import SettingsIcon from "@mui/icons-material/Settings"
-import AccountTreeIcon from "@mui/icons-material/AccountTree"
 import AssignmentIcon from "@mui/icons-material/Assignment"
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd"
 import FilePresentIcon from "@mui/icons-material/FilePresent"
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney"
 import TaskAltIcon from "@mui/icons-material/TaskAlt"
 import DescriptionIcon from "@mui/icons-material/Description"
-
+import WorkIcon from '@mui/icons-material/Work';
+import { PunchClock } from "@mui/icons-material"
 export const menuItems = [
 	{
 		title: "Management",
@@ -47,9 +47,32 @@ export const menuItems = [
 				icon: FilePresentIcon,
 				href: "/employees/contracts",
 				roles: ["ADMIN", "MANAGER"]
+			},
+			{
+				label: "Attendace",
+				icon: PunchClock,
+				href: "/attendance/list",
+				roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"]
 			}
 		]
 	},
+   {
+    title: "Finance",
+    items: [
+      {
+        label: "Fund",
+        icon: AssignmentIndIcon,
+        href: "/finance/fund",
+        roles: ["ADMIN", "MANAGER","ACCOUNTANT"],
+      },
+      {
+        label: "Salary",
+        icon: FilePresentIcon,
+        href: "/finance/salary/create",
+        roles: ["ADMIN", "MANAGER","ACCOUNTANT"],
+      },
+    ],
+  },
 	{
 		title: "Utilities",
 		items: [
@@ -61,15 +84,15 @@ export const menuItems = [
 			},
 			{
 				label: "Projects",
-				icon: AccountTreeIcon,
-				href: "/utilities/projects",
-				roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"]
+				icon: WorkIcon,
+				href: "/management/projects",
+				roles: ["ADMIN", "MANAGER", "PM"]
 			},
 			{
 				label: "Dispatches",
 				icon: AssignmentIcon,
 				href: "/management/documents",
-				roles: ["ADMIN", "MANAGER", "PM"]
+				roles: ["ADMIN", "MANAGER", "PM","ACCOUNTANT"]
 			},
 			{
 				label: "Tasks",
@@ -82,7 +105,9 @@ export const menuItems = [
 				icon: DescriptionIcon,
 				href: "/leave-request",
 				roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"]
-			}
+			},
+
 		]
 	}
 ]
+

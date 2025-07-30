@@ -1,6 +1,9 @@
 package server.dtos;
 
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.Data;
+import server.models.enums.AccountStatus;
 import server.models.enums.Role;
 
 import java.time.LocalDateTime;
@@ -16,4 +19,8 @@ public class AccountDto {
     private Role role;
     private boolean enabled;
     private String avatar;
+    private LocalDateTime lastActiveAt;
+
+    @Enumerated(EnumType.STRING)
+    private AccountStatus status;
 }

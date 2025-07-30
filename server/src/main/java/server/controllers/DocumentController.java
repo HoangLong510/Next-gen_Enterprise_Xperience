@@ -15,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import server.dtos.DocumentRequestDto;
+import server.dtos.DocumentResponseDto;
 import server.dtos.GetDocumentsPageDto;
 import server.models.Document;
 import server.services.DocumentService;
@@ -36,7 +37,7 @@ public class DocumentController {
     private final DocumentService documentService;
 
     @PostMapping("/create")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER','SECRETARY')")
     public ResponseEntity<?> create(@RequestBody DocumentRequestDto request) throws IOException {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || auth.getPrincipal() == null) {
@@ -51,14 +52,30 @@ public class DocumentController {
     }
     // Xem chi tiết document (ADMIN, MANAGER, PM)
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'PM','ACCOUNTANT')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'PM','ACCOUNTANT','SECRETARY')")
     public ResponseEntity<?> getDetail(@PathVariable Long id) {
         var doc = documentService.getDocumentById(id);
         return ResponseEntity.ok(ApiResponse.success(doc, "Fetched document detail"));
     }
 
+    @GetMapping("/{id}/preview")
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','SECRETARY','ACCOUNTANT','PM','HOD')")
+    public ResponseEntity<?> previewDocument(@PathVariable Long id) throws IOException {
+        Document doc = documentService.getDocumentEntityById(id);
+        String html = documentService.convertDocxToHtml(doc.getFileUrl());
+        return ResponseEntity.ok(ApiResponse.success(html, "Document preview"));
+    }
+
+    @PostMapping("/{id}/sign")
+    @PreAuthorize("hasAnyAuthority('MANAGER')")
+    public ResponseEntity<?> signDocument(@PathVariable Long id, @RequestBody Map<String, String> req) throws IOException {
+        String signature = req.get("signature");
+        DocumentResponseDto dto = documentService.signDocument(id, signature);
+        return ResponseEntity.ok(ApiResponse.success(dto, "Đã ký công văn"));
+    }
+
     @GetMapping("/download/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'PM','ACCOUNTANT')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'PM','ACCOUNTANT','SECRETARY')")
     public ResponseEntity<Resource> downloadFile(@PathVariable Long id) throws IOException {
         Document doc = documentService.getDocumentEntityById(id);
         String fileUrl = doc.getFileUrl();
@@ -80,7 +97,7 @@ public class DocumentController {
     }
 
     @PostMapping("/get-documents-page")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER','SECRETARY')")
     public ResponseEntity<?> getDocumentsPage(@RequestBody GetDocumentsPageDto req) {
         try {
             ApiResponse<?> response = documentService.getDocumentsPage(req);
