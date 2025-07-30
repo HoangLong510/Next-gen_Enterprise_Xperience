@@ -18,6 +18,30 @@ export const createDocumentApi = async (form, accessToken) => {
 	}
 }
 
+export const previewDocumentApi = async (id, accessToken) => {
+  try {
+    const res = await api.get(`/documents/${id}/preview`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    return res.data; // { data: "<html ...>" }
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};
+
+export const signDocumentApi = async (id, signature) => {
+  try {
+    const res = await api.post(`/documents/${id}/sign`, { signature });
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};
+
 // Xem chi tiết document (ADMIN, MANAGER, PM)
 export const fetchDocumentDetailApi = async (id) => {
 	try {

@@ -7,5 +7,5 @@ import java.util.List;
 
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
-    List<Notification> findByRecipient_Username(String username);
+    List<Notification> findByRecipient_UsernameOrderByCreatedAtDesc(String username);
 }

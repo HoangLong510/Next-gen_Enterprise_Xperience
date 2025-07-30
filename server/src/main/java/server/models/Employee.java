@@ -8,9 +8,12 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import server.models.enums.Gender;
+import java.util.Arrays;
+
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "employees")
@@ -21,6 +24,10 @@ public class Employee {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "code", unique = true)
+    private String code;
+
 
     @Column(nullable = false)
     private String firstName;
@@ -58,10 +65,36 @@ public class Employee {
     @OneToOne(mappedBy = "hod")
     @JsonIgnoreProperties("hod")
     private Department hodDepartment;
-
+    @ManyToMany(mappedBy = "employees")
+    private List<Project> projects;
+    @OneToMany(mappedBy = "assignee")
+    private List<SubTask> subTasks;
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    public String generateCode() {
+        if (this.department == null || this.dateBirth == null) return null;
+
+        final String taxCodeSuffix = "8465";
+        String deptInitial = getInitials(this.department.getName());
+        String nameInitial = getInitials(this.getLastName() + " " + this.getFirstName());
+
+        int deptNumeric = deptInitial.chars().sum();
+        int nameNumeric = nameInitial.chars().sum();
+
+        int year = this.dateBirth.getYear();
+        String yearSuffix = String.valueOf(year).substring(2);
+
+        return taxCodeSuffix + "D" + deptNumeric + "N" + nameNumeric + "Y" + yearSuffix;
+    }
+
+    private String getInitials(String phrase) {
+        return Arrays.stream(phrase.trim().split("\\s+"))
+                .filter(word -> !word.isEmpty())
+                .map(word -> word.substring(0, 1).toUpperCase())
+                .reduce("", String::concat);
+    }
 }

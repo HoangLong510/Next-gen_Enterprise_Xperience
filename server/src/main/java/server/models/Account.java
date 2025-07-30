@@ -11,12 +11,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import server.models.enums.AccountStatus;
 import server.models.enums.Role;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
-
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "accounts")
 @Data
@@ -44,10 +45,16 @@ public class Account implements UserDetails {
     @OneToMany(mappedBy = "account")
     @JsonIgnoreProperties("account")
     private List<Token> tokens;
-
+    @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
+    @JsonIgnoreProperties("account")
+    private GitHubToken gitHubToken;
     @OneToOne(mappedBy = "account")
     @JsonIgnoreProperties("account")
     private Employee employee;
+
+    @OneToMany(mappedBy = "account")
+    @JsonIgnoreProperties("account")
+    private List<Attendance> attendances;
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -55,6 +62,11 @@ public class Account implements UserDetails {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    private LocalDateTime lastActiveAt;
+
+    @Enumerated(EnumType.STRING)
+    private AccountStatus status;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
