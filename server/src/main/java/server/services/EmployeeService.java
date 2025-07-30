@@ -1,5 +1,6 @@
 package server.services;
 
+import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +36,7 @@ public class EmployeeService {
     private final PasswordEncoder passwordEncoder;
     private final AccountRepository accountRepository;
     private final UploadFileService uploadFileService;
+    private final EmailService emailService;
 
     public ApiResponse<?> create(CreateEmployeeDto request, BindingResult result) {
         if (!request.getPassword().equals(request.getConfirmPassword())) {
@@ -75,7 +77,9 @@ public class EmployeeService {
         employee.setGender(Gender.valueOf(request.getGender()));
         employee.setDateBirth(request.getDateBirth());
         employee.setAccount(account);
+
         employeeRepository.save(employee);
+        emailService.sendAccountCreatedEmail(request.getEmail(), request.getUsername(), request.getPassword());
 
         return ApiResponse.created(null, "employee-created-successfully");
     }
