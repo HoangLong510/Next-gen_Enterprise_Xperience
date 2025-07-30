@@ -17,14 +17,14 @@ import {
 	Paper,
 	Divider,
 	Stack,
-	FormHelperText
+	FormHelperText,
+	alpha
 } from "@mui/material"
 import {
 	Business as BusinessIcon,
 	Save as SaveIcon,
 	ArrowBack as ArrowBackIcon
 } from "@mui/icons-material"
-import PersonAddIcon from "@mui/icons-material/PersonAdd"
 import { Link, useNavigate } from "react-router-dom"
 import { useDispatch } from "react-redux"
 import { setPopup } from "~/libs/features/popup/popupSlice"
@@ -168,6 +168,38 @@ export default function CreateAccountManagementPage() {
 	return (
 		<>
 			<title>{t("create-account")}</title>
+
+			<style>
+				{`
+                    @keyframes pulse-success {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.6; }
+                    }
+                    @keyframes pulse-error {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.6; }
+                    }
+                    @keyframes ripple-success {
+                        0% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+                        100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+                    }
+                    @keyframes ripple-error {
+                        0% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+                        100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+                    }
+                    @keyframes shimmer {
+                        0% { left: -100%; }
+                        100% { left: 100%; }
+                    }
+                    @keyframes bounce {
+                        0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+                        40%, 43% { transform: translate3d(0,-8px,0); }
+                        70% { transform: translate3d(0,-4px,0); }
+                        90% { transform: translate3d(0,-2px,0); }
+                    }
+                `}
+			</style>
+
 			<Paper
 				sx={{
 					backgroundColor: theme.palette.background.default,
@@ -181,33 +213,76 @@ export default function CreateAccountManagementPage() {
 					sx={{
 						background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
 						color: "white",
-						p: 3,
+						p: 6,
 						position: "relative",
 						overflow: "hidden",
-						display: "flex",
-						flexDirection: "column",
-						alignItems: "center",
-						justifyContent: "center",
-						textAlign: "center"
+						"&::before": {
+							content: '""',
+							position: "absolute",
+							inset: 0,
+							background: `linear-gradient(135deg, ${alpha(
+								theme.palette.primary.light,
+								0.6
+							)} 0%, ${alpha(
+								theme.palette.primary.main,
+								0.6
+							)} 100%)`,
+							animation: "shimmer 3s ease-in-out infinite"
+						},
+						"&::after": {
+							content: '""',
+							position: "absolute",
+							top: 32,
+							left: 32,
+							width: 64,
+							height: 64,
+							background: alpha(theme.palette.common.white, 0.1),
+							borderRadius: "50%",
+							filter: "blur(8px)"
+						}
 					}}
 				>
-					<Avatar
-						sx={{
-							bgcolor: "rgba(255,255,255,0.2)",
-							width: 40,
-							height: 40,
-							mb: 1
-						}}
-					>
-						<PersonAddIcon sx={{ fontSize: 32 }} />
-					</Avatar>
-					<Box>
-						<Typography variant="h5" fontWeight="bold" gutterBottom>
+					<Box sx={{ position: "relative", zIndex: 1 }}>
+						<Typography
+							variant="h5"
+							sx={{
+								mb: 0.5,
+								fontWeight: 700,
+								backgroundClip: "text"
+							}}
+						>
 							{t("create-account")}
 						</Typography>
-						<Typography variant="body2" sx={{ opacity: 0.9 }}>
+						<Typography variant="body2">
 							{t("create-an-account-for-employee")}
 						</Typography>
+					</Box>
+					<Box
+						sx={{
+							position: "absolute",
+							top: 16,
+							right: 16,
+							display: "flex",
+							gap: 1
+						}}
+					>
+						{[0, 1, 2].map((i) => (
+							<Box
+								key={i}
+								sx={{
+									width: 8,
+									height: 8,
+									background: alpha(
+										theme.palette.common.white,
+										0.4
+									),
+									borderRadius: "50%",
+									animation: `bounce 1.5s ease-in-out infinite ${
+										i * 0.1
+									}s`
+								}}
+							/>
+						))}
 					</Box>
 				</Box>
 
