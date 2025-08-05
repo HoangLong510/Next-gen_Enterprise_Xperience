@@ -10,5 +10,4 @@ import java.util.List;
 
 @Repository
 public interface DocumentRepository extends JpaRepository<Document, Long>, JpaSpecificationExecutor<Document> {
-    List<Document> findByReceiver(Account receiver);
 }
