@@ -4,7 +4,7 @@ import HomePage from "~/pages/index.jsx";
 import LeaveRequest from "~/pages/leave-request";
 import ProfilePage from "~/pages/profile";
 import DepartmentPage from "~/pages/departments";
-
+import ContractsPage from "~/pages/contracts";
 const publicRoutes = [
   {
     path: "/",
@@ -31,6 +31,11 @@ const publicRoutes = [
     component: DepartmentPage,
     layout: DefaultLayout,
   },
+  {
+    path: "/contracts",
+    component: ContractsPage,
+    layout: DefaultLayout,
+  }
 ];
 
 export default publicRoutes;

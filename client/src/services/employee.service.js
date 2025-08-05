@@ -60,3 +60,17 @@ export const getEmployeesToAddToDepartmentApi = async (data) => {
 		}
 	}
 }
+
+//phần thêm của quân
+// Lấy danh sách nhân viên (dùng chung cho nhiều chức năng)
+export const fetchEmployeeListApi = async () => {
+  try {
+    const res = await api.get("/employees/simple-list", {
+      headers: { "Content-Type": "application/json" }
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, data: [] };
+  }
+}

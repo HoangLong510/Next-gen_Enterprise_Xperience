@@ -46,11 +46,14 @@ public class AuthService {
 
 
     public ApiResponse<?> login(LoginDto request, BindingResult result) {
-        boolean captchaValid = recaptchaService.verify(request.getCaptchaToken());
-        if (!captchaValid) {
-            return ApiResponse.badRequest("captcha-verification-failed");
-        }
 
+        if(request.getCaptchaToken() != null) {
+            boolean captchaValid = recaptchaService.verify(request.getCaptchaToken());
+            if (!captchaValid) {
+                return ApiResponse.badRequest("captcha-verification-failed");
+            }
+
+        }
         if (result.hasErrors()) {
             return ApiResponse.badRequest(result);
         }

@@ -1,10 +1,13 @@
 
 package server.dtos.leave_requests;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
+import server.models.enums.LeaveType;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Data
 public class LeaveRequestResponse {
@@ -18,4 +21,9 @@ public class LeaveRequestResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String signature;
+    private LeaveType leaveType;
+    private LocalTime startTime;
+    private LocalTime endTime;
+    @JsonFormat(pattern="yyyy-MM-dd")
+    private java.util.List<LocalDate> daysOff;
 }

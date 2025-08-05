@@ -37,6 +37,7 @@ public class AccountDetailService implements UserDetailsService {
         if (account.getEmployee() != null) {
             dto.setFullName(account.getEmployee().getFirstName() + " " + account.getEmployee().getLastName());
             dto.setEmail(account.getEmployee().getEmail());
+            dto.setPhone(account.getEmployee().getPhone());
         }
         return dto;
     }

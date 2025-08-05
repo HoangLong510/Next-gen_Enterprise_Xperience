@@ -40,6 +40,20 @@ public class EmployeeService {
     private final UploadFileService uploadFileService;
     private final JwtUtil jwtUtil;
 
+    //phan them cua quan
+    public ApiResponse<?> getSimpleEmployeeList() {
+        List<Employee> employees = employeeRepository.findAll();
+        List<EmployeeDepartmentDto> dtoList = employees.stream().map(emp -> {
+            EmployeeDepartmentDto dto = new EmployeeDepartmentDto();
+            dto.setId(emp.getId());
+            dto.setFullName(emp.getLastName() + " " + emp.getFirstName());
+            return dto;
+        }).toList();
+        return ApiResponse.success(dtoList, "get-employee-simple-list-success");
+    }
+    //het phan them của quân
+
+
     public ApiResponse<?> create(CreateEmployeeDto request, BindingResult result) {
         if (!request.getPassword().equals(request.getConfirmPassword())) {
             result.rejectValue("confirmPassword", "", "confirm-password-does-not-match");

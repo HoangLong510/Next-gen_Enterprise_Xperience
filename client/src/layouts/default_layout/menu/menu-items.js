@@ -8,7 +8,8 @@ import FilePresentIcon from "@mui/icons-material/FilePresent";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import DescriptionIcon from "@mui/icons-material/Description";
-
+import GavelIcon from '@mui/icons-material/Gavel';
+import ChatIcon from '@mui/icons-material/Chat';
 export const menuItems = [
   {
     title: "Management",
@@ -56,7 +57,7 @@ export const menuItems = [
       {
         label: "Departments",
         icon: Diversity1Icon,
-        href: "/utilities/departments", // giữ theo style cũ cho nhất quán
+        href: "/departments", // giữ theo style cũ cho nhất quán
         roles: ["ADMIN", "MANAGER", "HOD", "EMPLOYEE"],
       },
       {
@@ -82,6 +83,12 @@ export const menuItems = [
         icon: DescriptionIcon,
         href: "/leave-request",
         roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+      },
+      {
+        label: "Contracts",
+        icon: GavelIcon,
+        href: "/contracts",
+        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "ACCOUNTANT", "HR"],
       },
     ],
   },
