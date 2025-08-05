@@ -1,7 +1,7 @@
-"use client"
-import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { useDispatch } from "react-redux"
+"use client";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import {
   Box,
   Typography,
@@ -28,7 +28,10 @@ import {
   InputLabel,
   Select,
   Divider,
-} from "@mui/material"
+  Dialog,
+  DialogActions,
+  DialogContent,
+} from "@mui/material";
 import {
   Search,
   FilterList,
@@ -43,21 +46,24 @@ import {
   ExpandMore,
   ExpandLess,
   Clear,
-} from "@mui/icons-material"
-import CustomAvatar from "~/components/custom-avatar"
-import { getAllTransactionsApi, approveTransactionApi } from "~/services/accountant/fund.service"
+} from "@mui/icons-material";
+import CustomAvatar from "~/components/custom-avatar";
+import {
+  getAllTransactionsApi,
+  approveTransactionApi,
+} from "~/services/accountant/fund.service";
 
 export default function TransactionList() {
-  const navigate = useNavigate()
-  const [transactions, setTransactions] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [showFilters, setShowFilters] = useState(false)
-  const [actionLoadingId, setActionLoadingId] = useState(null)
+  const navigate = useNavigate();
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
-  })
+  });
 
   const [filters, setFilters] = useState({
     type: "",
@@ -69,28 +75,30 @@ export default function TransactionList() {
     amountMin: "",
     amountMax: "",
     search: "",
-  })
-  const dispatch = useDispatch()
+    rejectMessage: "",
+    rejectingId: null,
+  });
+  const dispatch = useDispatch();
 
   const fetchData = async () => {
-    setLoading(true)
-    const params = {}
+    setLoading(true);
+    const params = {};
     Object.keys(filters).forEach((key) => {
-      if (filters[key]) params[key] = filters[key]
-    })
+      if (filters[key]) params[key] = filters[key];
+    });
 
-    const res = await getAllTransactionsApi(params)
+    const res = await getAllTransactionsApi(params);
     if (res?.status === 200 && Array.isArray(res.data)) {
-      setTransactions(res.data)
+      setTransactions(res.data);
     } else {
-      setTransactions([])
+      setTransactions([]);
     }
-    setLoading(false)
-  }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    fetchData()
-  }, [filters])
+    fetchData();
+  }, [filters]);
 
   const handleResetFilters = () => {
     setFilters({
@@ -103,66 +111,80 @@ export default function TransactionList() {
       amountMin: "",
       amountMax: "",
       search: "",
-    })
-  }
+    });
+  };
 
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({
       ...prev,
       [field]: value,
-    }))
-  }
+    }));
+  };
 
-  const handleApproveReject = async (transaction, approve) => {
-    const confirm = window.confirm(`Are you sure you want to ${approve ? "approve" : "reject"} this transaction?`)
-    if (!confirm) return
+  const handleApproveReject = async (transaction, approve, comment = "") => {
+    if (!approve && !comment) {
+      setFilters((prev) => ({
+        ...prev,
+        rejectingId: transaction.id,
+        rejectMessage: "",
+      }));
+      setActionLoadingId("REJECT");
+      return;
+    }
 
-    setActionLoadingId(transaction.id)
-    const res = await approveTransactionApi(transaction.fundId, transaction.id, approve, "")
-
-    setActionLoadingId(null)
+    setActionLoadingId(transaction.id);
+    const res = await approveTransactionApi(
+      transaction.fundId,
+      transaction.id,
+      approve,
+      comment
+    );
+    setActionLoadingId(null);
 
     if (res?.status === 200) {
       setSnackbar({
         open: true,
-        message: `Transaction ${approve ? "approved" : "rejected"} successfully.`,
+        message: `Transaction ${
+          approve ? "approved" : "rejected"
+        } successfully.`,
         severity: "success",
-      })
-      fetchData()
+      });
+      setFilters((prev) => ({ ...prev, rejectMessage: "", rejectingId: null }));
+      fetchData();
     } else {
       setSnackbar({
         open: true,
         message: res.message || "Action failed",
         severity: "error",
-      })
+      });
     }
-  }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
       case "APPROVED":
-        return "success"
+        return "success";
       case "PENDING":
-        return "warning"
+        return "warning";
       case "REJECTED":
-        return "error"
+        return "error";
       default:
-        return "default"
+        return "default";
     }
-  }
+  };
 
   const getStatusIcon = (status) => {
     switch (status) {
       case "APPROVED":
-        return <CheckCircle sx={{ fontSize: 16 }} />
+        return <CheckCircle sx={{ fontSize: 16 }} />;
       case "PENDING":
-        return <Schedule sx={{ fontSize: 16 }} />
+        return <Schedule sx={{ fontSize: 16 }} />;
       case "REJECTED":
-        return <Cancel sx={{ fontSize: 16 }} />
+        return <Cancel sx={{ fontSize: 16 }} />;
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   return (
     <Box sx={{ p: 3 }}>
@@ -170,13 +192,17 @@ export default function TransactionList() {
       <Card
         sx={{
           mb: 3,
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          bgcolor:"primary.main",
           color: "white",
           borderRadius: 3,
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Box display="flex" alignItems="center" justifyContent="space-between">
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="space-between"
+          >
             <Box display="flex" alignItems="center" gap={2}>
               <IconButton
                 onClick={() => navigate(-1)}
@@ -224,9 +250,11 @@ export default function TransactionList() {
           >
             <Box display="flex" alignItems="center" gap={1}>
               <FilterList />
-              <Typography variant="h6">Filters</Typography>
+              <Typography variant="h6" >Filters</Typography>
             </Box>
-            <IconButton>{showFilters ? <ExpandLess /> : <ExpandMore />}</IconButton>
+            <IconButton>
+              {showFilters ? <ExpandLess /> : <ExpandMore />}
+            </IconButton>
           </Box>
 
           <Collapse in={showFilters}>
@@ -238,7 +266,9 @@ export default function TransactionList() {
                     fullWidth
                     placeholder="Search transactions..."
                     value={filters.search}
-                    onChange={(e) => handleFilterChange("search", e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("search", e.target.value)
+                    }
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -264,7 +294,9 @@ export default function TransactionList() {
                     <Select
                       value={filters.type}
                       label="Transaction Type"
-                      onChange={(e) => handleFilterChange("type", e.target.value)}
+                      onChange={(e) =>
+                        handleFilterChange("type", e.target.value)
+                      }
                     >
                       <MenuItem value="">All Types</MenuItem>
                       <MenuItem value="INCREASE">Increase</MenuItem>
@@ -280,7 +312,9 @@ export default function TransactionList() {
                     <Select
                       value={filters.status}
                       label="Status"
-                      onChange={(e) => handleFilterChange("status", e.target.value)}
+                      onChange={(e) =>
+                        handleFilterChange("status", e.target.value)
+                      }
                     >
                       <MenuItem value="">All Status</MenuItem>
                       <MenuItem value="PENDING">Pending</MenuItem>
@@ -296,7 +330,9 @@ export default function TransactionList() {
                     fullWidth
                     label="Fund Name"
                     value={filters.fundName}
-                    onChange={(e) => handleFilterChange("fundName", e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("fundName", e.target.value)
+                    }
                     placeholder="Enter fund name"
                   />
                 </Grid>
@@ -307,7 +343,9 @@ export default function TransactionList() {
                     fullWidth
                     label="Created By"
                     value={filters.createdBy}
-                    onChange={(e) => handleFilterChange("createdBy", e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("createdBy", e.target.value)
+                    }
                     placeholder="Enter creator name"
                   />
                 </Grid>
@@ -322,7 +360,9 @@ export default function TransactionList() {
                     label="Created From"
                     type="date"
                     value={filters.createdFrom}
-                    onChange={(e) => handleFilterChange("createdFrom", e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("createdFrom", e.target.value)
+                    }
                     InputLabelProps={{
                       shrink: true,
                     }}
@@ -336,7 +376,9 @@ export default function TransactionList() {
                     label="Created To"
                     type="date"
                     value={filters.createdTo}
-                    onChange={(e) => handleFilterChange("createdTo", e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("createdTo", e.target.value)
+                    }
                     InputLabelProps={{
                       shrink: true,
                     }}
@@ -350,10 +392,14 @@ export default function TransactionList() {
                     label="Min Amount"
                     type="number"
                     value={filters.amountMin}
-                    onChange={(e) => handleFilterChange("amountMin", e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("amountMin", e.target.value)
+                    }
                     placeholder="0"
                     InputProps={{
-                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      startAdornment: (
+                        <InputAdornment position="start">$</InputAdornment>
+                      ),
                     }}
                   />
                 </Grid>
@@ -365,10 +411,14 @@ export default function TransactionList() {
                     label="Max Amount"
                     type="number"
                     value={filters.amountMax}
-                    onChange={(e) => handleFilterChange("amountMax", e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("amountMax", e.target.value)
+                    }
                     placeholder="999999"
                     InputProps={{
-                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      startAdornment: (
+                        <InputAdornment position="start">$</InputAdornment>
+                      ),
                     }}
                   />
                 </Grid>
@@ -396,7 +446,8 @@ export default function TransactionList() {
                   sx={{
                     borderRadius: 2,
                     textTransform: "none",
-                    background: "linear-gradient(45deg, #667eea 30%, #764ba2 90%)",
+                    background:
+                      "linear-gradient(45deg, #667eea 30%, #764ba2 90%)",
                   }}
                 >
                   Apply Filters
@@ -418,18 +469,42 @@ export default function TransactionList() {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>ID</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>Type</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>Amount</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>Note</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>Created By</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>Created At</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>Approved By</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>Approved At</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>Approval Comment</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>File</TableCell>
-                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>Action</TableCell>
+                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>
+                    ID
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>
+                    Type
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>
+                    Amount
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>
+                    Note
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>
+                    Status
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>
+                    Created By
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>
+                    Created At
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>
+                    Approved By
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>
+                    Approved At
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>
+                    Approval Comment
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>
+                    File
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, bgcolor: "grey.50" }}>
+                    Action
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -451,12 +526,22 @@ export default function TransactionList() {
                       <Chip
                         label={t.type}
                         color={t.type === "INCREASE" ? "success" : "error"}
-                        icon={t.type === "INCREASE" ? <TrendingUp /> : <TrendingDown />}
+                        icon={
+                          t.type === "INCREASE" ? (
+                            <TrendingUp />
+                          ) : (
+                            <TrendingDown />
+                          )
+                        }
                         sx={{ borderRadius: 2 }}
                       />
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" fontWeight={600} color="primary">
+                      <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        color="primary"
+                      >
                         ${t.amount?.toLocaleString()}
                       </Typography>
                     </TableCell>
@@ -464,7 +549,11 @@ export default function TransactionList() {
                       {t.note ? (
                         <Typography variant="body2">{t.note}</Typography>
                       ) : (
-                        <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          fontStyle="italic"
+                        >
                           -
                         </Typography>
                       )}
@@ -490,7 +579,9 @@ export default function TransactionList() {
                             bgcolor: "primary.main",
                           }}
                         >
-                          {(!t.createdByAvatar && (t.createdByDisplay || t.createdBy)?.charAt(0)) || ""}
+                          {(!t.createdByAvatar &&
+                            (t.createdByDisplay || t.createdBy)?.charAt(0)) ||
+                            ""}
                         </CustomAvatar>
                         <Typography variant="body2" fontWeight={500}>
                           {t.createdByDisplay || t.createdBy}
@@ -524,7 +615,9 @@ export default function TransactionList() {
                               bgcolor: "secondary.main",
                             }}
                           >
-                            {(!t.approvedByAvatar && t.approvedByDisplay?.charAt(0)) || ""}
+                            {(!t.approvedByAvatar &&
+                              t.approvedByDisplay?.charAt(0)) ||
+                              ""}
                           </CustomAvatar>
                           <Typography variant="body2" fontWeight={500}>
                             {t.approvedByDisplay}
@@ -551,7 +644,9 @@ export default function TransactionList() {
                     </TableCell>
 
                     <TableCell>
-                      <Typography variant="body2">{t.approvalComment || "-"}</Typography>
+                      <Typography variant="body2">
+                        {t.reject || "-"}
+                      </Typography>
                     </TableCell>
                     <TableCell>
                       {t.fileUrl ? (
@@ -588,7 +683,9 @@ export default function TransactionList() {
                               minWidth: 80,
                             }}
                           >
-                            {actionLoadingId === t.id && <CircularProgress size={16} sx={{ mr: 1 }} />}
+                            {actionLoadingId === t.id && (
+                              <CircularProgress size={16} sx={{ mr: 1 }} />
+                            )}
                             Approve
                           </Button>
                           <Button
@@ -603,12 +700,18 @@ export default function TransactionList() {
                               minWidth: 80,
                             }}
                           >
-                            {actionLoadingId === t.id && <CircularProgress size={16} sx={{ mr: 1 }} />}
+                            {actionLoadingId === t.id && (
+                              <CircularProgress size={16} sx={{ mr: 1 }} />
+                            )}
                             Reject
                           </Button>
                         </Box>
                       ) : (
-                        <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          fontStyle="italic"
+                        >
                           -
                         </Typography>
                       )}
@@ -622,7 +725,11 @@ export default function TransactionList() {
       </Card>
 
       {/* Snackbar for notifications */}
-      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
         <Alert
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
@@ -631,6 +738,66 @@ export default function TransactionList() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      <Dialog
+        open={Boolean(actionLoadingId === "REJECT")}
+        onClose={() => setActionLoadingId(null)}
+        maxWidth="sm"
+        fullWidth
+        scroll="body"
+      >
+        <DialogContent sx={{ maxHeight: "70vh" }}>
+          <Box sx={{ minWidth: 400 }}>
+            <Typography variant="h6" gutterBottom>
+              Reason for rejection
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              minRows={6}
+              maxRows={12}
+              value={filters.rejectMessage || ""}
+              onChange={(e) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  rejectMessage: e.target.value,
+                }))
+              }
+              placeholder="Enter your reason..."
+              sx={{
+                "& .MuiInputBase-root": {
+                  overflow: "hidden",
+                },
+                "& .MuiInputBase-inputMultiline": {
+                  maxHeight: "300px",
+                  overflowY: "auto",
+                },
+              }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setActionLoadingId(null)} color="success">
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => {
+              const transaction = transactions.find(
+                (t) => t.id === filters.rejectingId
+              );
+              if (transaction)
+                handleApproveReject(
+                  transaction,
+                  false,
+                  filters.rejectMessage || ""
+                );
+            }}
+          >
+            Submit
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
-  )
+  );
 }

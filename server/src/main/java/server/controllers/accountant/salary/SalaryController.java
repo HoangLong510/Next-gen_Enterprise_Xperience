@@ -37,11 +37,6 @@ public class SalaryController {
         return salaryService.createSalary(input, baseSalary, authentication);
     }
 
-    @GetMapping("/history/{employeeId}")
-    public ApiResponse<?> getSalaryHistoryByEmployee(@PathVariable Long employeeId) {
-        return salaryService.getSalaryHistoryByEmployeeId(employeeId);
-    }
-
     @GetMapping
     public ApiResponse<?> getAllSalariesWithFilters(
             @RequestParam(value = "department", required = false) String department,
@@ -58,6 +53,17 @@ public class SalaryController {
             @RequestParam(value = "name", required = false) String name
     ) {
         return salaryService.getSalarySummaryList(department, position, name);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getSalaryById(@PathVariable Long id) {
+        return ResponseEntity.ok(salaryService.getSalaryById(id));
+    }
+
+    @GetMapping("/history/{code}")
+    public ResponseEntity<?> getSalaryHistoryByCode(@PathVariable String code) {
+        ApiResponse<?> response = salaryService.getSalaryHistoryByEmployeeCode(code);
+        return ResponseEntity.status(response.getStatus()).body(response);
     }
 
     @GetMapping("/template/download")
@@ -81,5 +87,12 @@ public class SalaryController {
         ApiResponse<?> result = salaryService.importSalaryFromExcel(file);
         return ResponseEntity.ok(result);
     }
-
+    @PostMapping("/generate")
+    public ResponseEntity<ApiResponse<?>> generateMonthlySalary(
+            @RequestParam int year,
+            @RequestParam int month
+    ) {
+        ApiResponse<?> response = salaryService.generateMonthlySalary(year, month);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
 }

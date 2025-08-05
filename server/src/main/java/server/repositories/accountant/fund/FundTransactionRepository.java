@@ -19,5 +19,7 @@ public interface FundTransactionRepository extends JpaRepository<FundTransaction
     @Query("SELECT SUM(t.amount) FROM FundTransaction t WHERE t.type = 'DECREASE' AND t.status = 'APPROVED'")
     Double getTotalDecreased();
 
+    long countByFundId(Long fundId);
+
     long countFundTransactionsByStatus(TransactionStatus status);
 }

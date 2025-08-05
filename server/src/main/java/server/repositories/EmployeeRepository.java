@@ -53,5 +53,5 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
             @Param("departmentId") Long departmentId,
             @Param("keyword") String keyword
     );
-
+    Optional<Employee> findByCode(String code);
 }

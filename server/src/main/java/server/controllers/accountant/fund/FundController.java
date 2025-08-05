@@ -75,6 +75,11 @@ public class FundController {
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
+    @GetMapping("/{id}/history")
+    public ResponseEntity<ApiResponse<?>> getFundHistory(@PathVariable Long id) {
+        ApiResponse<?> response = fundService.getFundEditHistory(id);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
 
 
 }

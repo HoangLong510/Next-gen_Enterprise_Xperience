@@ -62,7 +62,7 @@ export const menuItems = [
       {
         label: "Salary",
         icon: FilePresentIcon,
-        href: "/finance/salary/create",
+        href: "/finance/salary",
         roles: ["ADMIN", "MANAGER"],
       },
     ],

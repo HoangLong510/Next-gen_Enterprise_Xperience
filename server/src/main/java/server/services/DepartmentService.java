@@ -139,7 +139,6 @@ public class DepartmentService {
             departmentRepository.save(department);
             if (hod.getCode() == null || hod.getCode().isBlank()) {
                 hod.setDepartment(department);
-                hod.setCode(hod.generateCode());
                 employeeRepository.save(hod);
             }
             return ApiResponse.created(null, "create-department-success");
@@ -220,7 +219,6 @@ public class DepartmentService {
         } else {
             employee.setDepartment(department);
             if (employee.getCode() == null || employee.getCode().isBlank()) {
-                employee.setCode(employee.generateCode());
             }
         }
         employeeRepository.save(employee);

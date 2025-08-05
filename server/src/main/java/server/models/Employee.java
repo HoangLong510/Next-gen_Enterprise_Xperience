@@ -3,6 +3,7 @@ package server.models;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
@@ -20,6 +21,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class Employee {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -76,25 +78,12 @@ public class Employee {
     private LocalDateTime updatedAt;
 
     public String generateCode() {
-        if (this.department == null || this.dateBirth == null) return null;
+        if (this.phone == null || this.dateBirth == null) return null;
 
-        final String taxCodeSuffix = "8465";
-        String deptInitial = getInitials(this.department.getName());
-        String nameInitial = getInitials(this.getLastName() + " " + this.getFirstName());
+        String phoneSuffix = phone.length() >= 4 ? phone.substring(phone.length() - 4) : phone;
 
-        int deptNumeric = deptInitial.chars().sum();
-        int nameNumeric = nameInitial.chars().sum();
+        String yearSuffix = String.valueOf(this.dateBirth.getYear()).substring(2);
 
-        int year = this.dateBirth.getYear();
-        String yearSuffix = String.valueOf(year).substring(2);
-
-        return taxCodeSuffix + "D" + deptNumeric + "N" + nameNumeric + "Y" + yearSuffix;
-    }
-
-    private String getInitials(String phrase) {
-        return Arrays.stream(phrase.trim().split("\\s+"))
-                .filter(word -> !word.isEmpty())
-                .map(word -> word.substring(0, 1).toUpperCase())
-                .reduce("", String::concat);
+        return phoneSuffix + yearSuffix;
     }
 }
