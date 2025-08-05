@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:mobile/providers/auth_provider.dart';
+import 'package:mobile/providers/notification_provider.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:provider/provider.dart';
 
@@ -13,7 +14,9 @@ class LogoutPage extends StatelessWidget {
 
     void _handleLogout() async {
       final authProvider = context.read<AuthProvider>();
+       final notiProvider = context.read<NotificationProvider>();
       await AuthService.logoutApi();
+      notiProvider.disconnect();
       authProvider.logout();
     }
 
