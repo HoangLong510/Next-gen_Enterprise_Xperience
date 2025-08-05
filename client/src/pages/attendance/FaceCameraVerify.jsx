@@ -12,8 +12,9 @@ import {
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import {
   checkInFaceApi,
-  checkInStatusApi,
-} from "~/services/attendance.service";
+  checkOutFaceApi,
+  getAttendanceTodayStatusApi,
+} from "~/services/attendance.service"; // Thêm checkOut và status mới
 import { setPopup } from "~/libs/features/popup/popupSlice";
 
 export default function FaceCameraVerify() {
@@ -25,9 +26,10 @@ export default function FaceCameraVerify() {
   const streamRef = useRef(null);
 
   const [imageBlob, setImageBlob] = useState(null);
-  const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [checkedInToday, setCheckedInToday] = useState(false);
+
+  // Trạng thái chấm công hôm nay: "NOT_CHECKED_IN", "CHECKED_IN", "CHECKED_OUT"
+  const [attendanceStatus, setAttendanceStatus] = useState("NOT_CHECKED_IN");
 
   const account = useSelector((state) => state.account.value);
   const accountId = account?.id;
@@ -35,26 +37,28 @@ export default function FaceCameraVerify() {
   useEffect(() => {
     if (!accountId) return;
 
-    async function fetchCheckInStatus() {
+    async function fetchAttendanceStatus() {
       try {
-        const hasCheckedIn = await checkInStatusApi(accountId);
-        setCheckedInToday(hasCheckedIn);
-        if (hasCheckedIn) {
-          stopCamera();
-        } else {
+        // Gọi API mới trả về trạng thái hôm nay
+        const status = await getAttendanceTodayStatusApi(accountId);
+        setAttendanceStatus(status);
+
+        if (status === "NOT_CHECKED_IN" || status === "CHECKED_IN") {
           startCamera();
+        } else {
+          stopCamera();
         }
       } catch (error) {
         dispatch(
           setPopup({
             type: "error",
-            message: "Failed to fetch check-in status",
+            message: "Failed to fetch attendance status",
           })
         );
       }
     }
 
-    fetchCheckInStatus();
+    fetchAttendanceStatus();
 
     return () => stopCamera();
   }, [accountId, dispatch]);
@@ -79,7 +83,7 @@ export default function FaceCameraVerify() {
   };
 
   const capturePhoto = () => {
-    if (checkedInToday) return;
+    if (attendanceStatus === "CHECKED_OUT") return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -93,13 +97,20 @@ export default function FaceCameraVerify() {
 
     canvas.toBlob((blob) => {
       setImageBlob(blob);
-      setResult(null);
     }, "image/jpeg");
   };
 
-  const submitPhoto = () => {
-    if (checkedInToday) return;
+  const submitCheckIn = () => {
+    if (attendanceStatus !== "NOT_CHECKED_IN") return;
+    submitAttendance("check-in");
+  };
 
+  const submitCheckOut = () => {
+    if (attendanceStatus !== "CHECKED_IN") return;
+    submitAttendance("check-out");
+  };
+
+  const submitAttendance = (type) => {
     if (!imageBlob) {
       dispatch(
         setPopup({ type: "error", message: "Please capture a photo first" })
@@ -127,39 +138,43 @@ export default function FaceCameraVerify() {
         const longitude = pos.coords.longitude;
 
         try {
-          const data = await checkInFaceApi({
-            accountId,
-            imageBlob,
-            latitude,
-            longitude,
-          });
-          setResult(data);
+          let data;
+          if (type === "check-in") {
+            data = await checkInFaceApi({
+              accountId,
+              imageBlob,
+              latitude,
+              longitude,
+            });
+          } else {
+            data = await checkOutFaceApi({ accountId, imageBlob });
+          }
 
           if (data.error) {
             dispatch(setPopup({ type: "error", message: data.error }));
-          } else if (data === "User already checked in today") {
-            dispatch(
-              setPopup({
-                type: "error",
-                message: "Bạn đã chấm công hôm nay rồi.",
-              })
-            );
-            setCheckedInToday(true);
           } else {
             dispatch(
-              setPopup({ type: "success", message: "Face check-in successful" })
+              setPopup({
+                type: "success",
+                message:
+                  type === "check-in"
+                    ? "Face check-in successful"
+                    : "Check-out successful",
+              })
             );
-            setCheckedInToday(true);
+            setAttendanceStatus(
+              type === "check-in" ? "CHECKED_IN" : "CHECKED_OUT"
+            );
+            setImageBlob(null);
           }
         } catch (err) {
           const message = err.error || err.message || "Failed to verify face";
           dispatch(setPopup({ type: "error", message }));
-          setResult({ error: message });
         } finally {
           setLoading(false);
         }
       },
-      async (err) => {
+      (err) => {
         dispatch(
           setPopup({
             type: "error",
@@ -170,39 +185,45 @@ export default function FaceCameraVerify() {
         const latitude = 10.850697;
         const longitude = 106.7224353;
 
-        try {
-          const data = await checkInFaceApi({
-            accountId,
-            imageBlob,
-            latitude,
-            longitude,
-          });
-          setResult(data);
+        (async () => {
+          try {
+            let data;
+            if (type === "check-in") {
+              data = await checkInFaceApi({
+                accountId,
+                imageBlob,
+                latitude,
+                longitude,
+              });
+            } else {
+              data = await checkOutFaceApi({ accountId, imageBlob });
+            }
 
-          if (data.error) {
-            dispatch(setPopup({ type: "error", message: data.error }));
-          } else if (data === "User already checked in today") {
+            if (data.error) {
+              dispatch(setPopup({ type: "error", message: data.error }));
+            } else {
+              dispatch(
+                setPopup({
+                  type: "success",
+                  message:
+                    type === "check-in"
+                      ? "Face check-in successful"
+                      : "Check-out successful",
+                })
+              );
+              setAttendanceStatus(
+                type === "check-in" ? "CHECKED_IN" : "CHECKED_OUT"
+              );
+              setImageBlob(null);
+            }
+          } catch {
             dispatch(
-              setPopup({
-                type: "error",
-                message: "Bạn đã chấm công hôm nay rồi.",
-              })
+              setPopup({ type: "error", message: "Failed to verify face" })
             );
-            setCheckedInToday(true);
-          } else {
-            dispatch(
-              setPopup({ type: "success", message: "Face check-in successful" })
-            );
-            setCheckedInToday(true);
+          } finally {
+            setLoading(false);
           }
-        } catch {
-          dispatch(
-            setPopup({ type: "error", message: "Failed to verify face" })
-          );
-          setResult({ error: "Failed to verify face" });
-        } finally {
-          setLoading(false);
-        }
+        })();
       }
     );
   };
@@ -229,7 +250,22 @@ export default function FaceCameraVerify() {
         Face Verify via Camera
       </Typography>
 
-      {!checkedInToday ? (
+      {attendanceStatus === "CHECKED_OUT" ? (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 2,
+            mt: 6,
+          }}
+        >
+          <CheckCircleIcon color="success" sx={{ fontSize: 80 }} />
+          <Typography variant="h4" color="success.main" fontWeight={700}>
+            Bạn đã hoàn thành chấm công hôm nay.
+          </Typography>
+        </Box>
+      ) : (
         <>
           <video
             ref={videoRef}
@@ -245,7 +281,6 @@ export default function FaceCameraVerify() {
               objectFit: "cover",
             }}
           />
-
           <canvas ref={canvasRef} style={{ display: "none" }} />
 
           <Stack direction="row" spacing={3} mb={3} justifyContent="center">
@@ -257,31 +292,30 @@ export default function FaceCameraVerify() {
             >
               Capture
             </Button>
-            <Button
-              variant="contained"
-              onClick={submitPhoto}
-              disabled={!imageBlob || loading}
-              sx={{ flex: 1, fontSize: "1.2rem", py: 1.5 }}
-            >
-              {loading ? <CircularProgress size={28} /> : "Verify Face"}
-            </Button>
+
+            {attendanceStatus === "NOT_CHECKED_IN" && (
+              <Button
+                variant="contained"
+                onClick={submitCheckIn}
+                disabled={!imageBlob || loading}
+                sx={{ flex: 1, fontSize: "1.2rem", py: 1.5 }}
+              >
+                {loading ? <CircularProgress size={28} /> : "Check In"}
+              </Button>
+            )}
+
+            {attendanceStatus === "CHECKED_IN" && (
+              <Button
+                variant="contained"
+                onClick={submitCheckOut}
+                disabled={!imageBlob || loading}
+                sx={{ flex: 1, fontSize: "1.2rem", py: 1.5 }}
+              >
+                {loading ? <CircularProgress size={28} /> : "Check Out"}
+              </Button>
+            )}
           </Stack>
         </>
-      ) : (
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 2,
-            mt: 6,
-          }}
-        >
-          <CheckCircleIcon color="success" sx={{ fontSize: 80 }} />
-          <Typography variant="h4" color="success.main" fontWeight={700}>
-            Bạn đã chấm công hôm nay rồi
-          </Typography>
-        </Box>
       )}
     </Box>
   );

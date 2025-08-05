@@ -18,11 +18,7 @@ import { createProjectFromDocument } from "~/services/project.service";
 import dayjs from "dayjs";
 
 const schema = yup.object({
-  name: yup
-    .string()
-    .required("Project name is required")
-    .min(3)
-    .max(100),
+  name: yup.string().required("Project name is required").min(3).max(100),
   description: yup
     .string()
     .required("Description is required")
@@ -51,25 +47,40 @@ export default function ProjectFormCreate({
   onSubmit,
   initialData = null,
   documentId,
+  document,
   pmName,
 }) {
   const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
-    resolver: yupResolver(schema),
-    defaultValues,
-  });
+  control,
+  handleSubmit,
+  reset,
+  formState: { errors },
+} = useForm({
+  resolver: yupResolver(schema),
+  defaultValues, // dùng defaultValues, nhưng luôn reset lại bên dưới
+});
 
-  useEffect(() => {
-    if (initialData) {
-      reset({ ...defaultValues, ...initialData });
-    } else {
-      reset(defaultValues);
-    }
-  }, [initialData, reset]);
+useEffect(() => {
+  if (document) {
+    reset({
+      name: document.projectName || "",
+      description: document.projectDescription || "",
+      priority: document.projectPriority || "MEDIUM",
+      deadline: document.projectDeadline
+        ? dayjs(document.projectDeadline).format("YYYY-MM-DD")
+        : dayjs().add(7, "day").format("YYYY-MM-DD"),
+    });
+  } else if (initialData) {
+    reset({ ...defaultValues, ...initialData });
+  } else {
+    reset(defaultValues);
+  }
+}, [document, open]);
+
+
+  const deadlineValue = document?.projectDeadline
+    ? dayjs(document.projectDeadline).format("YYYY-MM-DD")
+    : "";
 
   const handleFormSubmit = async (data) => {
     const payload = {
@@ -89,18 +100,15 @@ export default function ProjectFormCreate({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        <Typography fontWeight={600}>
-          Create Project from Document
-        </Typography>
+        <Typography fontWeight={600}>Create Project from Document</Typography>
       </DialogTitle>
 
-      <DialogContent>
-        <Stack spacing={3} mt={1}>
-          {pmName && (
-            <Typography variant="body2" color="text.secondary">
-              📌 Project Manager: <strong>{pmName}</strong>
-            </Typography>
-          )}
+        <DialogContent>
+        <Stack spacing={2} mt={1}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            📌 Project Manager:{" "}
+            <strong>{pmName || document?.pmName || ""}</strong>
+          </Typography>
 
           <Controller
             name="name"
@@ -111,12 +119,12 @@ export default function ProjectFormCreate({
                 label="Project Name"
                 fullWidth
                 size="small"
+                disabled
                 error={!!errors.name}
                 helperText={errors.name?.message}
               />
             )}
           />
-
           <Controller
             name="description"
             control={control}
@@ -125,15 +133,15 @@ export default function ProjectFormCreate({
                 {...field}
                 label="Description"
                 fullWidth
+                size="small"
                 multiline
                 rows={3}
-                size="small"
+                disabled
                 error={!!errors.description}
                 helperText={errors.description?.message}
               />
             )}
           />
-
           <Controller
             name="deadline"
             control={control}
@@ -144,30 +152,26 @@ export default function ProjectFormCreate({
                 type="date"
                 fullWidth
                 size="small"
+                disabled
+                InputLabelProps={{ shrink: true }}
                 error={!!errors.deadline}
                 helperText={errors.deadline?.message}
-                InputLabelProps={{ shrink: true }}
               />
             )}
           />
-
           <Controller
             name="priority"
             control={control}
             render={({ field }) => (
               <TextField
                 {...field}
-                select
                 label="Priority"
                 fullWidth
                 size="small"
+                disabled
                 error={!!errors.priority}
                 helperText={errors.priority?.message}
-              >
-                <MenuItem value="LOW">Low</MenuItem>
-                <MenuItem value="MEDIUM">Medium</MenuItem>
-                <MenuItem value="HIGH">High</MenuItem>
-              </TextField>
+              />
             )}
           />
         </Stack>

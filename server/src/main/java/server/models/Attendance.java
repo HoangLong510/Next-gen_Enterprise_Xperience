@@ -1,11 +1,13 @@
 package server.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import server.models.enums.AttendanceStatus;
 
 import java.time.LocalDateTime;
-
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "attendance")
 @Getter
@@ -38,4 +40,19 @@ public class Attendance {
 
     // Khoảng cách vị trí (km)
     private Double distanceKm;
+
+    // --- Thêm cho check-out ---
+    private LocalDateTime checkOutTime;
+    private String checkOutImagePath;
+
+    // Ghi nhận trạng thái
+    @Column(nullable = false)
+    private Boolean checkedOut = false;
+
+    // Ghi chú hoặc giải trình nếu thiếu checkout
+    private String checkOutNote;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AttendanceStatus status = AttendanceStatus.CHECKED_IN;
 }

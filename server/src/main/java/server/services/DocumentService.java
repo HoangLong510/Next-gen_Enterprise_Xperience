@@ -15,11 +15,13 @@ import server.dtos.DocumentResponseDto;
 import server.dtos.GetDocumentsPageDto;
 import server.models.*;
 import server.models.Document;
+import server.models.accountant.fund.Fund;
 import server.models.enums.DocumentStatus;
 import server.models.enums.DocumentType;
 import server.models.enums.NotificationType;
 import server.models.enums.Role;
 import server.repositories.*;
+import server.repositories.accountant.fund.FundRepository;
 import server.specification.DocumentSpecifications;
 import org.springframework.data.domain.*;
 import server.utils.ApiResponse;
@@ -45,6 +47,7 @@ public class DocumentService {
     private final AccountRepository accountRepository;
     private final NotificationService notificationService;
     private final UploadFileService uploadFileService;
+    private final FundRepository fundRepository;
 
     @Getter
     @Value("${app.upload.folder}")
@@ -55,23 +58,35 @@ public class DocumentService {
                 .orElseThrow(() -> new IllegalArgumentException("Creator not found"));
 
         Account receiver = null;
+        Account pm = null;
+        Account accountant =null;
 
         if (request.getType() == null) {
             throw new IllegalArgumentException("Document type must be specified");
         }
 
         if (request.getType() == DocumentType.PROJECT) {
-            if (request.getReceiverId() == null) {
+            // 1. Người nhận luôn là MANAGER (giám đốc)
+            receiver = accountRepository.findByRole(Role.MANAGER)
+                    .stream().findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Manager not found"));
+            // 2. PM lấy từ request.pmId
+            if (request.getPmId() == null) {
                 throw new IllegalArgumentException("Project Manager must be selected for Project document");
             }
-            receiver = accountRepository.findById(request.getReceiverId())
+            pm = accountRepository.findById(request.getPmId())
                     .orElseThrow(() -> new IllegalArgumentException("Project Manager not found"));
 
-            if (receiver.getRole() != Role.PM) {
-                throw new IllegalArgumentException("Receiver must be a Project Manager for Project documents");
+            if (pm.getRole() != Role.PM) {
+                throw new IllegalArgumentException("Selected user is not a Project Manager");
             }
         } else if (request.getType() == DocumentType.ADMINISTRATIVE) {
-            receiver = accountRepository.findByRole(Role.ACCOUNTANT)
+            receiver = accountRepository.findByRole(Role.MANAGER)
+                    .stream().findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Manager not found"));
+
+            // Lấy kế toán để hiển thị sau
+            accountant = accountRepository.findByRole(Role.ACCOUNTANT)
                     .stream()
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Accountant not found"));
@@ -82,7 +97,7 @@ public class DocumentService {
             }
         }
 
-        Document doc = Document.builder()
+        Document.DocumentBuilder builder = Document.builder()
                 .title(request.getTitle())
                 .content(request.getContent())
                 .fileUrl(null)
@@ -91,8 +106,26 @@ public class DocumentService {
                 .createdAt(LocalDateTime.now())
                 .status(DocumentStatus.NEW)
                 .type(request.getType())
-                .signature(null) // Không có signature lúc tạo
-                .build();
+                .signature(null)
+                .code("TEMP");
+
+        if (request.getType() == DocumentType.PROJECT) {
+            builder.projectName(request.getProjectName());
+            builder.projectDescription(request.getProjectDescription());
+            builder.projectDeadline(request.getProjectDeadline());
+            builder.projectPriority(request.getProjectPriority());
+            builder.pm(pm);
+        }
+
+        if (request.getType() == DocumentType.ADMINISTRATIVE) {
+            builder.accountant(accountant);
+            builder.fundName(request.getFundName());
+            builder.fundBalance(request.getFundBalance());
+            builder.fundPurpose(request.getFundPurpose());
+        }
+
+        Document doc = builder.build();
+
         Document saved = documentRepository.save(doc);
 
         String code = String.format("CV-%s-%04d",
@@ -103,16 +136,56 @@ public class DocumentService {
 
         // Prepare placeholders for Word template
         Map<String, String> placeholders = new HashMap<>();
-        placeholders.put("soVanBan", saved.getCode());  // <-- Dùng code thay vì id!
+        placeholders.put("soVanBan", saved.getCode());
         placeholders.put("tenDonVi", creator.getUsername());
         placeholders.put("nguoiNhan", receiver != null ? receiver.getUsername() : "");
         placeholders.put("noiDung", saved.getContent());
-        placeholders.put("kyTen", ""); // Chưa ký
+        placeholders.put("kyTen", ""); // hoặc chữ ký scan
         LocalDateTime ngayTao = saved.getCreatedAt();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd 'tháng' MM 'năm' yyyy");
         placeholders.put("ngayTao", ngayTao.format(formatter));
 
-        byte[] wordFile = exportDocumentToWord(placeholders);
+// Nếu là công văn dự án thì bổ sung thông tin dự án
+        if (saved.getType() == DocumentType.PROJECT) {
+            placeholders.put("tenDuAn", saved.getProjectName() != null ? saved.getProjectName() : "");
+            placeholders.put("moTaDuAn", saved.getProjectDescription() != null ? saved.getProjectDescription() : "");
+            placeholders.put("hanHoanThanh", saved.getProjectDeadline() != null ?
+                    saved.getProjectDeadline().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "");
+            placeholders.put("mucDoUuTien", saved.getProjectPriority() != null ? saved.getProjectPriority().toString() : "");
+            // Lấy tên PM
+            if (saved.getPm() != null && saved.getPm().getEmployee() != null) {
+                var emp = saved.getPm().getEmployee();
+                placeholders.put("tenPM", emp.getFirstName() + " " + emp.getLastName());
+            } else if (saved.getPm() != null) {
+                placeholders.put("tenPM", saved.getPm().getUsername());
+            } else {
+                placeholders.put("tenPM", "");
+            }
+        } else {
+            // Nếu không phải công văn dự án thì placeholder để trống
+            placeholders.put("tenDuAn", "");
+            placeholders.put("moTaDuAn", "");
+            placeholders.put("hanHoanThanh", "");
+            placeholders.put("mucDoUuTien", "");
+            placeholders.put("tenPM", "");
+        }
+
+        if (saved.getType() == DocumentType.ADMINISTRATIVE) {
+            placeholders.put("tenKeToan", accountant != null ? accountant.getUsername() : "");
+            placeholders.put("tenQuy", defaultStr(saved.getFundName()));
+            placeholders.put("soTienQuy", saved.getFundBalance() != null ? saved.getFundBalance().toString() : "");
+            placeholders.put("mucDichQuy", defaultStr(saved.getFundPurpose()));
+        } else {
+            placeholders.put("tenKeToan", "");
+            placeholders.put("tenQuy", "");
+            placeholders.put("soTienQuy", "");
+            placeholders.put("mucDichQuy", "");
+        }
+
+        byte[] wordFile = exportWordFromTemplate(
+                saved.getType() == DocumentType.ADMINISTRATIVE ? "admin_template.docx" : "template.docx",
+                placeholders
+        );
 
         String logicalFileName = "congvan_" + saved.getId() + ".docx";
         String fileUrl = uploadFileService.storeFileFromBytes("documents", logicalFileName, wordFile);
@@ -128,6 +201,10 @@ public class DocumentService {
         responseDto.setFile(null); // Không trả file luôn
         responseDto.setPreviewHtml(previewHtml);
         return responseDto;
+    }
+
+    private String defaultStr(String val) {
+        return val != null ? val : "";
     }
 
     public DocumentResponseDto getDocumentById(Long id) {
@@ -155,6 +232,31 @@ public class DocumentService {
         dto.setCreatedAt(doc.getCreatedAt());
         dto.setSignature(doc.getSignature());
 
+        dto.setProjectName(doc.getProjectName());
+        dto.setProjectDescription(doc.getProjectDescription());
+        dto.setProjectPriority(doc.getProjectPriority() != null ? doc.getProjectPriority().toString() : null);
+        dto.setProjectDeadline(doc.getProjectDeadline() != null ? doc.getProjectDeadline().toString() : null);
+
+        // BỔ SUNG PM
+        if (doc.getPm() != null) {
+            dto.setPmId(doc.getPm().getId());
+            if (doc.getPm().getEmployee() != null) {
+                var emp = doc.getPm().getEmployee();
+                dto.setPmName(emp.getFirstName() + " " + emp.getLastName());
+            } else {
+                dto.setPmName(doc.getPm().getUsername());
+            }
+        }
+
+        if (doc.getAccountant() != null) {
+            dto.setAccountantName(doc.getAccountant().getUsername());
+        }
+
+        // Quỹ (chỉ dành cho ADMINISTRATIVE)
+        dto.setFundName(doc.getFundName());
+        dto.setFundBalance(doc.getFundBalance());
+        dto.setFundPurpose(doc.getFundPurpose());
+
         if (doc.getFileUrl() != null) {
             try {
                 dto.setPreviewHtml(convertDocxToHtml(doc.getFileUrl()));
@@ -163,6 +265,9 @@ public class DocumentService {
             }
         } else {
             dto.setPreviewHtml(null);
+        }
+        if (doc.getProject() != null) {
+            dto.setRelatedProjectId(doc.getProject().getId());
         }
 
         return dto;
@@ -221,11 +326,15 @@ public class DocumentService {
         }
 
         doc.setSignature(signature);
-        doc.setStatus(DocumentStatus.SIGNED);
+        if (doc.getType() == DocumentType.ADMINISTRATIVE) {
+            doc.setStatus(DocumentStatus.IN_PROGRESS); // ✅ Chuyển trạng thái ngay
+        } else {
+            doc.setStatus(DocumentStatus.SIGNED); // Các loại khác vẫn là SIGNED
+        }
 
         // Prepare placeholders lại, lần này có signature
         Map<String, String> placeholders = new HashMap<>();
-        placeholders.put("soVanBan", doc.getId().toString());
+        placeholders.put("soVanBan", doc.getCode());
         placeholders.put("tenDonVi", doc.getCreatedBy().getUsername());
         placeholders.put("nguoiNhan", doc.getReceiver() != null ? doc.getReceiver().getUsername() : "");
         placeholders.put("noiDung", doc.getContent());
@@ -233,7 +342,66 @@ public class DocumentService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd 'tháng' MM 'năm' yyyy");
         placeholders.put("ngayTao", doc.getCreatedAt().format(formatter));
 
-        byte[] wordFile = exportDocumentToWord(placeholders);
+        // Bổ sung trường PROJECT nếu là công văn dự án
+        if (doc.getType() == DocumentType.PROJECT) {
+            placeholders.put("tenDuAn", doc.getProjectName() != null ? doc.getProjectName() : "");
+            placeholders.put("moTaDuAn", doc.getProjectDescription() != null ? doc.getProjectDescription() : "");
+            placeholders.put("hanHoanThanh", doc.getProjectDeadline() != null
+                    ? doc.getProjectDeadline().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    : "");
+            placeholders.put("mucDoUuTien", doc.getProjectPriority() != null ? doc.getProjectPriority().toString() : "");
+            // Lấy tên PM
+            if (doc.getPm() != null && doc.getPm().getEmployee() != null) {
+                var emp = doc.getPm().getEmployee();
+                placeholders.put("tenPM", emp.getFirstName() + " " + emp.getLastName());
+            } else if (doc.getPm() != null) {
+                placeholders.put("tenPM", doc.getPm().getUsername());
+            } else {
+                placeholders.put("tenPM", "");
+            }
+        } else {
+            placeholders.put("tenDuAn", "");
+            placeholders.put("moTaDuAn", "");
+            placeholders.put("hanHoanThanh", "");
+            placeholders.put("mucDoUuTien", "");
+            placeholders.put("tenPM", "");
+        }
+
+        if (doc.getType() == DocumentType.ADMINISTRATIVE) {
+            Account accountant = doc.getAccountant();
+
+            // Tạo Fund
+            Fund fund = new Fund();
+            fund.setName(doc.getFundName());
+            fund.setBalance(doc.getFundBalance());
+            fund.setPurpose(doc.getFundPurpose());
+            fund.setCreatedBy(accountant);
+            fund.setUpdatedBy(accountant);
+            fund.setCreatedAt(LocalDateTime.now());
+            fund.setStatus("ACTIVE");
+            fund.setDocument(doc);
+
+            fundRepository.save(fund);
+            doc.setRelatedFund(fund);
+
+            // Thêm placeholder cho tài chính
+            placeholders.put("tenKeToan", accountant != null ? accountant.getUsername() : "");
+            placeholders.put("tenQuy", defaultStr(doc.getFundName()));
+            placeholders.put("soTienQuy", doc.getFundBalance() != null ? doc.getFundBalance().toString() : "");
+            placeholders.put("mucDichQuy", defaultStr(doc.getFundPurpose()));
+        } else {
+            placeholders.put("tenKeToan", "");
+            placeholders.put("tenQuy", "");
+            placeholders.put("soTienQuy", "");
+            placeholders.put("mucDichQuy", "");
+        }
+
+        // Chọn template phù hợp
+        String templateName = doc.getType() == DocumentType.ADMINISTRATIVE
+                ? "admin_template.docx"
+                : "template.docx";
+
+        byte[] wordFile = exportWordFromTemplate(templateName, placeholders);
 
         String logicalFileName = "congvan_" + doc.getId() + ".docx";
         String fileUrl = uploadFileService.storeFileFromBytes("documents", logicalFileName, wordFile);
@@ -254,15 +422,24 @@ public class DocumentService {
     }
 
 
+
     public ApiResponse<?> getDocumentsPage(GetDocumentsPageDto req) {
         return getDocumentsPageInternal(req, null);
     }
 
     public ApiResponse<?> getMyDocumentsPage(GetDocumentsPageDto req, String username) {
-        Account receiver = accountRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Receiver not found"));
-        Specification<Document> filterByReceiver = (root, query, cb) -> cb.equal(root.get("receiver"), receiver);
-        return getDocumentsPageInternal(req, filterByReceiver);
+        Account user = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Specification<Document> filterByMe = (root, query, cb) -> {
+            // Là người nhận hoặc là PM được giao
+            return cb.or(
+                    cb.equal(root.get("receiver"), user),
+                    cb.equal(root.get("pm"), user),
+                    cb.equal(root.get("accountant"), user)
+            );
+        };
+        return getDocumentsPageInternal(req, filterByMe);
     }
 
 
@@ -323,17 +500,18 @@ public class DocumentService {
     }
 
 
-    public byte[] exportDocumentToWord(Map<String, String> data) throws IOException {
-        try (InputStream template = new ClassPathResource("templates/template.docx").getInputStream();
+    public byte[] exportWordFromTemplate(String templateName, Map<String, String> data) throws IOException {
+        try (InputStream template = new ClassPathResource("templates/" + templateName).getInputStream();
              XWPFDocument document = new XWPFDocument(template)) {
 
-            // Replace in all paragraphs (outside tables)
+            // Replace outside tables
             for (XWPFParagraph p : document.getParagraphs()) {
                 replacePlaceholdersInParagraph(p, data);
             }
-            // Replace in all paragraphs (inside tables)
-            for (XWPFTable tbl : document.getTables()) {
-                for (XWPFTableRow row : tbl.getRows()) {
+
+            // Replace inside tables
+            for (XWPFTable table : document.getTables()) {
+                for (XWPFTableRow row : table.getRows()) {
                     for (XWPFTableCell cell : row.getTableCells()) {
                         for (XWPFParagraph p : cell.getParagraphs()) {
                             replacePlaceholdersInParagraph(p, data);
@@ -346,7 +524,7 @@ public class DocumentService {
             document.write(baos);
             return baos.toByteArray();
         } catch (InvalidFormatException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Invalid Word template format", e);
         }
     }
 }

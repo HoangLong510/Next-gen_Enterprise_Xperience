@@ -6,12 +6,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import server.dtos.*;
 import server.models.*;
-import server.models.enums.SubTaskStatus;
-import server.models.enums.TaskStatus;
+import server.models.enums.*;
 import server.repositories.*;
 import server.utils.ApiResponse;
 import server.utils.JwtUtil;
-import server.models.enums.ProjectStatus;
+
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -30,6 +29,7 @@ public class ProjectService {
     private final JwtUtil jwtUtil;
     private final AccountRepository accountRepository;
     private final GitHubTokenService gitHubTokenService;
+    private final NotificationService notificationService;
 
     public ApiResponse<List<ProjectDto>> getAllVisible() {
         updateHiddenFlags();
@@ -68,23 +68,37 @@ public class ProjectService {
             return ApiResponse.errorServer("Document này đã được gắn với một Project rồi");
         }
 
+        if (document.getStatus() != DocumentStatus.SIGNED) {
+            return ApiResponse.errorServer("Công văn chưa được ký duyệt. Không thể tạo dự án!");
+        }
+
         Account pm = document.getReceiver();
         if (pm == null) {
             return ApiResponse.errorServer("Document không có người tiếp nhận (PM)");
         }
 
         Project project = Project.builder()
-                .name(dto.getName())
-                .description(dto.getDescription())
+                .name(document.getProjectName())
+                .description(document.getProjectDescription())
                 .createdAt(LocalDate.now())
-                .deadline(dto.getDeadline())
-                .priority(dto.getPriority())
+                .deadline(document.getProjectDeadline())
+                .priority(document.getProjectPriority())
                 .status(ProjectStatus.PLANNING)
                 .document(document)
                 .projectManager(pm)
                 .build();
 
         projectRepository.save(project);
+        projectRepository.flush();
+
+        document.setProject(project);
+        document.setStatus(DocumentStatus.IN_PROGRESS);
+        documentRepository.save(document);
+        notificationService.createNotification(
+                NotificationType.PROJECT,
+                project.getId(),
+                false
+        );
         return ApiResponse.success(null, "project-created");
     }
 
