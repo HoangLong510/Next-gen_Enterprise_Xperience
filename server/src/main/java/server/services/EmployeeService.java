@@ -76,6 +76,7 @@ public class EmployeeService {
         employee.setAddress(request.getAddress());
         employee.setGender(Gender.valueOf(request.getGender()));
         employee.setDateBirth(request.getDateBirth());
+        employee.setCode(employee.generateCode());
         employee.setAccount(account);
 
         employeeRepository.save(employee);

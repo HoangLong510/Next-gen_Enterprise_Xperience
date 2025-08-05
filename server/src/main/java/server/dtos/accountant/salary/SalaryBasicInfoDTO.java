@@ -1,4 +1,4 @@
-package server.dtos.accountant.fund.salary;
+package server.dtos.accountant.salary;
 
 import lombok.Builder;
 import lombok.Data;

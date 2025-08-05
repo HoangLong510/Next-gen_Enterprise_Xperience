@@ -12,6 +12,7 @@ import TransactionList from "~/pages/accountant/fund-transaction-list"
 import CreateSalaryPage from "~/pages/accountant/salary"
 import ProjectManagement from "~/pages/management/project/list-project"
 import ProjectDetailPage from "~/pages/management/project/ProjectDetailPage"
+import SalaryDetail from "~/pages/accountant/salary-detail"
 const roleRoutes = [
 	{
 		path: "/management/accounts",
@@ -73,25 +74,31 @@ const roleRoutes = [
 		path: "/finance/fund",
 		component: FundList,
 		layout: DefaultLayout,
-		roles:["ADMIN"]
+		roles:["ADMIN","HOD","ACCOUNTANT"]
 	},
 	{
 		path: "/finance/fund/:fundID",
 		component: FundDetails,
 		layout: DefaultLayout,
-		roles: ["ADMIN"]
+		roles: ["ADMIN","HOD","ACCOUNTANT"]
 	},
 	{
 		path: "/finance/fund/transactions",
 		component: TransactionList,
 		layout: DefaultLayout,
-		roles:["ADMIN"]
+		roles:["ADMIN","HOD","ACCOUNTANT"]
 	},
 	{
-		path: "/finance/salary/create",
+		path: "/finance/salary",
 		component: CreateSalaryPage,
 		layout: DefaultLayout,
-		roles: ["ADMIN"]
+		roles: ["ADMIN","HOD","ACCOUNTANT"]
+	},
+	{
+		path: "/finance/salary/detail/:id",
+		component: SalaryDetail,
+		layout: DefaultLayout,
+		roles: ["ADMIN","HOD","ACCOUNTANT"]
 	},
 	/* */
 ]

@@ -1,5 +1,9 @@
 package server.models.enums;
 
 public enum SalaryStatus {
-    PENDING, PAID, CANCELED
+    DRAFT,
+    PENDING,
+    APPROVED,
+    PAID,
+    CANCELED
 }

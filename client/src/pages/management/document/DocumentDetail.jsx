@@ -29,8 +29,7 @@ import {
 } from "@mui/icons-material";
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { useSelector } from "react-redux";
-import { useDispatch } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { setPopup } from "~/libs/features/popup/popupSlice";
 import {
   fetchDocumentDetailApi,
@@ -62,10 +61,8 @@ export default function DocumentDetail() {
 
   useEffect(() => {
     fetchDetail();
-    // eslint-disable-next-line
   }, [id]);
 
-  // Download word file
   const handleDownload = async () => {
     if (!doc?.fileUrl) return;
     setDownloading(true);
@@ -113,7 +110,6 @@ export default function DocumentDetail() {
     }
   };
 
-  // Loading state
   if (loading)
     return (
       <Box
@@ -167,7 +163,7 @@ export default function DocumentDetail() {
             sx={{
               background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
               color: "white",
-              p: { xs: 2, sm: 3, md: 3 }, // giảm padding
+              p: { xs: 2, sm: 3, md: 3 },
               textAlign: "center",
             }}
           >
@@ -177,8 +173,7 @@ export default function DocumentDetail() {
                 mb: 1,
                 opacity: 0.85,
               }}
-            />{" "}
-            {/* giảm size icon */}
+            />
             <Typography
               variant="h4"
               fontWeight={700}
@@ -189,8 +184,8 @@ export default function DocumentDetail() {
                   sm: "1.6rem",
                   md: "2rem",
                   lg: "2.4rem",
-                }, // giảm font
-                lineHeight: 1.1, // giảm khoảng cách dòng
+                },
+                lineHeight: 1.1,
                 textShadow: "0 1px 3px rgba(0,0,0,0.25)",
               }}
             >
@@ -199,7 +194,6 @@ export default function DocumentDetail() {
           </Box>
 
           <Box sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
-            {/* Preview Word file if available */}
             {doc.previewHtml && (
               <Card
                 elevation={4}
@@ -241,7 +235,6 @@ export default function DocumentDetail() {
               </Card>
             )}
 
-            {/* Main content box */}
             <Card elevation={3} sx={{ mb: 4, borderRadius: 3 }}>
               <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                 <Typography
@@ -274,7 +267,6 @@ export default function DocumentDetail() {
               </CardContent>
             </Card>
 
-            {/* Action Buttons Section */}
             <Card elevation={3} sx={{ mb: 4, borderRadius: 3 }}>
               <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                 <Typography
@@ -290,7 +282,6 @@ export default function DocumentDetail() {
                   spacing={2}
                   sx={{ flexWrap: "wrap", gap: { xs: 2, sm: 1 } }}
                 >
-                  {/* Download Button */}
                   {doc.fileUrl && (
                     <Button
                       variant="contained"
@@ -304,25 +295,12 @@ export default function DocumentDetail() {
                         borderRadius: 2,
                         px: 3,
                         py: 1.5,
-                        boxShadow: `0 4px 12px ${alpha(
-                          theme.palette.primary.main,
-                          0.3
-                        )}`,
-                        "&:hover": {
-                          boxShadow: `0 6px 16px ${alpha(
-                            theme.palette.primary.main,
-                            0.4
-                          )}`,
-                          transform: "translateY(-2px)",
-                        },
-                        minWidth: { xs: "100%", sm: "auto" },
                       }}
                     >
                       {downloading ? "Downloading..." : "Download Word file"}
                     </Button>
                   )}
 
-                  {/* Sign Button */}
                   {account?.role === "MANAGER" &&
                     doc.status === "NEW" &&
                     !doc.signature && (
@@ -337,14 +315,12 @@ export default function DocumentDetail() {
                           borderRadius: 2,
                           px: 3,
                           py: 1.5,
-                          minWidth: { xs: "100%", sm: "auto" },
                         }}
                       >
                         Ký điện tử công văn
                       </Button>
                     )}
 
-                  {/* Create Project Button */}
                   {!doc.project && account?.id === doc.pmId && (
                     <Button
                       variant="outlined"
@@ -356,7 +332,6 @@ export default function DocumentDetail() {
                         textTransform: "none",
                         px: 3,
                         py: 1.5,
-                        minWidth: { xs: "100%", sm: "auto" },
                       }}
                     >
                       Create Project
@@ -368,7 +343,6 @@ export default function DocumentDetail() {
 
             <Divider sx={{ mb: 4 }} />
 
-            {/* Info Section */}
             <Card elevation={3} sx={{ borderRadius: 3 }}>
               <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                 <Typography
@@ -379,7 +353,7 @@ export default function DocumentDetail() {
                 >
                   ℹ️ Thông tin chi tiết
                 </Typography>
-                <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+                <Grid container spacing={3}>
                   <Grid item xs={12} sm={6} md={3}>
                     <InfoRow
                       icon={<Person />}
@@ -423,7 +397,7 @@ export default function DocumentDetail() {
         </Paper>
       </Box>
 
-      {/* Dialog ký điện tử */}
+      {/* Ký điện tử */}
       <Dialog
         open={signDialogOpen}
         onClose={() => setSignDialogOpen(false)}
@@ -517,7 +491,6 @@ export default function DocumentDetail() {
         </DialogActions>
       </Dialog>
 
-      {/* Form tạo project */}
       <ProjectFormCreate
         open={formOpen}
         onClose={() => setFormOpen(false)}

@@ -165,6 +165,14 @@ export const getAllTransactionsApi = async (params = {}) => {
   }
 };
 
+export const getFundEditHistoryApi = async (id) => {
+  try {
+    const res = await api.get(`/accountant/funds/${id}/history`);
+    return res.data;
+  } catch (error) {
+    return error.response?.data || { status: 500, message: "server-is-busy" };
+  }
+};
 
 
 

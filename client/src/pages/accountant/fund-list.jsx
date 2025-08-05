@@ -328,18 +328,6 @@ export default function FundList({ accessToken }) {
             <Box display="flex" gap={2}>
               <Button
                 variant="contained"
-                startIcon={<Add />}
-                onClick={() => setOpenCreate(true)}
-                sx={{
-                  bgcolor: "rgba(255,255,255,0.2)",
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.3)" },
-                  backdropFilter: "blur(10px)",
-                }}
-              >
-                {t("create-new-fund")}
-              </Button>
-              <Button
-                variant="contained"
                 startIcon={<Refresh />}
                 onClick={async () => {
                   await fetchSummary();
@@ -1265,120 +1253,6 @@ export default function FundList({ accessToken }) {
           }}
         />
       </Box>
-
-      {/* Create Fund Dialog */}
-      <Dialog
-        open={openCreate}
-        onClose={() => setOpenCreate(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            overflow: "hidden",
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            color: "white",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <Typography component="span" variant="h6" fontWeight={600}>
-            {t("create-new-fund")}
-          </Typography>
-          <IconButton
-            onClick={() => setOpenCreate(false)}
-            sx={{
-              color: "white",
-              "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-            }}
-          >
-            <Close />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
-          <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label={t("name")}
-                value={newFund.name}
-                onChange={(e) =>
-                  setNewFund({ ...newFund, name: e.target.value })
-                }
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                  },
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label={t("initial-balance")}
-                type="number"
-                value={newFund.balance}
-                onChange={(e) =>
-                  setNewFund({ ...newFund, balance: e.target.value })
-                }
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <MonetizationOn color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                  },
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label={t("purpose")}
-                multiline
-                rows={3}
-                value={newFund.purpose}
-                onChange={(e) =>
-                  setNewFund({ ...newFund, purpose: e.target.value })
-                }
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                  },
-                }}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setOpenCreate(false)} sx={{ borderRadius: 2 }}>
-            {t("cancel")}
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleCreate}
-            sx={{
-              borderRadius: 2,
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              "&:hover": {
-                background: "linear-gradient(135deg, #764ba2 0%, #667eea 100%)",
-              },
-            }}
-          >
-            {t("create")}
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Transaction Dialog */}
       <Dialog

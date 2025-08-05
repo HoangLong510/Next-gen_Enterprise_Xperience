@@ -16,7 +16,9 @@ import server.dtos.accountant.fund.FundSummaryDTO;
 import server.models.Account;
 import server.models.Employee;
 import server.models.accountant.fund.Fund;
+import server.models.accountant.fund.FundBackup;
 import server.models.enums.TransactionStatus;
+import server.repositories.accountant.fund.FundBackupRepository;
 import server.repositories.accountant.fund.FundRepository;
 import server.repositories.accountant.fund.FundSpecification;
 import server.repositories.accountant.fund.FundTransactionRepository;
@@ -24,6 +26,7 @@ import server.utils.ApiResponse;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -34,6 +37,8 @@ public class FundService {
 
     private final FundRepository fundRepository;
     private final FundTransactionRepository fundTransactionRepository;
+    private final FundBackupRepository fundBackupRepository;
+
 
     public ApiResponse<?> createFund(
             FundRequestDTO request,
@@ -86,6 +91,19 @@ public class FundService {
         if (bindingResult.hasErrors()) {
             return ApiResponse.badRequest(bindingResult);
         }
+        long transactionCount = fundTransactionRepository.countByFundId(fund.getId());
+        if (transactionCount > 0) {
+            FundBackup backup = FundBackup.builder()
+                    .originalFundId(fund.getId())
+                    .name(fund.getName())
+                    .balance(fund.getBalance())
+                    .purpose(fund.getPurpose())
+                    .backedUpAt(LocalDateTime.now())
+                    .updatedByAccount((Account) authentication.getPrincipal())
+                    .build();
+
+            fundBackupRepository.save(backup);
+        }
 
         fund.setName(request.getName());
         fund.setBalance(request.getBalance());
@@ -94,6 +112,23 @@ public class FundService {
 
         Fund updated = fundRepository.save(fund);
         return ApiResponse.success(toResponse(updated), "fund-updated-successfully");
+    }
+
+    public ApiResponse<?> getFundEditHistory(Long fundId) {
+        List<FundBackup> backups = fundBackupRepository.findByOriginalFundIdOrderByBackedUpAtDesc(fundId);
+
+        List<Map<String, Object>> history = backups.stream().map(b -> {
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("name", b.getName());
+            entry.put("balance", b.getBalance());
+            entry.put("purpose", b.getPurpose());
+            entry.put("backedUpAt", b.getBackedUpAt());
+            Account updater = b.getUpdatedByAccount();
+            entry.put("updatedBy", updater != null ? buildDisplayName(updater) : "Không có dữ liệu");
+            return entry;
+        }).collect(Collectors.toList());
+
+        return ApiResponse.success(history, "fund-edit-history-fetched-successfully");
     }
 
     public ApiResponse<?> getFundById(Long id) {
