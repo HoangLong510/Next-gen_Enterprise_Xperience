@@ -4,12 +4,12 @@ import HomePage from "~/pages/index.jsx";
 import LeaveRequest from "~/pages/leave-request";
 import ProfilePage from "~/pages/profile";
 import DepartmentPage from "~/pages/departments";
+import ContractsPage from "~/pages/contracts";
 import FaceCameraVerify from "~/pages/attendance/FaceCameraVerify";
 import MissingCheckOutList from "~/pages/attendance/MissingCheckOutList";
 import MissingCheckOutReview from "~/pages/attendance/MissingCheckOutReview";
 import AttendanceList from "~/pages/attendance/AttendanceList";
 import AttendanceDetail from "~/pages/attendance/AttendanceDetail";
-
 
 const publicRoutes = [
   {
@@ -38,6 +38,11 @@ const publicRoutes = [
     layout: DefaultLayout,
   },
   {
+    path: "/contracts",
+    component: ContractsPage,
+    layout: DefaultLayout,
+  },
+  {
     path: "/attendance",
     component: FaceCameraVerify,
     layout: DefaultLayout,
@@ -58,10 +63,10 @@ const publicRoutes = [
     layout: DefaultLayout,
   },
   {
-  path: "/attendance/:id",
-  component: AttendanceDetail,
-  layout: DefaultLayout,
-},
+    path: "/attendance/:id",
+    component: AttendanceDetail,
+    layout: DefaultLayout,
+  },
 ];
 
 export default publicRoutes;

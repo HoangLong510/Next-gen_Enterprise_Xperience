@@ -62,4 +62,11 @@ public class EmployeeController {
             return ResponseEntity.status(response.getStatus()).body(response);
         }
     }
+
+    //phần thêm của quân
+    @GetMapping("/simple-list")
+    public ApiResponse<?> getSimpleEmployeeList() {
+        return employeeService.getSimpleEmployeeList();
+    }
+    //hết phần thêm của quân
 }
