@@ -25,10 +25,10 @@ import AddIcon from "@mui/icons-material/Add"
 import { useDispatch, useSelector } from "react-redux"
 import { getDepartmentsPageApi } from "~/services/department.service"
 import { setPopup } from "~/libs/features/popup/popupSlice"
-import CustomAvatar from "~/components/custom-avatar"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import { Edit, GroupAdd, Business as BusinessIcon } from "@mui/icons-material"
+import CustomAvatar from "~/components/custom-avatar"
 
 export default function DepartmentPage() {
 	const theme = useTheme()
@@ -73,9 +73,10 @@ export default function DepartmentPage() {
 	}, [pageNumber, searchTerm, handleGetAccountsPage])
 
 	return (
-		<Box>
-			<Container maxWidth="xl">
-				{/* Minimalist Header */}
+		<>
+			<title>{t("departments")}</title>
+			<Box>
+				{/* Header */}
 				<Box
 					sx={{
 						mb: 3,
@@ -87,8 +88,8 @@ export default function DepartmentPage() {
 							display: "inline-flex",
 							alignItems: "center",
 							justifyContent: "center",
-							width: 80,
-							height: 80,
+							width: 64,
+							height: 64,
 							borderRadius: "50%",
 							bgcolor: alpha(theme.palette.primary.main, 0.1),
 							mb: 1
@@ -96,7 +97,7 @@ export default function DepartmentPage() {
 					>
 						<BusinessIcon
 							sx={{
-								fontSize: 40,
+								fontSize: 32,
 								color: theme.palette.primary.main
 							}}
 						/>
@@ -106,18 +107,18 @@ export default function DepartmentPage() {
 						sx={{
 							fontWeight: 600,
 							color: theme.palette.primary.main,
-							mb: 1,
+							mb: 0.5,
 							letterSpacing: "-0.02em"
 						}}
 					>
 						{t("departments")}
 					</Typography>
 					<Typography
-						variant="body1"
+						variant="body2"
 						sx={{
 							color: theme.palette.text.secondary,
 							fontWeight: 400,
-							maxWidth: 600,
+							maxWidth: 500,
 							mx: "auto"
 						}}
 					>
@@ -127,21 +128,21 @@ export default function DepartmentPage() {
 					</Typography>
 				</Box>
 
-				{/* Clean Search Section */}
+				{/* Search Section */}
 				<Box
 					sx={{
-						mb: 6,
+						mb: 4,
 						display: "flex",
-						gap: 3,
+						gap: 2,
 						flexDirection: { xs: "column", md: "row" },
 						alignItems: { xs: "stretch", md: "center" },
-						maxWidth: 800,
+						maxWidth: 700,
 						mx: "auto"
 					}}
 				>
 					<TextField
-						size="small"
 						label={t("search")}
+						size="small"
 						placeholder={`${t(
 							"enter-the-name-or-description-of-the-department"
 						)}...`}
@@ -152,11 +153,7 @@ export default function DepartmentPage() {
 						InputProps={{
 							startAdornment: (
 								<InputAdornment position="start">
-									<SearchIcon
-										sx={{
-											fontSize: 20
-										}}
-									/>
+									<SearchIcon sx={{ fontSize: 18 }} />
 								</InputAdornment>
 							)
 						}}
@@ -167,19 +164,18 @@ export default function DepartmentPage() {
 							}
 						}}
 					/>
-
 					{account.role === "ADMIN" && (
 						<Button
+							size="medium"
 							LinkComponent={Link}
 							to="/departments/add"
 							variant="contained"
-							size="small"
 							startIcon={<AddIcon />}
 							sx={{
+								height: "100%",
 								whiteSpace: "nowrap",
 								textTransform: "none",
 								px: 4,
-								py: 1,
 								borderRadius: 2
 							}}
 						>
@@ -188,9 +184,9 @@ export default function DepartmentPage() {
 					)}
 				</Box>
 
-				{/* Clean Department Cards */}
+				{/* Compact Department Cards */}
 				{!loading && departments.length > 0 && (
-					<Grid container spacing={4} sx={{ mb: 6 }}>
+					<Grid container spacing={3} sx={{ mb: 4 }}>
 						{departments.map((department, index) => (
 							<Grid
 								size={{ xs: 12, sm: 6, lg: 4 }}
@@ -202,14 +198,18 @@ export default function DepartmentPage() {
 											height: "100%",
 											display: "flex",
 											flexDirection: "column",
-											borderRadius: 3,
+											borderRadius: 2.5,
 											bgcolor: "white",
 											boxShadow:
-												"0 0 15px rgba(0, 0, 0, 0.15)",
+												"0 2px 12px rgba(0, 0, 0, 0.08)",
+											border: `1px solid ${alpha(
+												theme.palette.divider,
+												0.1
+											)}`,
 											transition:
 												"all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
 											"&:hover": {
-												boxShadow: `0 20px 30px ${alpha(
+												boxShadow: `0 8px 25px ${alpha(
 													theme.palette.primary.main,
 													0.15
 												)}`,
@@ -217,8 +217,9 @@ export default function DepartmentPage() {
 													theme.palette.primary.main,
 													0.3
 												),
+												transform: "translateY(-2px)",
 												"& .department-image": {
-													transform: "scale(1.02)"
+													transform: "scale(1.05)"
 												},
 												"& .department-actions": {
 													opacity: 1,
@@ -227,16 +228,17 @@ export default function DepartmentPage() {
 											}
 										}}
 									>
-										{/* Clean Image Section with Action Buttons */}
+										{/* Compact Image Section */}
 										<Box
 											sx={{
 												position: "relative",
-												overflow: "hidden"
+												overflow: "hidden",
+												height: 140
 											}}
 										>
 											<CardMedia
 												component="img"
-												height="200"
+												height="140"
 												image={`${
 													import.meta.env
 														.VITE_SERVER_URL
@@ -250,9 +252,12 @@ export default function DepartmentPage() {
 												}}
 												sx={{
 													transition:
-														"transform 0.3s ease"
+														"transform 0.3s ease",
+													objectFit: "cover"
 												}}
 											/>
+
+											{/* Gradient Overlay */}
 											<Box
 												sx={{
 													position: "absolute",
@@ -260,27 +265,27 @@ export default function DepartmentPage() {
 													left: 0,
 													right: 0,
 													bottom: 0,
-													background: `linear-gradient(to bottom, transparent 0%, ${alpha(
+													background: `linear-gradient(135deg, transparent 0%, ${alpha(
 														theme.palette.primary
 															.main,
-														0.05
+														0.1
 													)} 100%)`
 												}}
 											/>
 
-											{/* Action Buttons - Positioned on top-right corner */}
+											{/* Action Buttons */}
 											{account.role === "ADMIN" && (
 												<Box
 													className="department-actions"
 													sx={{
 														position: "absolute",
-														top: 12,
-														right: 12,
+														top: 8,
+														right: 8,
 														display: "flex",
-														gap: 1,
+														gap: 0.5,
 														opacity: 0,
 														transform:
-															"translateY(-10px)",
+															"translateY(-8px)",
 														transition:
 															"all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
 													}}
@@ -293,25 +298,14 @@ export default function DepartmentPage() {
 															bgcolor:
 																"rgba(255, 255, 255, 0.95)",
 															backdropFilter:
-																"blur(10px)",
-															border: `1px solid ${alpha(
-																theme.palette
-																	.primary
-																	.main,
-																0.2
-															)}`,
+																"blur(8px)",
 															color: theme.palette
 																.primary.main,
-															width: 36,
-															height: 36,
+															width: 32,
+															height: 32,
 															"&:hover": {
 																bgcolor:
 																	"white",
-																borderColor:
-																	theme
-																		.palette
-																		.primary
-																		.main,
 																transform:
 																	"scale(1.1)"
 															}
@@ -319,7 +313,7 @@ export default function DepartmentPage() {
 													>
 														<GroupAdd
 															sx={{
-																fontSize: 18
+																fontSize: 16
 															}}
 														/>
 													</IconButton>
@@ -331,25 +325,14 @@ export default function DepartmentPage() {
 															bgcolor:
 																"rgba(255, 255, 255, 0.95)",
 															backdropFilter:
-																"blur(10px)",
-															border: `1px solid ${alpha(
-																theme.palette
-																	.primary
-																	.main,
-																0.2
-															)}`,
+																"blur(8px)",
 															color: theme.palette
 																.primary.main,
-															width: 36,
-															height: 36,
+															width: 32,
+															height: 32,
 															"&:hover": {
 																bgcolor:
 																	"white",
-																borderColor:
-																	theme
-																		.palette
-																		.primary
-																		.main,
 																transform:
 																	"scale(1.1)"
 															}
@@ -357,7 +340,7 @@ export default function DepartmentPage() {
 													>
 														<Edit
 															sx={{
-																fontSize: 18
+																fontSize: 16
 															}}
 														/>
 													</IconButton>
@@ -365,16 +348,19 @@ export default function DepartmentPage() {
 											)}
 										</Box>
 
-										<CardContent sx={{ flexGrow: 1, p: 3 }}>
+										{/* Compact Content */}
+										<CardContent
+											sx={{ flexGrow: 1, p: 2.5, pb: 2 }}
+										>
 											{/* Department Name */}
 											<Typography
-												variant="h5"
+												variant="h6"
 												sx={{
 													fontWeight: 600,
 													mb: 1,
 													color: theme.palette.primary
 														.main,
-													fontSize: "1.3rem",
+													fontSize: "1.1rem",
 													lineHeight: 1.3
 												}}
 											>
@@ -387,30 +373,32 @@ export default function DepartmentPage() {
 												sx={{
 													color: theme.palette.text
 														.secondary,
-													mb: 3,
-													lineHeight: 1.6,
+													mb: 2,
+													lineHeight: 1.4,
 													display: "-webkit-box",
-													WebkitLineClamp: 3,
+													WebkitLineClamp: 2,
 													WebkitBoxOrient: "vertical",
-													overflow: "hidden"
+													overflow: "hidden",
+													fontSize: "0.875rem"
 												}}
 											>
 												{department.description}
 											</Typography>
 
-											{/* Manager Info */}
-											<Box sx={{ mb: 3 }}>
+											{/* Compact Manager Info */}
+											<Box>
 												<Typography
 													variant="caption"
 													sx={{
 														color: theme.palette
-															.primary.main,
-														fontWeight: 600,
+															.text.secondary,
+														fontWeight: 500,
 														textTransform:
 															"uppercase",
-														letterSpacing: "1px",
+														letterSpacing: "0.5px",
 														mb: 1,
-														display: "block"
+														display: "block",
+														fontSize: "0.7rem"
 													}}
 												>
 													{t("head-of-department")}
@@ -418,7 +406,7 @@ export default function DepartmentPage() {
 												<Stack
 													direction="row"
 													alignItems="center"
-													spacing={2}
+													spacing={1.5}
 												>
 													<CustomAvatar
 														src={
@@ -426,8 +414,8 @@ export default function DepartmentPage() {
 																.avatar
 														}
 														sx={{
-															width: 48,
-															height: 48,
+															width: 36,
+															height: 36,
 															border: `2px solid ${alpha(
 																theme.palette
 																	.primary
@@ -436,35 +424,32 @@ export default function DepartmentPage() {
 															)}`
 														}}
 													/>
-													<Box>
-														<Typography
-															variant="body1"
-															sx={{
-																fontWeight: 500,
-																color: theme
-																	.palette
-																	.text
-																	.primary,
-																fontSize: "1rem"
-															}}
-														>
-															{department.hod
-																.firstName +
-																" " +
-																department.hod
-																	.lastName}
-														</Typography>
-													</Box>
+													<Typography
+														variant="body2"
+														sx={{
+															fontWeight: 500,
+															color: theme.palette
+																.text.primary,
+															fontSize: "0.875rem"
+														}}
+													>
+														{department.hod
+															.firstName +
+															" " +
+															department.hod
+																.lastName}
+													</Typography>
 												</Stack>
 											</Box>
 
 											{/* Employee Count - Below manager info */}
 											<Box
 												sx={{
+													mt: 2,
 													display: "flex",
 													alignItems: "center",
 													justifyContent: "center",
-													py: 2,
+													py: 1,
 													px: 3,
 													borderRadius: 2,
 													bgcolor: alpha(
@@ -507,7 +492,7 @@ export default function DepartmentPage() {
 					</Grid>
 				)}
 
-				{/* Clean Empty State */}
+				{/* Empty State */}
 				{!loading && departments.length === 0 && (
 					<Fade in={true} timeout={600}>
 						<Box
@@ -516,15 +501,15 @@ export default function DepartmentPage() {
 								flexDirection: "column",
 								alignItems: "center",
 								justifyContent: "center",
-								py: 12,
+								py: 8,
 								px: 4,
 								textAlign: "center"
 							}}
 						>
 							<Box
 								sx={{
-									width: 120,
-									height: 120,
+									width: 80,
+									height: 80,
 									borderRadius: "50%",
 									bgcolor: alpha(
 										theme.palette.primary.main,
@@ -533,33 +518,32 @@ export default function DepartmentPage() {
 									display: "flex",
 									alignItems: "center",
 									justifyContent: "center",
-									mb: 4
+									mb: 3
 								}}
 							>
 								<FolderOffIcon
 									sx={{
-										fontSize: 48,
+										fontSize: 36,
 										color: theme.palette.primary.main
 									}}
 								/>
 							</Box>
 							<Typography
-								variant="h5"
+								variant="h6"
 								sx={{
 									fontWeight: 500,
 									color: theme.palette.primary.main,
-									mb: 2
+									mb: 1
 								}}
 							>
 								{t("department-not-found")}
 							</Typography>
 							<Typography
-								variant="body1"
+								variant="body2"
 								sx={{
 									color: theme.palette.text.secondary,
-									maxWidth: 480,
-									lineHeight: 1.6,
-									mb: 4
+									maxWidth: 400,
+									lineHeight: 1.5
 								}}
 							>
 								{t("department-not-found-long")}
@@ -568,9 +552,9 @@ export default function DepartmentPage() {
 					</Fade>
 				)}
 
-				{/* Clean Loading State */}
+				{/* Loading State */}
 				{loading && (
-					<Grid container spacing={4} sx={{ mb: 6 }}>
+					<Grid container spacing={3} sx={{ mb: 4 }}>
 						{Array.from({ length: 6 }).map((_, index) => (
 							<Grid
 								size={{ xs: 12, sm: 6, lg: 4 }}
@@ -581,7 +565,7 @@ export default function DepartmentPage() {
 										height: "100%",
 										display: "flex",
 										flexDirection: "column",
-										borderRadius: 3,
+										borderRadius: 2.5,
 										overflow: "hidden",
 										bgcolor: "white",
 										border: `1px solid ${alpha(
@@ -592,64 +576,56 @@ export default function DepartmentPage() {
 								>
 									<Skeleton
 										variant="rectangular"
-										height={200}
+										height={140}
 										animation="wave"
 									/>
-									<CardContent sx={{ flexGrow: 1, p: 4 }}>
+									<CardContent sx={{ flexGrow: 1, p: 2.5 }}>
 										<Skeleton
 											variant="text"
 											width="70%"
-											height={32}
-											sx={{ mb: 2 }}
-											animation="wave"
-										/>
-										<Skeleton
-											variant="text"
-											width="100%"
-											height={20}
+											height={28}
 											sx={{ mb: 1 }}
 											animation="wave"
 										/>
 										<Skeleton
 											variant="text"
-											width="80%"
-											height={20}
-											sx={{ mb: 4 }}
+											width="100%"
+											height={16}
+											sx={{ mb: 0.5 }}
 											animation="wave"
 										/>
 										<Skeleton
 											variant="text"
-											width="50%"
+											width="80%"
 											height={16}
 											sx={{ mb: 2 }}
+											animation="wave"
+										/>
+										<Skeleton
+											variant="text"
+											width="40%"
+											height={12}
+											sx={{ mb: 1 }}
 											animation="wave"
 										/>
 										<Stack
 											direction="row"
 											alignItems="center"
-											spacing={2}
-											sx={{ mb: 3 }}
+											spacing={1.5}
 										>
 											<Skeleton
 												variant="circular"
-												width={48}
-												height={48}
+												width={36}
+												height={36}
 												animation="wave"
 											/>
 											<Skeleton
 												variant="text"
 												width="60%"
-												height={20}
+												height={16}
 												animation="wave"
 											/>
 										</Stack>
-										<Skeleton
-											variant="rectangular"
-											width="100%"
-											height={48}
-											sx={{ borderRadius: 2 }}
-											animation="wave"
-										/>
 									</CardContent>
 								</Card>
 							</Grid>
@@ -657,22 +633,24 @@ export default function DepartmentPage() {
 					</Grid>
 				)}
 
-				{/* Clean Pagination */}
+				{/* Pagination */}
 				<Box
 					sx={{
 						display: "flex",
 						justifyContent: "center",
-						mt: 6
+						mt: 4
 					}}
 				>
 					<Pagination
 						count={totalPage}
 						page={pageNumber}
+						showFirstButton
+						showLastButton
 						onChange={handlePageChange}
 						color="primary"
 					/>
 				</Box>
-			</Container>
-		</Box>
+			</Box>
+		</>
 	)
 }

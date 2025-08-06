@@ -7,7 +7,7 @@ import { useSelector } from "react-redux"
 import roleRoutes from "./routes/roleRoutes"
 import RedirectWithAction from "./components/redirect-with-action"
 import PopupLogout from "./components/popup-logout"
-import ChangePasswordDialog from "~/components/change-password-dialog/index.jsx";
+import ChangePasswordDialog from "~/components/change-password-dialog/index.jsx"
 
 function App() {
 	const account = useSelector((state) => state.account.value)
@@ -66,7 +66,9 @@ function App() {
 							key={route.path}
 							path={route.path}
 							element={
-								account && route.roles && route.roles.includes(account.role) ? (
+								account &&
+								route.roles &&
+								route.roles.includes(account.role) ? (
 									<Layout>
 										<Page />
 									</Layout>

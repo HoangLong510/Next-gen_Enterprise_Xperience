@@ -22,5 +22,18 @@
 	"account-is-disabled": "Tài khoản của bạn đã bị khóa! Vui lòng liên hệ với quản trị viên để biết thêm thông tin chi tiết",
 	"create-department-success": "Tạo phòng ban thành công",
 	"edit-department-success": "Chỉnh sửa phòng ban thành công",
-	"update-department-success": "Cập nhật phòng ban thành công"
+	"update-department-success": "Cập nhật phòng ban thành công",
+	"fund-created": "Tạo quỹ thành công.",
+	"failed-to-create-fund": "Tạo quỹ thất bại.",
+	"transaction-created": "Tạo giao dịch thành công.",
+  	"fund-status-updated": "Cập nhật trạng thái quỹ thành công.",
+  	"failed-to-create-transaction": "Tạo giao dịch thất bại.",
+  	"failed-to-change-fund-status": "Cập nhật trạng thái quỹ thất bại.",
+ 	"unexpected-error-occurred": "Đã xảy ra lỗi không mong muốn.",
+	"insufficient-fund-balance": "...",
+	"file-type-not-supported":"Tệp không phù hợp! Vui lòng chọn lại.",
+	"salary-update-success": "Cập nhật thông tin lương thành công!",
+  	"employee-add-success": "Thêm nhân viên mới thành công!",
+ 	"employee-delete-success": "Xóa nhân viên thành công!",
+ 	"fetch-data-error": "Lỗi khi tải dữ liệu. Vui lòng thử lại!"
 }

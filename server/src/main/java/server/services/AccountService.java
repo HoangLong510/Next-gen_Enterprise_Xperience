@@ -68,6 +68,10 @@ public class AccountService {
                     dto.setRole(account.getRole());
                     dto.setEnabled(account.isEnabled());
                     dto.setAvatar(account.getEmployee().getAvatar());
+                    //Heartbeat
+                    dto.setLastActiveAt(account.getLastActiveAt());
+                    dto.setStatus(account.getStatus());
+
                     return dto;
                 })
                 .toList();

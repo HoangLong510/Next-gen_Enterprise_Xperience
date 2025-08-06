@@ -7,6 +7,7 @@ import {
   Typography,
   Fade,
   Backdrop,
+  Grid,
 } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -14,24 +15,107 @@ import * as yup from "yup";
 import { useEffect, useState } from "react";
 import { createDocumentApi } from "~/services/document.service";
 import { fetchPMsApi } from "~/services/account.service";
+import { useDispatch } from "react-redux";
+import { setPopup } from "~/libs/features/popup/popupSlice";
+
+// -------- VALIDATION --------
 
 const schema = yup.object().shape({
-  title: yup.string().required("Vui lòng nhập tiêu đề"),
-  content: yup.string().required("Vui lòng nhập nội dung"),
-  type: yup.string().required("Vui lòng chọn kiểu công văn"),
+  title: yup.string().required("Please enter the title"),
+  content: yup.string().required("Please enter the content"),
+  type: yup.string().required("Please select document type"),
   projectManagerId: yup
     .string()
     .nullable()
-    .when("type", (type, schema) => {
-      return type === "PROJECT"
-        ? schema.required("Chọn quản lý dự án")
-        : schema.nullable();
+    .when("type", {
+      is: "PROJECT",
+      then: (s) => s.required("Select Project Manager"),
+      otherwise: (s) => s.nullable(),
+    }),
+  projectName: yup
+    .string()
+    .nullable()
+    .when("type", {
+      is: "PROJECT",
+      then: (s) => s.required("Project name is required").min(3).max(100),
+      otherwise: (s) => s.nullable(),
+    }),
+  projectDescription: yup
+    .string()
+    .nullable()
+    .when("type", {
+      is: "PROJECT",
+      then: (s) => s.required("Description is required").min(10).max(1000),
+      otherwise: (s) => s.nullable(),
+    }),
+  projectDeadline: yup
+    .string()
+    .nullable()
+    .transform((value, originalValue) => {
+      if (!originalValue) return null;
+      const parsed = new Date(originalValue);
+      return isNaN(parsed.getTime()) ? null : originalValue;
+    })
+    .when("type", {
+      is: "PROJECT",
+      then: (s) =>
+        s
+          .required("Deadline is required")
+          .test("min-today", "Deadline must be today or later", (value) => {
+            if (!value) return false;
+            const selectedDate = new Date(value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return selectedDate >= today;
+          }),
+      otherwise: (s) => s.nullable(),
+    }),
+  projectPriority: yup
+    .string()
+    .nullable()
+    .when("type", {
+      is: "PROJECT",
+      then: (s) =>
+        s
+          .required("Priority is required")
+          .oneOf(["LOW", "MEDIUM", "HIGH"], "Select valid priority"),
+      otherwise: (s) => s.nullable(),
+    }),
+  // Administrative document fields
+  fundName: yup
+    .string()
+    .nullable()
+    .when("type", {
+      is: "ADMINISTRATIVE",
+      then: (s) => s.required("Fund name is required"),
+      otherwise: (s) => s.nullable(),
+    }),
+  fundBalance: yup
+    .number()
+    .transform((value, originalValue) =>
+      originalValue === "" || originalValue == null ? null : value
+    )
+    .nullable()
+    .when("type", {
+      is: "ADMINISTRATIVE",
+      then: (s) =>
+        s.required("Balance is required").min(0, "Balance must be ≥ 0"),
+      otherwise: (s) => s.nullable(),
+    }),
+  fundPurpose: yup
+    .string()
+    .nullable()
+    .when("type", {
+      is: "ADMINISTRATIVE",
+      then: (s) => s.required("Purpose is required"),
+      otherwise: (s) => s.nullable(),
     }),
 });
 
 export default function DocumentCreate({ onSuccess, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [pmList, setPmList] = useState([]);
+  const dispatch = useDispatch();
 
   const {
     register,
@@ -48,76 +132,100 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
       content: "",
       type: "",
       projectManagerId: null,
+      projectName: "",
+      projectDescription: "",
+      projectDeadline: "",
+      projectPriority: "",
+      fundName: "",
+      fundBalance: "",
+      fundPurpose: "",
     },
   });
 
   const type = watch("type");
   const projectManagerId = watch("projectManagerId");
 
+  // Fetch PM list
   useEffect(() => {
-    async function fetchPMs() {
-      const token = localStorage.getItem("accessToken");
-      const res = await fetchPMsApi(token);
-      if (res.status === 200) setPmList(res.data);
-      else setPmList([]);
+    if (type === "PROJECT") {
+      async function fetchPMs() {
+        const token = localStorage.getItem("accessToken");
+        const res = await fetchPMsApi(token);
+        setPmList(res.status === 200 ? res.data : []);
+      }
+      fetchPMs();
     }
-    fetchPMs();
-  }, []);
+  }, [type]);
 
+  // Submit handler
   const onSubmit = async (data) => {
     setLoading(true);
     const token = localStorage.getItem("accessToken");
+
     const payload = {
       title: data.title,
       content: data.content,
       type: data.type,
-      receiverId: data.type === "PROJECT" ? data.projectManagerId : null,
-    };
-    const res = await createDocumentApi(payload, token);
-    setLoading(false);
 
-    if (res.status === 201) {
-      onSuccess && onSuccess(res.data);
-      downloadWordFile(res.data.file);
-      reset({
-        title: "",
-        content: "",
-        type: "",
-        projectManagerId: null,
-      });
-    } else {
+      pmId: data.type === "PROJECT" ? data.projectManagerId : null,
+      receiverId:
+        data.type === "PROJECT"
+          ? data.projectManagerId
+          : data.type === "OTHER"
+          ? data.receiverId
+          : null,
+
+      projectName: data.type === "PROJECT" ? data.projectName : null,
+      projectDescription:
+        data.type === "PROJECT" ? data.projectDescription : null,
+      projectDeadline: data.type === "PROJECT" ? data.projectDeadline : null,
+      projectPriority: data.type === "PROJECT" ? data.projectPriority : null,
+
+      fundName: data.type === "ADMINISTRATIVE" ? data.fundName : null,
+      fundBalance: data.type === "ADMINISTRATIVE" ? data.fundBalance : null,
+      fundPurpose: data.type === "ADMINISTRATIVE" ? data.fundPurpose : null,
+    };
+
+    try {
+      const res = await createDocumentApi(payload, token);
+      console.log("📩 Response:", res);
+      if (res.status === 201) {
+        dispatch(
+          setPopup({
+            type: "success",
+            message: "Tạo công văn thành công!",
+          })
+        );
+        onSuccess && onSuccess(res.data);
+        reset();
+      } else {
+        setError("title", {
+          type: "manual",
+          message: res.message || "Create document failed",
+        });
+      }
+    } catch (error) {
+      console.error("❌ Failed to create document:", error);
       setError("title", {
         type: "manual",
-        message: res.message || "Tạo công văn thất bại",
+        message: "Something went wrong, please try again.",
       });
-    }
-  };
 
-  const downloadWordFile = (base64Data) => {
-    const byteCharacters = atob(base64Data);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
+      dispatch(
+        setPopup({
+          type: "error",
+          message: "Tạo công văn thất bại. Vui lòng thử lại sau.",
+        })
+      );
+    } finally {
+      setLoading(false);
     }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], {
-      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    });
-
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "congvan.docx");
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
   };
 
   return (
     <Box
       sx={{
-        maxWidth: 480,
+        maxWidth: 540,
         bgcolor: "#fff",
         borderRadius: 3,
         p: 4,
@@ -134,13 +242,19 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
         color="primary.main"
         mb={2}
       >
-        Tạo công văn mới
+        Create New Document
       </Typography>
 
-      <form onSubmit={handleSubmit(onSubmit)} autoComplete="off">
+      <form
+        onSubmit={(e) => {
+          console.log("🟡 Submit clicked");
+          handleSubmit(onSubmit)(e);
+        }}
+        autoComplete="off"
+      >
         <TextField
-          label="Tiêu đề"
-          placeholder="Nhập tiêu đề công văn"
+          label="Title"
+          placeholder="Enter document title"
           fullWidth
           margin="normal"
           error={!!errors.title}
@@ -151,8 +265,8 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
         />
 
         <TextField
-          label="Nội dung"
-          placeholder="Nhập nội dung ngắn gọn..."
+          label="Content"
+          placeholder="Enter a short description..."
           fullWidth
           multiline
           rows={4}
@@ -164,10 +278,9 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
           InputProps={{ sx: { borderRadius: 2 } }}
         />
 
-        {/* Thêm input chọn kiểu công văn */}
         <TextField
           select
-          label="Kiểu công văn"
+          label="Document Type"
           fullWidth
           margin="normal"
           error={!!errors.type}
@@ -176,41 +289,141 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
           onChange={(e) => setValue("type", e.target.value)}
           InputProps={{ sx: { borderRadius: 2 } }}
         >
-          <MenuItem value="">-- Chọn kiểu công văn --</MenuItem>
-          <MenuItem value="PROJECT">Công văn dự án</MenuItem>
-          <MenuItem value="ADMINISTRATIVE">Công văn hành chính</MenuItem>
-          <MenuItem value="OTHER">Công văn khác</MenuItem>
+          <MenuItem value="">-- Select document type --</MenuItem>
+          <MenuItem value="PROJECT">Project Document</MenuItem>
+          <MenuItem value="ADMINISTRATIVE">Administrative Document</MenuItem>
+          <MenuItem value="OTHER">Other Document</MenuItem>
         </TextField>
 
-        {/* Chỉ hiện trường PM khi kiểu là PROJECT */}
+        {/* Nếu là công văn dự án, hiển thị các trường nhập thông tin dự án */}
         {type === "PROJECT" && (
-          <TextField
-            select
-            label="Quản lý dự án"
-            placeholder="Chọn quản lý dự án"
-            fullWidth
-            margin="normal"
-            error={!!errors.projectManagerId}
-            helperText={errors.projectManagerId?.message}
-            value={projectManagerId || ""}
-            onChange={(e) => setValue("projectManagerId", e.target.value)}
-            InputProps={{ sx: { borderRadius: 2 } }}
-          >
-            <MenuItem value="">-- Chọn quản lý dự án --</MenuItem>
-            {pmList.length === 0 ? (
-              <MenuItem disabled value="">
-                Không có PM nào
-              </MenuItem>
-            ) : (
-              pmList.map((pm) => (
-                <MenuItem key={pm.id} value={pm.id}>
-                  {pm.fullName
-                    ? `${pm.fullName} (${pm.username})`
-                    : pm.username}
-                </MenuItem>
-              ))
-            )}
-          </TextField>
+          <>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Project Name"
+                  placeholder="Enter project name"
+                  fullWidth
+                  margin="normal"
+                  error={!!errors.projectName}
+                  helperText={errors.projectName?.message}
+                  {...register("projectName")}
+                  autoComplete="off"
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  select
+                  label="Project Manager"
+                  placeholder="Select Project Manager"
+                  fullWidth
+                  margin="normal"
+                  error={!!errors.projectManagerId}
+                  helperText={errors.projectManagerId?.message}
+                  value={projectManagerId || ""}
+                  onChange={(e) => setValue("projectManagerId", e.target.value)}
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                >
+                  <MenuItem value="">-- Select Project Manager --</MenuItem>
+                  {pmList.length === 0 ? (
+                    <MenuItem disabled value="">
+                      No Project Managers found
+                    </MenuItem>
+                  ) : (
+                    pmList.map((pm) => (
+                      <MenuItem key={pm.id} value={pm.id}>
+                        {pm.fullName
+                          ? `${pm.fullName} (${pm.username})`
+                          : pm.username}
+                      </MenuItem>
+                    ))
+                  )}
+                </TextField>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Project Deadline"
+                  type="date"
+                  fullWidth
+                  margin="normal"
+                  error={!!errors.projectDeadline}
+                  helperText={errors.projectDeadline?.message}
+                  {...register("projectDeadline")}
+                  InputLabelProps={{ shrink: true }}
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  select
+                  label="Project Priority"
+                  fullWidth
+                  margin="normal"
+                  error={!!errors.projectPriority}
+                  helperText={errors.projectPriority?.message}
+                  {...register("projectPriority")}
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                >
+                  <MenuItem value="">-- Select priority --</MenuItem>
+                  <MenuItem value="LOW">Low</MenuItem>
+                  <MenuItem value="MEDIUM">Medium</MenuItem>
+                  <MenuItem value="HIGH">High</MenuItem>
+                </TextField>
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  label="Project Description"
+                  placeholder="Enter project description"
+                  fullWidth
+                  multiline
+                  rows={2}
+                  margin="normal"
+                  error={!!errors.projectDescription}
+                  helperText={errors.projectDescription?.message}
+                  {...register("projectDescription")}
+                  autoComplete="off"
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                />
+              </Grid>
+            </Grid>
+          </>
+        )}
+        {type === "ADMINISTRATIVE" && (
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                label="Fund Name"
+                {...register("fundName")}
+                fullWidth
+                error={!!errors.fundName}
+                helperText={errors.fundName?.message}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Fund Balance"
+                type="number"
+                {...register("fundBalance")}
+                fullWidth
+                error={!!errors.fundBalance}
+                helperText={errors.fundBalance?.message}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Fund Purpose"
+                multiline
+                rows={3}
+                {...register("fundPurpose")}
+                fullWidth
+                error={!!errors.fundPurpose}
+                helperText={errors.fundPurpose?.message}
+              />
+            </Grid>
+          </Grid>
         )}
 
         <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
@@ -230,8 +443,18 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
               loading ? <CircularProgress size={20} color="inherit" /> : null
             }
           >
-            {loading ? "Đang tạo..." : "Tạo công văn"}
+            {loading ? "Creating..." : "Create Document"}
           </Button>
+          {Object.keys(errors).length > 0 && (
+            <Box mt={2} p={2} bgcolor="#ffe0e0" borderRadius={2}>
+              <Typography variant="body2" color="error">
+                ❗ Validation Errors:
+              </Typography>
+              <pre style={{ fontSize: 12 }}>
+                {JSON.stringify(errors, null, 2)}
+              </pre>
+            </Box>
+          )}
 
           <Button
             variant="outlined"
@@ -242,12 +465,11 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
             disabled={loading}
             sx={{ fontWeight: 600, borderRadius: 2, background: "#f8fafc" }}
           >
-            Hủy
+            Cancel
           </Button>
         </Box>
       </form>
 
-      {/* Loading overlay */}
       <Fade in={loading}>
         <Backdrop
           open={loading}

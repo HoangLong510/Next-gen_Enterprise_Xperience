@@ -22,5 +22,13 @@
 	"account-is-disabled": "Your account has been disabled! Please contact the administrator for more details",
 	"create-department-success": "Create department successfully",
 	"edit-department-success": "Edit department successfully",
-	"update-department-success": "Update department successfully"
+	"update-department-success": "Update department successfully",
+	"fund-created": "Fund created successfully.",
+	"transaction-created": "Transaction created successfully.",
+  	"fund-status-updated": "Fund status updated successfully.",
+  	"failed-to-create-fund": "Failed to create fund.",
+  	"failed-to-create-transaction": "Failed to create transaction.",
+  	"failed-to-change-fund-status": "Failed to change fund status.",
+	"insufficient-fund-balance": "...",
+	"file-type-not-supported":"File type not supported! Please choose again."
 }

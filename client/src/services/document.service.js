@@ -1,41 +1,5 @@
 import api from "~/utils/axios"
 
-// Xem tất cả (ADMIN, MANAGER)
-export const fetchDocumentsApi = async (accessToken) => {
-	try {
-		const res = await api.get("/documents", {
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${accessToken}`
-			}
-		})
-		return res.data
-	} catch (error) {
-		if (error.response) {
-			return error.response.data
-		}
-		return { status: 500, message: "server-is-busy" }
-	}
-}
-
-// PM xem document liên quan
-export const fetchMyDocumentsApi = async (accessToken) => {
-	try {
-		const res = await api.get("/documents/my", {
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${accessToken}`
-			}
-		})
-		return res.data
-	} catch (error) {
-		if (error.response) {
-			return error.response.data
-		}
-		return { status: 500, message: "server-is-busy" }
-	}
-}
-
 // Tạo document (chỉ ADMIN)
 export const createDocumentApi = async (form, accessToken) => {
 	try {
@@ -53,6 +17,30 @@ export const createDocumentApi = async (form, accessToken) => {
 		return { status: 500, message: "server-is-busy" }
 	}
 }
+
+export const previewDocumentApi = async (id, accessToken) => {
+  try {
+    const res = await api.get(`/documents/${id}/preview`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    return res.data; // { data: "<html ...>" }
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};
+
+export const signDocumentApi = async (id, signature) => {
+  try {
+    const res = await api.post(`/documents/${id}/sign`, { signature });
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};
 
 // Xem chi tiết document (ADMIN, MANAGER, PM)
 export const fetchDocumentDetailApi = async (id) => {
@@ -81,3 +69,33 @@ export const downloadDocumentFileApi = async (id) => {
   }
 }
 
+export const fetchDocumentsPageApi = async (payload) => {
+  try {
+    const res = await api.post("/documents/get-documents-page", payload, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response) {
+      return error.response.data;
+    }
+    return { status: 500, message: "server-is-busy" };
+  }
+};
+
+
+export const fetchMyDocumentsPageApi = async (payload) => {
+	try {
+		const res = await api.post("/documents/my/get-documents-page", payload, {
+			headers: { "Content-Type": "application/json" }
+		});
+		return res.data;
+	} catch (error) {
+		if (error.response) {
+			return error.response.data;
+		}
+		return { status: 500, message: "server-is-busy" };
+	}
+};

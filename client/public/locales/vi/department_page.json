@@ -23,9 +23,18 @@
 	"members": "Thành viên",
 	"department-members-management": "Quản lý thành viên phòng ban",
 	"add-or-remove-members-from-a-department": "Thêm hoặc xóa thành viên khỏi phòng ban",
-	"enter-name-or-username-to-search": "Nhập tên hoặc tài khoản để tìm kiếm",
+	"enter-employees-to-search": "Nhập thông tin nhân viên để tìm kiếm",
 	"filter-by-status": "Lọc theo trạng thái",
 	"all": "Tất cả",
 	"in-department": "Trong phòng ban",
-	"not-in-department": "Chưa trong phòng ban"
+	"not-in-department": "Chưa trong phòng ban",
+	"information": "Thông tin",
+	"phone-number": "Số điện thoại",
+	"status": "Trạng thái",
+	"action": "Hành động",
+	"no-employees-found": "Không tìm thấy nhân viên nào",
+	"no-employees-found-long": "Không tìm thấy nhân viên nào phù hợp với từ khóa tìm kiếm hoặc phù hợp để đưa vào phòng ban",
+	"save": "Lưu",
+	"edit-department": "Chỉnh sửa phòng ban",
+	"edit-departments-in-your-organization": "Chỉnh sửa phòng ban trong tổ chức của bạn"
 }

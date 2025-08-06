@@ -2,27 +2,27 @@ import axios from "axios"
 
 const api = axios.create({
 	baseURL: `${import.meta.env.VITE_SERVER_URL}/api`,
-	timeout: 3000,
+	timeout: 10000,
 	withCredentials: true
 })
 
 // Biến kiểm tra có đang gọi refresh token hay không
-let isRefreshing = false;
+let isRefreshing = false
 
 // Hàng đợi các request bị lỗi 401
-let waitingRequests = [];
+let waitingRequests = []
 
 // Gọi lại tất cả các request đang chờ sau khi refresh xong
 const retryWaitingRequests = (newAccessToken) => {
-	waitingRequests.forEach(callback => callback(newAccessToken));
-	waitingRequests = [];
-};
+	waitingRequests.forEach((callback) => callback(newAccessToken))
+	waitingRequests = []
+}
 
 api.interceptors.request.use(
 	function (config) {
-		const accessToken = localStorage.getItem("accessToken");
+		const accessToken = localStorage.getItem("accessToken")
 		if (accessToken) {
-			config.headers["Authorization"] = `Bearer ${accessToken}`;
+			config.headers["Authorization"] = `Bearer ${accessToken}`
 		}
 		return config
 	},
@@ -36,7 +36,7 @@ api.interceptors.response.use(
 		return response
 	},
 	async function (error) {
-		const originalRequest = error.config;
+		const originalRequest = error.config
 
 		// Nếu gặp lỗi 401 và chưa retry
 		if (
@@ -44,32 +44,32 @@ api.interceptors.response.use(
 			!originalRequest._retry &&
 			!originalRequest.url.includes("/auth/refresh-token") &&
 			!originalRequest.url.includes("/auth/login")
-		){
-			originalRequest._retry = true;
+		) {
+			originalRequest._retry = true
 
-			const refreshToken = localStorage.getItem("refreshToken");
+			const refreshToken = localStorage.getItem("refreshToken")
 			if (!refreshToken) {
 				// Không có refreshToken thì logout
 				localStorage.removeItem("accessToken")
 				localStorage.removeItem("refreshToken")
-				window.location.href = "/login";
-				return Promise.reject(error);
+				window.location.href = "/login"
+				return Promise.reject(error)
 			}
 
 			// Nếu đang gọi refresh, thì chờ
 			if (isRefreshing) {
-				return new Promise(resolve => {
+				return new Promise((resolve) => {
 					waitingRequests.push((newToken) => {
 						// Gắn token mới và gọi lại request cũ
 						console.log(newToken)
-						originalRequest.headers.Authorization = `Bearer ${newToken}`;
-						resolve(api(originalRequest));
-					});
-				});
+						originalRequest.headers.Authorization = `Bearer ${newToken}`
+						resolve(api(originalRequest))
+					})
+				})
 			}
 
 			// Nếu chưa refresh thì bắt đầu refresh
-			isRefreshing = true;
+			isRefreshing = true
 
 			try {
 				// Gọi API refresh-token
@@ -80,25 +80,25 @@ api.interceptors.response.use(
 							Authorization: `Bearer ${refreshToken}`
 						}
 					}
-				);
+				)
 
-				localStorage.setItem("accessToken", res.data.data.accessToken);
+				localStorage.setItem("accessToken", res.data.data.accessToken)
 				localStorage.setItem("refreshToken", res.data.data.refreshToken)
 
 				// Gọi lại các request đang chờ
-				retryWaitingRequests(res.data.data.accessToken);
+				retryWaitingRequests(res.data.data.accessToken)
 
 				// Gắn token mới vào request cũ rồi retry
-				originalRequest.headers.Authorization = `Bearer ${res.data.data.accessToken}`;
-				return api(originalRequest);
+				originalRequest.headers.Authorization = `Bearer ${res.data.data.accessToken}`
+				return api(originalRequest)
 			} catch (refreshError) {
 				// Refresh token sai → logout
 				localStorage.removeItem("accessToken")
 				localStorage.removeItem("refreshToken")
-				window.location.href = "/login";
-				return Promise.reject(refreshError);
+				window.location.href = "/login"
+				return Promise.reject(refreshError)
 			} finally {
-				isRefreshing = false;
+				isRefreshing = false
 			}
 		}
 		return Promise.reject(error)

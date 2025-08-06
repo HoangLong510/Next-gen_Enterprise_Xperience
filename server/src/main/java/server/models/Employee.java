@@ -3,24 +3,33 @@ package server.models;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import server.models.enums.Gender;
+import java.util.Arrays;
+
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "employees")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class Employee {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "code", unique = true)
+    private String code;
+
 
     @Column(nullable = false)
     private String firstName;
@@ -64,10 +73,23 @@ public class Employee {
     @OneToOne(mappedBy = "hod")
     @JsonIgnoreProperties("hod")
     private Department hodDepartment;
-
+    @ManyToMany(mappedBy = "employees")
+    private List<Project> projects;
+    @OneToMany(mappedBy = "assignee")
+    private List<SubTask> subTasks;
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    public String generateCode() {
+        if (this.phone == null || this.dateBirth == null) return null;
+
+        String phoneSuffix = phone.length() >= 4 ? phone.substring(phone.length() - 4) : phone;
+
+        String yearSuffix = String.valueOf(this.dateBirth.getYear()).substring(2);
+
+        return phoneSuffix + yearSuffix;
+    }
 }

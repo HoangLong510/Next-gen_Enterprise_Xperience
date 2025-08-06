@@ -137,6 +137,10 @@ public class DepartmentService {
             department.setImage(filePath);
 
             departmentRepository.save(department);
+            if (hod.getCode() == null || hod.getCode().isBlank()) {
+                hod.setDepartment(department);
+                employeeRepository.save(hod);
+            }
             return ApiResponse.created(null, "create-department-success");
         } catch (Exception e) {
             return ApiResponse.badRequest("error-uploading-file");
@@ -168,7 +172,7 @@ public class DepartmentService {
                 }
             }
 
-            if (!file.isEmpty()) {
+            if (file != null && !file.isEmpty()) {
                 String contentType = file.getContentType();
                 if (contentType == null ||
                         !(contentType.equals("image/jpeg") ||
@@ -183,7 +187,7 @@ public class DepartmentService {
                 return ApiResponse.badRequest(result);
             }
 
-            if (!file.isEmpty()) {
+            if (file != null && !file.isEmpty()) {
                 String filePath = uploadFileService.storeFile("images/departments", file).replace("\\", "/");
                 uploadFileService.deleteFile(department.getImage());
                 department.setImage(filePath);
@@ -214,8 +218,19 @@ public class DepartmentService {
             employee.setDepartment(null);
         } else {
             employee.setDepartment(department);
+            if (employee.getCode() == null || employee.getCode().isBlank()) {
+            }
         }
         employeeRepository.save(employee);
         return ApiResponse.success(null, "update-department-success");
     }
+
+    public ApiResponse<?> getDepartmentById(Long id) {
+        Department department = departmentRepository.findById(id).orElse(null);
+        if (department == null) {
+            return ApiResponse.badRequest("department-not-found");
+        }
+        return ApiResponse.success(department, "get-department-success");
+    }
+
 }

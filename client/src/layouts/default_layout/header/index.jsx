@@ -23,7 +23,7 @@ export default function Header({ open, setOpen }) {
 				display: "flex",
 				alignItems: "center",
 				justifyContent: "space-between",
-				padding: "0px 20px",
+				padding: "0px 20px"
 			}}
 		>
 			<Box sx={{ display: { xs: "flex", md: "none" } }}>
@@ -38,10 +38,9 @@ export default function Header({ open, setOpen }) {
 				</Link>
 			</Box>
 
-			<Box sx={{ display: "flex", alignItems: "center", gap: "20px" }}>
+			<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 				<HeaderNotifaication />
 				<HeaderAuth />
-				
 			</Box>
 		</Box>
 	)

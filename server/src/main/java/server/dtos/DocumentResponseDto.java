@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 @Data
 public class DocumentResponseDto {
     private Long id;
+    private String code;
     private String title;
     private String content;
     private String fileUrl;
@@ -19,4 +20,18 @@ public class DocumentResponseDto {
     private DocumentStatus status;
     private DocumentType type;
     private byte[] file;
+    private String signature;
+    private String previewHtml;
+
+    private String projectName;
+    private String projectDescription;
+    private String projectPriority; // String hoặc ProjectPriority enum tuỳ FE
+    private String projectDeadline; // String yyyy-MM-dd hoặc LocalDate (nếu FE biết convert)
+    private String pmName;
+    private Long pmId;
+
+    private String fundName;
+    private Double fundBalance;
+    private String fundPurpose;
+    private String accountantName;
 }

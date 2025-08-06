@@ -5,5 +5,7 @@ public enum NotificationType {
     PROJECT,
     TASK,
     ORDER,      // thêm loại thông báo đơn hàng
-    GENERAL     // thông báo chung không liên quan id nào
+    GENERAL,     // thông báo chung không liên quan id nào
+    LEAVE_REQUEST,
+    ATTENDANCE
 }

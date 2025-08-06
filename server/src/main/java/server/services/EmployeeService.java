@@ -1,5 +1,6 @@
 package server.services;
 
+import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -16,16 +17,13 @@ import server.dtos.CreateEmployeeDto;
 import server.dtos.EmployeeDepartmentDto;
 import server.dtos.GetEmployeesToAddToDepartmentDto;
 import server.models.Account;
-import server.models.Department;
 import server.models.Employee;
 import server.models.enums.Gender;
 import server.models.enums.Role;
 import server.repositories.AccountRepository;
 import server.repositories.EmployeeRepository;
-import server.specification.DepartmentSpecifications;
 import server.specification.EmployeeSpecification;
 import server.utils.ApiResponse;
-import server.utils.JwtUtil;
 
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +36,7 @@ public class EmployeeService {
     private final PasswordEncoder passwordEncoder;
     private final AccountRepository accountRepository;
     private final UploadFileService uploadFileService;
-    private final JwtUtil jwtUtil;
+    private final EmailService emailService;
 
     //phan them cua quan
     public ApiResponse<?> getSimpleEmployeeList() {
@@ -92,8 +90,11 @@ public class EmployeeService {
         employee.setAddress(request.getAddress());
         employee.setGender(Gender.valueOf(request.getGender()));
         employee.setDateBirth(request.getDateBirth());
+        employee.setCode(employee.generateCode());
         employee.setAccount(account);
+
         employeeRepository.save(employee);
+        emailService.sendAccountCreatedEmail(request.getEmail(), request.getUsername(), request.getPassword());
 
         return ApiResponse.created(null, "employee-created-successfully");
     }

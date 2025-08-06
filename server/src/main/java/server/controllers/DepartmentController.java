@@ -51,7 +51,7 @@ public class DepartmentController {
     @PostMapping("/edit")
     public ResponseEntity<?> editDepartment(
             @ModelAttribute @Valid SaveDepartmentDto req,
-            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "file", required = false) MultipartFile file,
             BindingResult result
     ) {
         try {
@@ -68,6 +68,17 @@ public class DepartmentController {
     public ResponseEntity<?> toggleAddOrRemoveEmployee(@RequestBody ToggleEmployeeDepartmentDto req) {
         try {
             ApiResponse<?> response = departmentService.toggleAddOrRemoveEmployee(req.getId(), req.getEmployeeId());
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } catch (Exception e) {
+            ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+    }
+
+    @GetMapping("/get-department-by-id/{id}")
+    public ResponseEntity<?> getDepartmentById(@PathVariable("id") Long id) {
+        try {
+            ApiResponse<?> response = departmentService.getDepartmentById(id);
             return ResponseEntity.status(response.getStatus()).body(response);
         } catch (Exception e) {
             ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());

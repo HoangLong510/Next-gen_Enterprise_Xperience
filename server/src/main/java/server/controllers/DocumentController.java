@@ -15,6 +15,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import server.dtos.DocumentRequestDto;
+import server.dtos.DocumentResponseDto;
+import server.dtos.GetDocumentsPageDto;
 import server.models.Document;
 import server.services.DocumentService;
 import server.utils.ApiResponse;
@@ -35,7 +37,7 @@ public class DocumentController {
     private final DocumentService documentService;
 
     @PostMapping("/create")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER','SECRETARY')")
     public ResponseEntity<?> create(@RequestBody DocumentRequestDto request) throws IOException {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || auth.getPrincipal() == null) {
@@ -48,33 +50,32 @@ public class DocumentController {
         var response = ApiResponse.created(data, "Document created successfully");
         return ResponseEntity.status(response.getStatus()).body(response);
     }
-
-    // Xem tất cả document (ADMIN, MANAGER)
-    @GetMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER')")
-    public ResponseEntity<?> getAllDocuments() {
-        var docs = documentService.getAllDocuments();
-        return ResponseEntity.ok(ApiResponse.success(docs, "Fetched documents successfully"));
-    }
-    @GetMapping("/my")
-    @PreAuthorize("hasAnyAuthority('PM', 'ACCOUNTANT', 'HOD')") // thêm role phù hợp nếu cần
-    public ResponseEntity<?> getMyDocuments() {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        var user = (UserDetails) auth.getPrincipal();
-        var docs = documentService.getDocumentsByReceiver(user.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(docs, "Fetched your documents successfully"));
-    }
-
     // Xem chi tiết document (ADMIN, MANAGER, PM)
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'PM','ACCOUNTANT')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'PM','ACCOUNTANT','SECRETARY')")
     public ResponseEntity<?> getDetail(@PathVariable Long id) {
         var doc = documentService.getDocumentById(id);
         return ResponseEntity.ok(ApiResponse.success(doc, "Fetched document detail"));
     }
 
+    @GetMapping("/{id}/preview")
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','SECRETARY','ACCOUNTANT','PM','HOD')")
+    public ResponseEntity<?> previewDocument(@PathVariable Long id) throws IOException {
+        Document doc = documentService.getDocumentEntityById(id);
+        String html = documentService.convertDocxToHtml(doc.getFileUrl());
+        return ResponseEntity.ok(ApiResponse.success(html, "Document preview"));
+    }
+
+    @PostMapping("/{id}/sign")
+    @PreAuthorize("hasAnyAuthority('MANAGER')")
+    public ResponseEntity<?> signDocument(@PathVariable Long id, @RequestBody Map<String, String> req) throws IOException {
+        String signature = req.get("signature");
+        DocumentResponseDto dto = documentService.signDocument(id, signature);
+        return ResponseEntity.ok(ApiResponse.success(dto, "Đã ký công văn"));
+    }
+
     @GetMapping("/download/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'PM','ACCOUNTANT')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'PM','ACCOUNTANT','SECRETARY')")
     public ResponseEntity<Resource> downloadFile(@PathVariable Long id) throws IOException {
         Document doc = documentService.getDocumentEntityById(id);
         String fileUrl = doc.getFileUrl();
@@ -93,6 +94,33 @@ public class DocumentController {
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
                 .body(resource);
+    }
+
+    @PostMapping("/get-documents-page")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER','SECRETARY')")
+    public ResponseEntity<?> getDocumentsPage(@RequestBody GetDocumentsPageDto req) {
+        try {
+            ApiResponse<?> response = documentService.getDocumentsPage(req);
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } catch (Exception e) {
+            ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+    }
+
+    // PM/ACCOUNTANT/HOD: chỉ lấy document của mình
+    @PostMapping("/my/get-documents-page")
+    @PreAuthorize("hasAnyAuthority('PM', 'ACCOUNTANT', 'HOD')")
+    public ResponseEntity<?> getMyDocumentsPage(@RequestBody GetDocumentsPageDto req) {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        var user = (UserDetails) auth.getPrincipal();
+        try {
+            ApiResponse<?> response = documentService.getMyDocumentsPage(req, user.getUsername());
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } catch (Exception e) {
+            ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
     }
 
 }

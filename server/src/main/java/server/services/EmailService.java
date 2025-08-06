@@ -1,10 +1,17 @@
 package server.services;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 import server.models.enums.LeaveType;
 
 import java.time.LocalDate;
@@ -13,12 +20,41 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class EmailService {
 
-    @Autowired
-    private JavaMailSender mailSender;
+    @Value("${app.client.url}")
+    private String client_url;
 
-    // Reject: Không cần sửa
+    private final JavaMailSender mailSender;
+    private final TemplateEngine templateEngine;
+
+    // ========== GỬI EMAIL TẠO TÀI KHOẢN (HTML) ==========
+    @Async
+    public void sendAccountCreatedEmail(String toEmail, String username, String password) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            Context context = new Context();
+            context.setVariable("username", username);
+            context.setVariable("password", password);
+            context.setVariable("loginUrl", client_url + "/auth/login");
+
+            String htmlContent = templateEngine.process("email/account-created.html", context);
+
+            helper.setFrom("your_email@gmail.com");
+            helper.setTo(toEmail);
+            helper.setSubject("New account creation notification");
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // ========== GỬI EMAIL TỪ CHỐI ĐƠN NGHỈ ==========
     @Async
     public void sendRejectEmailAsync(String to, String applicantName, String reason) {
         sendRejectEmail(to, applicantName, reason);
@@ -34,11 +70,7 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    // ----------- APPROVE EMAIL LOGIC (MỚI) ------------
-
-    /**
-     * Hàm gửi mail async - truyền đủ thông tin loại đơn (nên dùng)
-     */
+    // ========== GỬI EMAIL DUYỆT ĐƠN NGHỈ ==========
     @Async
     public void sendApproveEmailAsync(
             String to,
@@ -53,9 +85,6 @@ public class EmailService {
         sendApproveEmail(to, applicantName, leaveType, startDate, endDate, daysOff, startTime, endTime);
     }
 
-    /**
-     * Hàm gửi mail duyệt phép - support mọi loại đơn
-     */
     public void sendApproveEmail(
             String to,
             String applicantName,
@@ -71,11 +100,9 @@ public class EmailService {
         message.setSubject("Đơn nghỉ phép đã được duyệt");
 
         StringBuilder detail = new StringBuilder();
-
         DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
         if (leaveType == LeaveType.FULL_DAY && daysOff != null && !daysOff.isEmpty()) {
-            // Nghỉ ngắt quãng
             detail.append("Các ngày: ");
             for (int i = 0; i < daysOff.size(); i++) {
                 detail.append(daysOff.get(i).format(dateFmt));
@@ -109,11 +136,9 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    // ----------- (Legacy) Nếu code cũ vẫn gọi kiểu cũ thì giữ lại cho tương thích -----------
-
+    // ========== LEGACY SUPPORT ==========
     @Async
     public void sendApproveEmailAsync(String to, String applicantName, String startDate, String endDate) {
-        // Gọi bản mới, convert startDate/endDate sang LocalDate, loại đơn default FULL_DAY
         sendApproveEmail(
                 to,
                 applicantName,
@@ -127,7 +152,6 @@ public class EmailService {
     }
 
     public void sendApproveEmail(String to, String applicantName, String startDate, String endDate) {
-        // Legacy: mặc định loại FULL_DAY, không truyền daysOff/startTime/endTime
         sendApproveEmail(
                 to,
                 applicantName,

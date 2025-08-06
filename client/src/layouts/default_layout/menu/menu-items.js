@@ -10,6 +10,9 @@ import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import DescriptionIcon from "@mui/icons-material/Description";
 import GavelIcon from '@mui/icons-material/Gavel';
 import ChatIcon from '@mui/icons-material/Chat';
+import WorkIcon from '@mui/icons-material/Work';
+import { PunchClock } from "@mui/icons-material";
+
 export const menuItems = [
   {
     title: "Management",
@@ -18,21 +21,21 @@ export const menuItems = [
         label: "Finance",
         icon: AttachMoneyIcon,
         href: "/management/finance",
-        roles: ["ADMIN", "MANAGER", "ACCOUNTANT"],
+        roles: ["ADMIN", "MANAGER", "ACCOUNTANT"]
       },
       {
         label: "Accounts",
         icon: ManageAccountsIcon,
         href: "/management/accounts",
-        roles: ["ADMIN"],
+        roles: ["ADMIN"]
       },
       {
         label: "Settings",
         icon: SettingsIcon,
         href: "/management/settings",
-        roles: ["ADMIN"],
-      },
-    ],
+        roles: ["ADMIN"]
+      }
+    ]
   },
   {
     title: "Employees",
@@ -41,13 +44,37 @@ export const menuItems = [
         label: "Profiles",
         icon: AssignmentIndIcon,
         href: "/employees/profiles",
-        roles: ["ADMIN", "MANAGER"],
+        roles: ["ADMIN", "MANAGER"]
       },
       {
         label: "Contracts",
         icon: FilePresentIcon,
         href: "/employees/contracts",
+        roles: ["ADMIN", "MANAGER"]
+      },
+      {
+        label: "Attendace",
+        icon: PunchClock,
+        href: "/attendance/list",
+        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"]
+      }
+    ]
+  },
+  {
+    title: "Finance",
+    items: [
+      {
+        label: "Fund",
+        icon: AssignmentIndIcon,
+        href: "/finance/fund",
+        roles: ["ADMIN", "MANAGER", "ACCOUNTANT"],
+      },
+      {
+        label: "Salary",
+        icon: FilePresentIcon,
+        href: "/finance/salary",
         roles: ["ADMIN", "MANAGER"],
+
       },
     ],
   },
@@ -57,11 +84,13 @@ export const menuItems = [
       {
         label: "Departments",
         icon: Diversity1Icon,
-        href: "/departments", // giữ theo style cũ cho nhất quán
+        href: "/departments",
         roles: ["ADMIN", "MANAGER", "HOD", "EMPLOYEE"],
       },
       {
         label: "Projects",
+        // Chọn icon và đường dẫn phù hợp: 
+        // Nếu muốn icon chuẩn nghiệp vụ: AccountTreeIcon + đường dẫn /utilities/projects (giống bản web của bạn)
         icon: AccountTreeIcon,
         href: "/utilities/projects",
         roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],

@@ -31,7 +31,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final RecaptchaService recaptchaService;
 
-    //phần thêm của Quân
+    // Phần thêm của Quân
     public Account getCurrentAccount(HttpServletRequest request) {
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -42,18 +42,16 @@ public class AuthService {
         return accountRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản: " + username));
     }
-    //hết phần thêm
-
+    // Hết phần thêm
 
     public ApiResponse<?> login(LoginDto request, BindingResult result) {
-
         if(request.getCaptchaToken() != null) {
             boolean captchaValid = recaptchaService.verify(request.getCaptchaToken());
             if (!captchaValid) {
                 return ApiResponse.badRequest("captcha-verification-failed");
             }
-
         }
+
         if (result.hasErrors()) {
             return ApiResponse.badRequest(result);
         }
@@ -142,6 +140,7 @@ public class AuthService {
         Account account = accountOptional.get();
 
         ProfileDto profileDto = new ProfileDto();
+        profileDto.setId(account.getId());
         profileDto.setUsername(username);
         profileDto.setFirstName(account.getEmployee().getFirstName());
         profileDto.setLastName(account.getEmployee().getLastName());

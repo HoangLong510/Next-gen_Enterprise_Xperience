@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
 	Paper,
 	Table,
@@ -26,13 +26,13 @@ import {
 	IconButton,
 	Tooltip,
 	Skeleton,
-	Pagination
+	Pagination,
+	Button
 } from "@mui/material"
 import { useTranslation } from "react-i18next"
 import { formatLongDate } from "~/utils/function"
 import CustomAvatar from "~/components/custom-avatar"
 import { getAccountsPageApi } from "~/services/account.service"
-
 import SearchIcon from "@mui/icons-material/Search"
 import PersonIcon from "@mui/icons-material/Person"
 import MoreIcon from "@mui/icons-material/MoreVert"
@@ -40,16 +40,189 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp"
 import GroupIcon from "@mui/icons-material/Group"
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings"
 import EmojiEvents from "@mui/icons-material/EmojiEvents"
+import CheckCircleIcon from "@mui/icons-material/CheckCircle"
+import CancelIcon from "@mui/icons-material/Cancel"
 import { setPopup } from "~/libs/features/popup/popupSlice"
 import { useDispatch } from "react-redux"
 import { ROLE_CONFIGS } from "~/constants/account.constants"
 import RoleChip from "~/components/role-chip"
+import AddIcon from "@mui/icons-material/Add"
+import { Link } from "react-router-dom"
+
+// Enhanced Status Component
+const StatusIndicator = ({ enabled, t, theme }) => {
+	return (
+		<Box
+			sx={{
+				display: "inline-flex",
+				alignItems: "center",
+				gap: 1,
+				px: 2,
+				py: 0.75,
+				borderRadius: 3,
+				background: enabled
+					? `linear-gradient(135deg, ${alpha(
+							theme.palette.success.main,
+							0.1
+					  )} 0%, ${alpha(theme.palette.success.light, 0.05)} 100%)`
+					: `linear-gradient(135deg, ${alpha(
+							theme.palette.error.main,
+							0.1
+					  )} 0%, ${alpha(theme.palette.error.light, 0.05)} 100%)`,
+				border: `1px solid ${
+					enabled
+						? alpha(theme.palette.success.main, 0.2)
+						: alpha(theme.palette.error.main, 0.2)
+				}`,
+				position: "relative",
+				overflow: "hidden",
+				transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+				"&:hover": {
+					transform: "translateY(-1px)",
+					boxShadow: enabled
+						? `0 4px 12px ${alpha(
+								theme.palette.success.main,
+								0.15
+						  )}`
+						: `0 4px 12px ${alpha(theme.palette.error.main, 0.15)}`,
+					background: enabled
+						? `linear-gradient(135deg, ${alpha(
+								theme.palette.success.main,
+								0.15
+						  )} 0%, ${alpha(
+								theme.palette.success.light,
+								0.08
+						  )} 100%)`
+						: `linear-gradient(135deg, ${alpha(
+								theme.palette.error.main,
+								0.15
+						  )} 0%, ${alpha(
+								theme.palette.error.light,
+								0.08
+						  )} 100%)`
+				},
+				"&::before": {
+					content: '""',
+					position: "absolute",
+					top: 0,
+					left: 0,
+					right: 0,
+					height: "2px",
+					background: enabled
+						? `linear-gradient(90deg, ${theme.palette.success.main} 0%, ${theme.palette.success.light} 100%)`
+						: `linear-gradient(90deg, ${theme.palette.error.main} 0%, ${theme.palette.error.light} 100%)`,
+					opacity: 0.8
+				}
+			}}
+		>
+			{/* Animated dot */}
+			<Box
+				sx={{
+					position: "relative",
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "center"
+				}}
+			>
+				<Box
+					sx={{
+						width: 8,
+						height: 8,
+						borderRadius: "50%",
+						backgroundColor: enabled
+							? theme.palette.success.main
+							: theme.palette.error.main,
+						boxShadow: enabled
+							? `0 0 8px ${alpha(
+									theme.palette.success.main,
+									0.4
+							  )}`
+							: `0 0 8px ${alpha(theme.palette.error.main, 0.4)}`,
+						animation: enabled
+							? "pulse-success 2s ease-in-out infinite"
+							: "pulse-error 2s ease-in-out infinite",
+						position: "relative",
+						"&::after": {
+							content: '""',
+							position: "absolute",
+							top: "50%",
+							left: "50%",
+							transform: "translate(-50%, -50%)",
+							width: "100%",
+							height: "100%",
+							borderRadius: "50%",
+							backgroundColor: enabled
+								? theme.palette.success.main
+								: theme.palette.error.main,
+							opacity: 0.3,
+							animation: enabled
+								? "ripple-success 2s ease-in-out infinite"
+								: "ripple-error 2s ease-in-out infinite"
+						}
+					}}
+				/>
+			</Box>
+
+			{/* Status icon */}
+			<Box
+				sx={{
+					display: "flex",
+					alignItems: "center",
+					color: enabled
+						? theme.palette.success.main
+						: theme.palette.error.main,
+					fontSize: "1rem",
+					opacity: 0.8
+				}}
+			>
+				{enabled ? (
+					<CheckCircleIcon sx={{ fontSize: "1rem" }} />
+				) : (
+					<CancelIcon sx={{ fontSize: "1rem" }} />
+				)}
+			</Box>
+
+			{/* Status text */}
+			<Typography
+				variant="body2"
+				sx={{
+					fontWeight: 600,
+					fontSize: "0.75rem",
+					color: enabled
+						? theme.palette.success.dark
+						: theme.palette.error.dark,
+					textTransform: "uppercase",
+					letterSpacing: "0.5px",
+					lineHeight: 1
+				}}
+			>
+				{t(enabled ? "enabled" : "disabled")}
+			</Typography>
+
+			{/* Shimmer effect */}
+			<Box
+				sx={{
+					position: "absolute",
+					top: 0,
+					left: "-100%",
+					width: "100%",
+					height: "100%",
+					background: `linear-gradient(90deg, transparent 0%, ${alpha(
+						theme.palette.common.white,
+						0.4
+					)} 50%, transparent 100%)`,
+					animation: "shimmer 3s ease-in-out infinite",
+					pointerEvents: "none"
+				}}
+			/>
+		</Box>
+	)
+}
 
 export default function AccountList() {
 	const theme = useTheme()
 	const { t, i18n } = useTranslation("accounts_management_page")
 	const dispatch = useDispatch()
-
 	const [loading, setLoading] = useState(false)
 	const [accounts, setAccounts] = useState([])
 	const [stats, setStats] = useState({
@@ -57,10 +230,8 @@ export default function AccountList() {
 		totalEnabled: 0,
 		totalAdmin: 0
 	})
-
 	const pageSize = 5
 	const [totalPage, setTotalPage] = useState(0)
-
 	const [pageNumber, setPageNumber] = useState(1)
 	const [searchTerm, setSearchTerm] = useState("")
 	const [roleFilter, setRoleFilter] = useState("")
@@ -106,7 +277,6 @@ export default function AccountList() {
 		const delayDebounce = setTimeout(() => {
 			handleGetAccountsPage()
 		}, 500)
-
 		return () => clearTimeout(delayDebounce)
 	}, [
 		pageNumber,
@@ -156,6 +326,39 @@ export default function AccountList() {
 	return (
 		<>
 			<title>{t("accounts-management")}</title>
+
+			{/* Add CSS animations */}
+			<style>
+				{`
+                    @keyframes pulse-success {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.6; }
+                    }
+                    @keyframes pulse-error {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.6; }
+                    }
+                    @keyframes ripple-success {
+                        0% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+                        100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+                    }
+                    @keyframes ripple-error {
+                        0% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+                        100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+                    }
+                    @keyframes shimmer {
+                        0% { left: -100%; }
+                        100% { left: 100%; }
+                    }
+                    @keyframes bounce {
+                        0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+                        40%, 43% { transform: translate3d(0,-8px,0); }
+                        70% { transform: translate3d(0,-4px,0); }
+                        90% { transform: translate3d(0,-2px,0); }
+                    }
+                `}
+			</style>
+
 			<Paper
 				sx={{
 					backgroundColor: theme.palette.background.default,
@@ -464,7 +667,7 @@ export default function AccountList() {
 						{/* Filter Controls */}
 						<Stack
 							direction={{ xs: "column", sm: "row" }}
-							spacing={2}
+							spacing={3}
 							alignItems={{ xs: "stretch", sm: "flex-start" }}
 						>
 							{/* Role Filter */}
@@ -527,50 +730,37 @@ export default function AccountList() {
 										</Typography>
 									</MenuItem>
 									<MenuItem value="true">
-										<Stack
-											direction="row"
-											alignItems="center"
-											spacing={1}
-										>
-											<Box
-												sx={{
-													width: 8,
-													height: 8,
-													borderRadius: "50%",
-													backgroundColor:
-														theme.palette.success
-															.main
-												}}
-											/>
-											<Typography>
-												{t("enabled")}
-											</Typography>
-										</Stack>
+										<StatusIndicator
+											enabled={true}
+											t={t}
+											theme={theme}
+										/>
 									</MenuItem>
 									<MenuItem value="false">
-										<Stack
-											direction="row"
-											alignItems="center"
-											spacing={1}
-										>
-											<Box
-												sx={{
-													width: 8,
-													height: 8,
-													borderRadius: "50%",
-													backgroundColor:
-														theme.palette.error.main
-												}}
-											/>
-											<Typography>
-												{t("disabled")}
-											</Typography>
-										</Stack>
+										<StatusIndicator
+											enabled={false}
+											t={t}
+											theme={theme}
+										/>
 									</MenuItem>
 								</Select>
 							</FormControl>
 						</Stack>
+						<Button
+							LinkComponent={Link}
+							to="/management/accounts/create"
+							variant="contained"
+							startIcon={<AddIcon />}
+							sx={{
+								textWrap: "nowrap",
+								px: 5,
+								textTransform: "capitalize"
+							}}
+						>
+							{t("AddNew")}
+						</Button>
 					</Stack>
+
 					{/* Active Filters Display */}
 					{(searchTerm || roleFilter || statusFilter) && (
 						<Box>
@@ -628,6 +818,7 @@ export default function AccountList() {
 					)}
 				</Box>
 				<Divider />
+
 				{/* Table Section */}
 				<TableContainer>
 					<Table>
@@ -842,39 +1033,11 @@ export default function AccountList() {
 												<RoleChip role={acc.role} />
 											</TableCell>
 											<TableCell>
-												<Box>
-													<Stack
-														direction="row"
-														alignItems="center"
-														spacing={1}
-													>
-														<Box
-															sx={{
-																width: 8,
-																height: 8,
-																borderRadius:
-																	"50%",
-																backgroundColor:
-																	acc.enabled
-																		? theme
-																				.palette
-																				.success
-																				.main
-																		: theme
-																				.palette
-																				.error
-																				.main
-															}}
-														/>
-														<Typography>
-															{t(
-																acc.enabled
-																	? "enabled"
-																	: "disabled"
-															)}
-														</Typography>
-													</Stack>
-												</Box>
+												<StatusIndicator
+													enabled={acc.enabled}
+													t={t}
+													theme={theme}
+												/>
 											</TableCell>
 											<TableCell>
 												<Box>
@@ -943,6 +1106,7 @@ export default function AccountList() {
 						</TableBody>
 					</Table>
 				</TableContainer>
+
 				{accounts.length === 0 && !loading && (
 					<Box
 						sx={{
@@ -971,6 +1135,7 @@ export default function AccountList() {
 						)}
 					</Box>
 				)}
+
 				{/* Footer */}
 				<Box
 					sx={{
