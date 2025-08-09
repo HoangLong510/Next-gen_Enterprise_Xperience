@@ -17,10 +17,12 @@ import server.dtos.CreateEmployeeDto;
 import server.dtos.EmployeeDepartmentDto;
 import server.dtos.GetEmployeesToAddToDepartmentDto;
 import server.models.Account;
+import server.models.Department;
 import server.models.Employee;
 import server.models.enums.Gender;
 import server.models.enums.Role;
 import server.repositories.AccountRepository;
+import server.repositories.DepartmentRepository;
 import server.repositories.EmployeeRepository;
 import server.specification.EmployeeSpecification;
 import server.utils.ApiResponse;
@@ -37,6 +39,7 @@ public class EmployeeService {
     private final AccountRepository accountRepository;
     private final UploadFileService uploadFileService;
     private final EmailService emailService;
+    private final DepartmentRepository departmentRepository;
 
     //phan them cua quan
     public ApiResponse<?> getSimpleEmployeeList() {
@@ -74,6 +77,10 @@ public class EmployeeService {
 
         if (result.hasErrors()) {
             return ApiResponse.badRequest(result);
+        }
+        boolean existsChiefAccountant = accountRepository.existsByRole(Role.CHIEFACCOUNTANT);
+        if (request.getRole().equals(Role.CHIEFACCOUNTANT.name()) && existsChiefAccountant) {
+            result.rejectValue("role", "", "chief-accountant-already-exists");
         }
 
         Account account = new Account();
@@ -137,9 +144,12 @@ public class EmployeeService {
     }
 
     public ApiResponse<?> getListHod() {
-        List<Employee> listHod = employeeRepository.findAllByAccountRole(Role.HOD);
+        List<Employee> listHod = employeeRepository.findAllByAccountRoleIn(
+                List.of(Role.HOD, Role.CHIEFACCOUNTANT)
+        );
         return ApiResponse.success(listHod, "successfully");
     }
+
 
     public ApiResponse<?> GetEmployeesToAddToDepartment(GetEmployeesToAddToDepartmentDto req) {
         int pageSize = 6;
@@ -150,27 +160,30 @@ public class EmployeeService {
 
         Specification<Employee> spec = EmployeeSpecification.searchTerm(req.getSearchTerm());
 
-        if("true".equalsIgnoreCase(req.getFilterInDepartment())){
+        if ("true".equalsIgnoreCase(req.getFilterInDepartment())) {
             spec = spec.and(EmployeeSpecification.inDepartment(req.getId()));
-        } else if("false".equalsIgnoreCase(req.getFilterInDepartment())){
+        } else if ("false".equalsIgnoreCase(req.getFilterInDepartment())) {
             spec = spec.and(EmployeeSpecification.noDepartment());
         } else {
             spec = spec.and(EmployeeSpecification.inDepartmentOrNoDepartment(req.getId()));
         }
 
-        spec = spec.and(EmployeeSpecification.hasAnyRole(List.of(Role.EMPLOYEE)));
+        Department department = departmentRepository.findById(req.getId()).orElse(null);
+        if (department != null && isAccountingDepartmentName(department.getName())) {
+            spec = spec.and(EmployeeSpecification.hasAnyRole(
+                    List.of(Role.ACCOUNTANT)
+            ));
+        } else {
+            spec = spec.and(EmployeeSpecification.hasAnyRole(List.of(Role.EMPLOYEE)));
+        }
 
         Page<Employee> page = employeeRepository.findAll(spec, pageable);
 
         List<EmployeeDepartmentDto> dtoList = page.getContent().stream()
                 .map(emp -> {
                     EmployeeDepartmentDto dto = new EmployeeDepartmentDto();
-                    boolean inDepartment = false;
-                    if (emp.getDepartment() != null) {
-                        if (emp.getDepartment().getId().equals(req.getId())) {
-                            inDepartment = true;
-                        }
-                    }
+                    boolean inDepartment = emp.getDepartment() != null &&
+                            emp.getDepartment().getId().equals(req.getId());
                     dto.setId(emp.getId());
                     dto.setFirstName(emp.getFirstName());
                     dto.setLastName(emp.getLastName());
@@ -190,4 +203,16 @@ public class EmployeeService {
 
         return ApiResponse.success(responseData, "get-employees-to-add-to-department-successfully");
     }
+
+    // Helper check tên phòng ban là Accounting / Kế Toán
+    private boolean isAccountingDepartmentName(String name) {
+        if (name == null) return false;
+        String normalized = name.trim().toLowerCase();
+        return normalized.contains("accounting") ||
+                normalized.contains("kế toán") ||
+                normalized.contains("ke toan") ||
+                normalized.contains("tài chính") ||
+                normalized.contains("tai chinh");
+    }
+
 }

@@ -252,7 +252,7 @@ export default function FundDetails() {
                   color: "white",
                 }}
               >
-                Chỉnh sửa
+                Edit
               </Button>
 
               <Button
@@ -265,7 +265,7 @@ export default function FundDetails() {
                   color: "white",
                 }}
               >
-                Lịch sử chỉnh sửa
+                Edit history
               </Button>
 
               <Button

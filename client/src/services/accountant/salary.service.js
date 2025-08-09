@@ -110,3 +110,11 @@ import axios from "~/utils/axios";
 export const getSalaryByIdApi = (id) => {
   return axios.get(`/accountant/salaries/${id}`);
 };
+export const getAllRolesApi = async () => {
+  try {
+    const res = await api.get("/accountant/salaries/roles");
+    return res.data;
+  } catch (error) {
+    return error.response?.data || { status: 500, message: "server-is-busy" };
+  }
+};

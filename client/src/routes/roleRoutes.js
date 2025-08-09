@@ -74,7 +74,7 @@ const roleRoutes = [
 		path: "/finance/fund",
 		component: FundList,
 		layout: DefaultLayout,
-		roles:["ADMIN","HOD","ACCOUNTANT"]
+		roles:["ADMIN","MANAGER","HOD","ACCOUNTANT"]
 	},
 	{
 		path: "/finance/fund/:fundID",
@@ -92,7 +92,7 @@ const roleRoutes = [
 		path: "/finance/salary",
 		component: CreateSalaryPage,
 		layout: DefaultLayout,
-		roles: ["ADMIN","HOD","ACCOUNTANT"]
+		roles: ["ADMIN","MANAGER","HOD","ACCOUNTANT"]
 	},
 	{
 		path: "/finance/salary/detail/:id",

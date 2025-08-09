@@ -45,8 +45,8 @@ import {
   createSalaryApi,
   getAllDepartmentsApi,
   generateMonthlySalaryApi,
-  getEmployeeBasicInfoApi,
   getSalarySummaryApi,
+  getAllRolesApi,
 } from "~/services/accountant/salary.service";
 import { formatCurrency } from "~/utils/function";
 import CustomAvatar from "~/components/custom-avatar";
@@ -61,6 +61,7 @@ export default function PayrollTable() {
   const [singleInput, setSingleInput] = useState("");
   const [baseSalary, setBaseSalary] = useState("");
   const [empInfo, setEmpInfo] = useState(null);
+  const [rolesList, setRolesList] = useState([]);
   const [data, setData] = useState([]);
   const [departmentsList, setDepartmentsList] = useState([]);
 
@@ -86,6 +87,27 @@ export default function PayrollTable() {
     };
 
     fetchDepartments();
+  }, []);
+
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      const res = await getAllDepartmentsApi();
+      if (res.status === 200) {
+        setDepartmentsList(res.data);
+      } else {
+        console.error("Lỗi lấy danh sách phòng ban:", res.message);
+      }
+    };
+
+    const fetchRoles = async () => {
+      const res = await getAllRolesApi();
+      if (res.status === 200) {
+        setRolesList(res.data);
+      } else {
+        console.error("Lỗi lấy danh sách vai trò:", res.message);
+      }
+    };
+    fetchRoles();
   }, []);
 
   const fetchSalarySummary = async () => {
@@ -132,7 +154,7 @@ export default function PayrollTable() {
       }
 
       const deptMap = map.get(key);
-      const dept = item.department || "Không xác định";
+      const dept = item.department || " Not determined";
       if (!deptMap.has(dept)) {
         deptMap.set(dept, []);
       }
@@ -216,26 +238,26 @@ export default function PayrollTable() {
       <Box display="flex" justifyContent="space-between" flexWrap="wrap" mb={3}>
         <Box>
           <Typography variant="h4" fontWeight="bold" color="primary">
-            BẢNG LƯƠNG
+            SALARY SHEET
           </Typography>
           <Typography variant="subtitle1">
-            Tháng: {currentMonth}/{currentYear}
+            Month: {currentMonth}/{currentYear}
           </Typography>
           <Typography variant="subtitle1">
-            {`Ngày công chuẩn: ${standardWorkingDays}`}
+            {`Standard working day: ${standardWorkingDays}`}
           </Typography>
         </Box>
 
         <Stack direction="row" spacing={2}>
           <Button variant="outlined" onClick={handleGenerateSalary}>
-            Tính lương tháng {currentMonth}/{currentYear}
+            Calculate monthly salary {currentMonth}/{currentYear}
           </Button>
           <Button
             startIcon={<AddIcon />}
             variant="contained"
             onClick={() => setDrawerOpen(true)}
           >
-            Tạo Phiếu Lương
+            Create Pay Slip
           </Button>
         </Stack>
       </Box>
@@ -335,7 +357,7 @@ export default function PayrollTable() {
         className="flex items-center gap-2"
       >
         <FilterListIcon className="h-4 w-4" />
-        {showFilters ? "Ẩn Bộ Lọc" : "Hiện Bộ Lọc"}
+        {showFilters ? "Hide Filters" : "Show Filters"}
       </Button>
 
       {/* Filters */}
@@ -344,7 +366,7 @@ export default function PayrollTable() {
           <CardHeader
             title={
               <Typography variant="h6" fontWeight="bold">
-                Bộ Lọc
+                Filter
               </Typography>
             }
             sx={{ pb: 0 }}
@@ -361,7 +383,7 @@ export default function PayrollTable() {
             >
               {/* Phòng Ban */}
               <FormControl fullWidth>
-                <InputLabel id="department-label">Phòng Ban</InputLabel>
+                <InputLabel id="department-label">Department</InputLabel>
                 <Select
                   labelId="department-label"
                   value={filters.department}
@@ -370,7 +392,7 @@ export default function PayrollTable() {
                     handleFilterChange("department", e.target.value)
                   }
                 >
-                  <MenuItem value="all">Tất cả</MenuItem>
+                  <MenuItem value="all">All</MenuItem>
                   {departmentsList.map((dept) => (
                     <MenuItem key={dept} value={dept}>
                       {dept}
@@ -379,31 +401,28 @@ export default function PayrollTable() {
                 </Select>
               </FormControl>
 
-              {/* Chức Vụ */}
+              {/* Vai Trò */}
               <FormControl fullWidth>
-                <InputLabel id="position-label">Chức Vụ</InputLabel>
+                <InputLabel id="role-label">Position</InputLabel>
                 <Select
-                  labelId="position-label"
-                  value={filters.position}
-                  label="Chức Vụ"
-                  onChange={(e) =>
-                    handleFilterChange("position", e.target.value)
-                  }
+                  labelId="role-label"
+                  value={filters.role || "all"}
+                  label="Position"
+                  onChange={(e) => handleFilterChange("role", e.target.value)}
                 >
-                  <MenuItem value="all">Tất cả</MenuItem>
-                  {positionsList.map((position) => (
-                    <MenuItem key={position} value={position}>
-                      {position}
+                  <MenuItem value="all">All</MenuItem>
+                  {rolesList.map((role) => (
+                    <MenuItem key={role} value={role}>
+                      {role}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
-
               {/* Tên Nhân Viên */}
               <TextField
                 fullWidth
-                label="Tên Nhân Viên"
-                placeholder="Nhập tên..."
+                label="Input name"
+                placeholder="Name..."
                 value={filters.name}
                 onChange={(e) => handleFilterChange("name", e.target.value)}
               />
@@ -417,7 +436,7 @@ export default function PayrollTable() {
                   fullWidth
                   sx={{ height: "56px" }}
                 >
-                  Xóa Bộ Lọc
+                  Clear filter
                 </Button>
               </Box>
             </Box>
@@ -435,28 +454,28 @@ export default function PayrollTable() {
                   #
                 </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                  Mã Nhân Viên
+                  Code
                 </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                  Chức Vụ
+                  Position
                 </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                  Lương Cơ Bản
+                  Base Salary
                 </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                  Người Tạo
+                  Created By
                 </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                  Ngày Tạo
+                  Date
                 </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                  Thực Tế Nhận
+                  Actual Reception
                 </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                  Trạng Thái
+                  Status
                 </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                  Tệp PDF
+                  PDF file
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -468,7 +487,7 @@ export default function PayrollTable() {
                       colSpan={9}
                       sx={{ fontWeight: "bold", color: "#0d47a1" }}
                     >
-                      Tháng {monthGroup.monthYear}
+                      {monthGroup.monthYear}
                     </TableCell>
                   </TableRow>
                   {monthGroup.departments.map((department, deptIndex) => (
@@ -556,10 +575,10 @@ export default function PayrollTable() {
                                 href={item.fileUrl}
                                 target="_blank"
                               >
-                                Tải xuống
+                                Download
                               </Button>
                             ) : (
-                              "Không có"
+                              "None"
                             )}
                           </TableCell>
                         </TableRow>
@@ -577,7 +596,7 @@ export default function PayrollTable() {
               color="success.main"
               fontWeight="bold"
             >
-              Tổng thực nhận: {formatCurrency(totalActualReceived)}
+              Total received: {formatCurrency(totalActualReceived)}
             </Typography>
           </Box>
         </TableContainer>

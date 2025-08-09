@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/guards/role_guard.dart';
+import 'package:mobile/screens/fund/fund_create_page.dart';
+import 'package:mobile/screens/fund/fund_detail_page.dart';
+import 'package:mobile/screens/fund/fund_list_page.dart';
+import 'package:mobile/screens/fund/fund_update_page.dart';
 import 'package:mobile/screens/home_page.dart';
 import 'package:mobile/screens/login_page.dart';
 import 'package:mobile/screens/logout_page.dart';
+import 'package:mobile/screens/salaries/salary_detail_page.dart';
+import 'package:mobile/screens/salaries/salary_summary_page.dart';
+import 'package:mobile/screens/transaction/transaction_approve_page.dart';
 import 'package:mobile/widgets/custom_layout.dart';
 import 'package:mobile/screens/dispatches/dispatches_list_page.dart';
 import 'package:mobile/screens/dispatches/dispatch_detail_page.dart';
@@ -52,6 +59,44 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         return _errorPage("Lỗi: ID document không hợp lệ");
       }
     }
+        // /accountant/funds/:id
+    if (name.startsWith("/accountant/funds/") && !name.endsWith("/edit")) {
+      final id = int.tryParse(name.split("/").last);
+      if (id != null) {
+        return _buildPage(
+          allowRoles: ["ADMIN", "ACCOUNTANT"],
+          child: FundDetailPage(id: id),
+        );
+      } else {
+        return _errorPage("Lỗi: ID quỹ không hợp lệ");
+      }
+    }
+
+    // /accountant/funds/:id/edit
+    if (name.startsWith("/accountant/funds/") && name.endsWith("/edit")) {
+      final id = int.tryParse(name.split("/")[3]);
+      if (id != null) {
+        return _buildPage(
+          allowRoles: ["ADMIN", "ACCOUNTANT"],
+          child: FundUpdatePage(id: id),
+        );
+      } else {
+        return _errorPage("Lỗi: ID quỹ không hợp lệ khi chỉnh sửa");
+      }
+    }
+
+  // /accountant/salaries/:id 
+  if (name.startsWith("/accountant/salaries/") && RegExp(r'^/accountant/salaries/\d+$').hasMatch(name)) {
+    final id = int.tryParse(name.split("/").last);
+    if (id != null) {
+      return _buildPage(
+        allowRoles: ["ADMIN", "MANAGER"],
+        child: SalaryDetailPage(salaryId: id),
+      );
+    } else {
+      return _errorPage("Lỗi: ID phiếu lương không hợp lệ");
+    }
+  }
 
     // TODO: /project/:id nếu sau này có
     // if (name.startsWith("/project/")) { ... }
@@ -129,6 +174,30 @@ Route<dynamic> generateRoute(RouteSettings settings) {
           child: CustomLayout(child: LogoutPage()),
         ),
       );
+    case "/accountant/funds":
+      return _buildPage(
+        allowRoles: ["ADMIN", "ACCOUNTANT"],
+        child: FundListPage(),
+      );
+
+    case "/accountant/funds/create":
+      return _buildPage(
+        allowRoles: ["ADMIN", "ACCOUNTANT"],
+        child: FundCreatePage(),
+      );
+
+    case "/accountant/transaction/approve":
+      return _buildPage(
+        allowRoles: ["ADMIN", "ACCOUNTANT"],
+        child: TransactionsPage(),
+      );
+
+    case "/accountant/salaries":
+      return _buildPage(
+        allowRoles: ["ADMIN", "MANAGER"],
+        child: SalarySummaryPage(),
+      );
+
     default:
       return MaterialPageRoute(
         builder: (_) =>

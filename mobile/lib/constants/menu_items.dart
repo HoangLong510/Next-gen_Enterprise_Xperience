@@ -63,6 +63,29 @@ const List<MenuSection> menuItems = [
     ],
   ),
   MenuSection(
+    title: "Finances",
+    items: [
+      MenuItemData(
+        label: "Fund",
+        icon: Icons.account_balance_wallet,
+        route: "/accountant/funds",
+        roles: ["ADMIN", "MANAGER"],
+      ),
+      MenuItemData(
+        label: "Salaries",
+        icon: Icons.payments,
+        route: "/accountant/salaries",
+        roles: ["ADMIN", "MANAGER"],
+      ),
+      MenuItemData(
+        label: "Approve Transaction",
+        icon: Icons.payments,
+        route: "/accountant/transaction/approve",
+        roles: ["ADMIN", "MANAGER"],
+      ),
+    ],
+  ),
+  MenuSection(
     title: "Utilities",
     items: [
       MenuItemData(

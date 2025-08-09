@@ -95,7 +95,7 @@ const schema = yup.object({
 		.string()
 		.required("role-is-required")
 		.oneOf(
-			["ADMIN", "MANAGER", "PM", "HR", "ACCOUNTANT", "HOD", "EMPLOYEE"],
+			["ADMIN", "MANAGER", "PM", "HR", "ACCOUNTANT", "HOD", "EMPLOYEE","CHIEFACCOUNTANT"],
 			"invalid-role"
 		)
 })
@@ -133,6 +133,7 @@ export default function CreateAccountManagementPage() {
 
 	const onSubmit = async (data) => {
 		setLoading(true)
+		console.log("Role before submit:", data.role);
 		const res = await createEmployeeApi({
 			...data,
 			dateBirth: formatDateToYYYYMMDD(data.dateBirth)

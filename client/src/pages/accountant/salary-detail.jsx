@@ -136,7 +136,7 @@ export default function SalaryDetail() {
       </Typography>
 
       <FormControl fullWidth sx={{ mb: 3 }}>
-        <InputLabel>Chọn Tháng</InputLabel>
+        <InputLabel>Select Month</InputLabel>
         <Select
           value={selectedId || "ALL"}
           label="Chọn Tháng"
@@ -145,7 +145,7 @@ export default function SalaryDetail() {
           <MenuItem value="ALL">Tất cả</MenuItem>
           {allSalaries.map((item) => (
             <MenuItem key={item.id} value={item.id}>
-              Tháng {item.month}/{item.year}
+              Month {item.month}/{item.year}
             </MenuItem>
           ))}
         </Select>
@@ -157,7 +157,7 @@ export default function SalaryDetail() {
             <TableHead>
               <TableRow sx={{ backgroundColor: "primary.main" }}>
                 <TableCell rowSpan={2} sx={{ color: "white" }}>
-                  Chức vụ
+                 Position
                 </TableCell>
                 <TableCell rowSpan={2} sx={{ color: "white" }}>
                   Lương cơ bản

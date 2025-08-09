@@ -68,7 +68,7 @@ public class CreateEmployeeDto {
 
     @NotBlank(message = "role-is-required")
     @Pattern(
-            regexp = "^(ADMIN|MANAGER|PM|HR|ACCOUNTANT|HOD|EMPLOYEE)$",
+            regexp = "^(ADMIN|MANAGER|PM|HR|ACCOUNTANT|HOD|EMPLOYEE|CHIEFACCOUNTANT)$",
             message = "invalid-role"
     )
     private String role;

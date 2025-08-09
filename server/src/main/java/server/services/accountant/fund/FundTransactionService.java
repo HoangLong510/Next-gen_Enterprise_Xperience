@@ -59,11 +59,15 @@ public class FundTransactionService {
         }
 
         String fileUrl = null;
-        try {
-            fileUrl = saveFileIfPresent(file);
-        } catch (IOException e) {
-            return ApiResponse.errorServer("failed-to-save-file: " + e.getMessage());
+        if (file != null) {
+            // Nếu có file, lưu file và lấy URL
+            try {
+                fileUrl = saveFileIfPresent(file);
+            } catch (IOException e) {
+                return ApiResponse.errorServer("failed-to-save-file: " + e.getMessage());
+            }
         }
+
 
         FundTransaction transaction = new FundTransaction();
         transaction.setFund(fund);
