@@ -99,16 +99,37 @@ public class DepartmentService {
                 result.rejectValue("name", "", "department-already-exists");
             }
 
+            if ("Accounting".equalsIgnoreCase(req.getName()) &&
+                    departmentRepository.existsByNameIgnoreCase("Accounting")) {
+                result.rejectValue("name", "", "accounting-department-already-exists");
+            }
+
             Employee hod = employeeRepository.findById(req.getHodId()).orElse(null);
             if (hod == null) {
                 result.rejectValue("hodId", "", "hod-id-not-found");
             } else {
-                if (hod.getAccount().getRole() != Role.HOD) {
-                    result.rejectValue("hodId", "", "hod-role-is-invalid");
-                } else {
-                    if (hod.getHodDepartment() != null) {
-                        result.rejectValue("hodId", "", "the-hod-has-a-department");
+
+                boolean isAccounting = isAccountingDepartmentName(req.getName());
+
+                if (isAccounting && departmentRepository.existsByNameIgnoreCase(req.getName())) {
+                    result.rejectValue("name", "", "accounting-department-already-exists");
+                }
+
+                Role hodRole = hod.getAccount().getRole();
+
+                if (isAccounting) {
+                    if (hodRole != Role.CHIEFACCOUNTANT) {
+                        result.rejectValue("hodId", "", "hod-must-be-chief-accountant");
                     }
+                } else {
+                    if (hodRole == Role.CHIEFACCOUNTANT) {
+                        result.rejectValue("hodId", "", "chief-accountant-cannot-head-non-accounting-department");
+                    } else if (hodRole != Role.HOD) {
+                        result.rejectValue("hodId", "", "hod-role-is-invalid");
+                    }
+                }
+                if (hod.getHodDepartment() != null) {
+                    result.rejectValue("hodId", "", "the-hod-has-a-department");
                 }
             }
 
@@ -214,6 +235,14 @@ public class DepartmentService {
         if (employee == null) {
             return ApiResponse.badRequest("employee-not-found");
         }
+
+        if (isAccountingDepartmentName(department.getName())) {
+            Role empRole = employee.getAccount().getRole();
+            if (empRole != Role.ACCOUNTANT && empRole != Role.CHIEFACCOUNTANT) {
+                return ApiResponse.badRequest("only-accountants-can-be-in-accounting-department");
+            }
+        }
+
         if (employee.getDepartment() != null) {
             employee.setDepartment(null);
         } else {
@@ -231,6 +260,17 @@ public class DepartmentService {
             return ApiResponse.badRequest("department-not-found");
         }
         return ApiResponse.success(department, "get-department-success");
+    }
+
+    private boolean isAccountingDepartmentName(String name) {
+        if (name == null) return false;
+        String normalized = name.trim().toLowerCase();
+
+        return normalized.contains("accounting") ||
+                normalized.contains("kế toán") ||
+                normalized.contains("ke toan") ||
+                normalized.contains("tài chính") ||
+                normalized.contains("tai chinh");
     }
 
 }

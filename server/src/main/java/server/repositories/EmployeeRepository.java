@@ -13,8 +13,9 @@ import java.util.Optional;
 
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSpecificationExecutor<Employee> {
-    @Query("SELECT e FROM Employee e WHERE e.account.role = :role")
-    List<Employee> findAllByAccountRole(@Param("role") Role role);
+    @Query("SELECT e FROM Employee e WHERE e.account.role IN :roles")
+    List<Employee> findAllByAccountRoleIn(@Param("roles") List<Role> roles);
+
 
     Optional<Employee> findByEmail(String email);
     Optional<Employee> findByPhone(String phone);
@@ -54,4 +55,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
             @Param("keyword") String keyword
     );
     Optional<Employee> findByCode(String code);
+
+
 }
