@@ -21,22 +21,10 @@ dependencies:
     stomp_dart_client: ^0.4.4
     web_socket_channel: ^2.4.0
 <<<<<<< Updated upstream
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> parent of c9933c3 (Revert "minh/conflixx")
     intl: 0.20.2
     image_picker: ^0.8.5+3
 =======
 >>>>>>> Stashed changes
-<<<<<<< HEAD
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
->>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 
 dev_dependencies:
     flutter_test:

@@ -4,21 +4,9 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
 <<<<<<< Updated upstream
-<<<<<<< HEAD
   file_selector_linux
 =======
 >>>>>>> Stashed changes
-=======
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-  file_selector_linux
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
->>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

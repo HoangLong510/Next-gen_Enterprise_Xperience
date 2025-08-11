@@ -64,11 +64,6 @@ const List<MenuSection> menuItems = [
   ),
   MenuSection(
 <<<<<<< Updated upstream
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> parent of c9933c3 (Revert "minh/conflixx")
     title: "Finances",
     items: [
       MenuItemData(
@@ -94,13 +89,6 @@ const List<MenuSection> menuItems = [
   MenuSection(
 =======
 >>>>>>> Stashed changes
-<<<<<<< HEAD
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
->>>>>>> parent of c9933c3 (Revert "minh/conflixx")
     title: "Utilities",
     items: [
       MenuItemData(

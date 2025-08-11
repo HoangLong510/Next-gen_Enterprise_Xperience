@@ -27,17 +27,6 @@ Widget buildDrawerMenu(String userRole, BuildContext context) {
                 title: Text(item.label),
                 onTap: () {
 <<<<<<< Updated upstream
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
-                  print("🔍 Navigating to: ${item.route}");
->>>>>>> Stashed changes
-=======
-                  print("🔍 Navigating to: ${item.route}");
->>>>>>> Stashed changes
->>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 =======
                   print("🔍 Navigating to: ${item.route}");
 >>>>>>> Stashed changes

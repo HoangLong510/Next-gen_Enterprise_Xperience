@@ -7,11 +7,6 @@
 #include "generated_plugin_registrant.h"
 
 <<<<<<< Updated upstream
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 #include <file_selector_linux/file_selector_plugin.h>
 
 void fl_register_plugins(FlPluginRegistry* registry) {
@@ -22,15 +17,4 @@ void fl_register_plugins(FlPluginRegistry* registry) {
 
 void fl_register_plugins(FlPluginRegistry* registry) {
 >>>>>>> Stashed changes
-<<<<<<< HEAD
-=======
-=======
-
-void fl_register_plugins(FlPluginRegistry* registry) {
->>>>>>> Stashed changes
-=======
-
-void fl_register_plugins(FlPluginRegistry* registry) {
->>>>>>> Stashed changes
->>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 }
