@@ -6,13 +6,12 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import server.dtos.*;
-<<<<<<< Updated upstream
+
 
 import server.models.*;
 import server.models.enums.*;
 
-=======
->>>>>>> Stashed changes
+
 import server.models.Account;
 import server.models.Document;
 import server.models.Project;
@@ -24,11 +23,10 @@ import server.repositories.*;
 import server.utils.ApiResponse;
 import server.utils.JwtUtil;
 
-<<<<<<< Updated upstream
+
 
 import java.io.IOException;
-=======
->>>>>>> Stashed changes
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -147,27 +145,18 @@ public class ProjectService {
                 .name(document.getProjectName())
                 .description(document.getProjectDescription())
                 .createdAt(LocalDate.now())
-<<<<<<< Updated upstream
+
                 .deadline(document.getProjectDeadline())
                 .priority(document.getProjectPriority())
-=======
+
                 .deadline(dto.getDeadline())
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
+
                 .status(ProjectStatus.PLANNING)
                 .document(document)
                 .projectManager(pm)
                 .build();
 
         projectRepository.save(project);
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
         projectRepository.flush();
 
         document.setProject(project);
@@ -179,15 +168,13 @@ public class ProjectService {
                 false
         );
         return ApiResponse.success(null, "project-created");
-=======
+
         return ApiResponse.success(null, "project-created-successfully");
->>>>>>> Stashed changes
-=======
+
         return ApiResponse.success(null, "project-created-successfully");
->>>>>>> Stashed changes
-=======
+
         return ApiResponse.success(null, "project-created-successfully");
->>>>>>> Stashed changes
+
     }
 
     public ApiResponse<?> deleteProject(Long id) {
