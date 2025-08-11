@@ -64,7 +64,6 @@ const List<MenuSection> menuItems = [
   ),
   MenuSection(
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
     title: "Finances",
     items: [
       MenuItemData(
@@ -88,8 +87,6 @@ const List<MenuSection> menuItems = [
     ],
   ),
   MenuSection(
-=======
->>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
     title: "Utilities",

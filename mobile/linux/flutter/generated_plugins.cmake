@@ -4,10 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
   file_selector_linux
-=======
->>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 )
