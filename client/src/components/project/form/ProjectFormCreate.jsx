@@ -1,3 +1,4 @@
+// src/components/project/form/ProjectFormCreate.jsx
 import {
   Dialog,
   DialogTitle,
@@ -14,133 +15,115 @@ import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { createProjectFromDocument } from "~/services/project.service";
 import dayjs from "dayjs";
 
 const schema = yup.object({
   name: yup.string().required("Project name is required").min(3).max(100),
-  description: yup
-    .string()
-    .required("Description is required")
-    .min(10)
-    .max(1000),
+  description: yup.string().required("Description is required").min(10).max(1000),
   deadline: yup
     .string()
     .nullable()
     .matches(/^\d{4}-\d{2}-\d{2}$/, "invalid-date-format")
     .test("not-in-past", "deadline-cannot-be-in-the-past", (value) => {
       if (!value) return true;
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, "0");
-      const day = String(today.getDate()).padStart(2, "0");
-      const localToday = `${year}-${month}-${day}`;
-      return value >= localToday;
+      const today = dayjs().format("YYYY-MM-DD");
+      return value >= today;
     }),
+  // giữ priority để hiển thị và gửi payload (dù đang disabled)
+  priority: yup.string().oneOf(["LOW", "MEDIUM", "HIGH"]).default("MEDIUM"),
 });
 
 const defaultValues = {
   name: "",
   description: "",
   deadline: dayjs().add(7, "day").format("YYYY-MM-DD"),
+  priority: "MEDIUM",
 };
 
 export default function ProjectFormCreate({
   open,
   onClose,
-  onSubmit,
+  onSubmit,      // callback sau khi tạo thành công
   initialData = null,
   documentId,
   document,
   pmName,
 }) {
+  const dispatch = useDispatch();
+  const { t } = useTranslation("messages");
+
   const {
-  control,
-  handleSubmit,
-  reset,
-  formState: { errors },
-} = useForm({
-  resolver: yupResolver(schema),
-  defaultValues, // dùng defaultValues, nhưng luôn reset lại bên dưới
-});
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues,
+  });
 
-<<<<<<< Updated upstream
-useEffect(() => {
-  if (document) {
-    reset({
-      name: document.projectName || "",
-      description: document.projectDescription || "",
-      priority: document.projectPriority || "MEDIUM",
-      deadline: document.projectDeadline
-        ? dayjs(document.projectDeadline).format("YYYY-MM-DD")
-        : dayjs().add(7, "day").format("YYYY-MM-DD"),
-    });
-  } else if (initialData) {
-    reset({ ...defaultValues, ...initialData });
-  } else {
-    reset(defaultValues);
-  }
-}, [document, open]);
+  const todayStr = useMemo(() => dayjs().format("YYYY-MM-DD"), []);
 
-
-  const deadlineValue = document?.projectDeadline
-    ? dayjs(document.projectDeadline).format("YYYY-MM-DD")
-    : "";
-=======
+  // Reset form khi open/document/initialData thay đổi
   useEffect(() => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
-    const localToday = `${year}-${month}-${day}`;
+    if (!open) return;
 
-    if (initialData) {
-      let deadline = initialData.deadline ?? "";
-      if (deadline && deadline < localToday) {
-        deadline = localToday;
-      }
-      reset({ ...defaultValues, ...initialData, deadline });
+    if (document) {
+      const docDeadline = document.projectDeadline
+        ? dayjs(document.projectDeadline).format("YYYY-MM-DD")
+        : dayjs().add(7, "day").format("YYYY-MM-DD");
+
+      // nếu deadline tài liệu ở quá khứ, tự nâng lên hôm nay để không bị chặn (ô đang disabled)
+      const safeDeadline = docDeadline < todayStr ? todayStr : docDeadline;
+
+      reset({
+        name: document.projectName || "",
+        description: document.projectDescription || "",
+        priority: document.projectPriority || "MEDIUM",
+        deadline: safeDeadline,
+      });
+    } else if (initialData) {
+      const cleanedDeadline = initialData.deadline
+        ? (initialData.deadline < todayStr ? todayStr : initialData.deadline)
+        : dayjs().add(7, "day").format("YYYY-MM-DD");
+      reset({
+        ...defaultValues,
+        ...initialData,
+        deadline: cleanedDeadline,
+      });
     } else {
       reset(defaultValues);
     }
-  }, [initialData, reset]);
->>>>>>> Stashed changes
+  }, [open, document, initialData, reset, todayStr]);
 
-const dispatch = useDispatch();
-const { t } = useTranslation("messages");
+  const handleFormSubmit = async (data) => {
+    const payload = {
+      ...data,
+      documentId,
+    };
 
-const handleFormSubmit = async (data) => {
-  const payload = {
-    ...data,
-    documentId,
+    const res = await createProjectFromDocument(payload);
+
+    if (res?.status === 200 || res?.status === 201) {
+      dispatch(
+        setPopup({
+          type: "success",
+          message: res.message || "project-created-successfully",
+        })
+      );
+      onSubmit?.();
+      onClose?.();
+    } else {
+      dispatch(
+        setPopup({
+          type: "error",
+          message: res?.message || "create-project-failed",
+        })
+      );
+    }
   };
-  const res = await createProjectFromDocument(payload);
-
-  if (res?.status === 200 ||  res.status === 201) {        // BE trả về status 201 khi create thành công
-    dispatch(
-      setPopup({
-        type: "success",
-        message: res.message || "project-created-successfully", // message key từ BE hoặc fallback
-      })
-    );
-    onSubmit?.();
-    onClose();
-  } else {
-    dispatch(
-      setPopup({
-        type: "error",
-        message: res.message || "create-project-failed", // fallback khi BE không trả message
-      })
-    );
-  }
-};
-
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  const localToday = `${year}-${month}-${day}`;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -148,11 +131,10 @@ const handleFormSubmit = async (data) => {
         <Typography fontWeight={600}>Create Project from Document</Typography>
       </DialogTitle>
 
-        <DialogContent>
+      <DialogContent>
         <Stack spacing={2} mt={1}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            📌 Project Manager:{" "}
-            <strong>{pmName || document?.pmName || ""}</strong>
+            📌 Project Manager: <strong>{pmName || document?.pmName || ""}</strong>
           </Typography>
 
           <Controller
@@ -170,6 +152,7 @@ const handleFormSubmit = async (data) => {
               />
             )}
           />
+
           <Controller
             name="description"
             control={control}
@@ -187,6 +170,7 @@ const handleFormSubmit = async (data) => {
               />
             )}
           />
+
           <Controller
             name="deadline"
             control={control}
@@ -201,10 +185,11 @@ const handleFormSubmit = async (data) => {
                 InputLabelProps={{ shrink: true }}
                 error={!!errors.deadline}
                 helperText={errors.deadline?.message}
-<<<<<<< Updated upstream
+                inputProps={{ min: todayStr }}
               />
             )}
           />
+
           <Controller
             name="priority"
             control={control}
@@ -220,13 +205,6 @@ const handleFormSubmit = async (data) => {
               />
             )}
           />
-=======
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ min: localToday }}
-              />
-            )}
-          />
->>>>>>> Stashed changes
         </Stack>
       </DialogContent>
 

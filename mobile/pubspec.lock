@@ -74,6 +74,8 @@ packages:
     source: hosted
     version: "1.19.1"
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
   cross_file:
     dependency: transitive
     description:
@@ -82,6 +84,10 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.3.4+2"
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
   crypto:
@@ -165,6 +171,8 @@ packages:
     source: hosted
     version: "7.0.1"
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
   file_selector_linux:
     dependency: transitive
     description:
@@ -197,6 +205,10 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.9.3+4"
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
   flutter:
@@ -242,6 +254,8 @@ packages:
     source: sdk
     version: "0.0.0"
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:
@@ -250,6 +264,10 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.28"
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
   flutter_svg:
@@ -302,6 +320,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.5.4"
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
   image_picker:
     dependency: "direct main"
@@ -369,6 +389,14 @@ packages:
     version: "0.2.1+1"
   intl:
     dependency: "direct main"
+=======
+  intl:
+    dependency: transitive
+>>>>>>> Stashed changes
+=======
+  intl:
+    dependency: transitive
+>>>>>>> Stashed changes
 =======
   intl:
     dependency: transitive
@@ -452,6 +480,8 @@ packages:
     source: hosted
     version: "1.16.0"
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
   mime:
     dependency: transitive
     description:
@@ -460,6 +490,10 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.6"
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
   nested:
