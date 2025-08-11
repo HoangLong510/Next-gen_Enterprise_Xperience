@@ -16,34 +16,39 @@ public class ProjectRepositoryImpl {
     public List<Project> searchProjects(String keyword) {
         return entityManager.createQuery("""
             SELECT p FROM Project p
-            JOIN FETCH p.document
-            WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-               OR LOWER(p.document.id) LIKE LOWER(CONCAT('%', :keyword, '%'))
-        """, Project.class)
+        JOIN FETCH p.document d
+        WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+           OR LOWER(d.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
+    """, Project.class)
                 .setParameter("keyword", keyword)
                 .getResultList();
     }
 
     public List<Project> filter(String status, String priority) {
+        // Bỏ tham số priority, chỉ filter theo status
         StringBuilder query = new StringBuilder("""
-            SELECT p FROM Project p
-            JOIN FETCH p.document
-            WHERE 1=1
-        """);
+        SELECT p FROM Project p
+        LEFT JOIN FETCH p.document
+        WHERE 1=1
+    """);
 
         if (status != null && !status.isBlank()) {
             query.append(" AND LOWER(p.status) = LOWER(:status) ");
-        }
-
-        if (priority != null && !priority.isBlank()) {
-            query.append(" AND LOWER(p.priority) = LOWER(:priority) ");
         }
 
         if (!"COMPLETED".equalsIgnoreCase(status)) {
             query.append(" AND p.hidden = false ");
         }
 
-        query.append(" ORDER BY p.deadline ASC ");
+        // Loại bỏ p.priority khỏi ORDER BY
+        query.append("""
+        ORDER BY
+            CASE
+                WHEN p.status IN ('PLANNING', 'IN_PROGRESS') THEN 0
+                ELSE 1
+            END ASC,
+            p.deadline ASC
+    """);
 
         var q = entityManager.createQuery(query.toString(), Project.class);
 
@@ -51,21 +56,27 @@ public class ProjectRepositoryImpl {
             q.setParameter("status", status);
         }
 
-        if (priority != null && !priority.isBlank()) {
-            q.setParameter("priority", priority);
-        }
+        // Không còn set priority parameter
 
         return q.getResultList();
     }
 
+
     public List<Project> getAllVisible() {
         return entityManager.createQuery("""
-            SELECT p FROM Project p
-            LEFT JOIN FETCH p.document
-            WHERE p.hidden = false
-            ORDER BY p.deadline ASC, p.priority DESC
-        """, Project.class).getResultList();
+        SELECT p FROM Project p
+        LEFT JOIN FETCH p.document
+        WHERE p.hidden = false
+        ORDER BY 
+            CASE 
+                WHEN p.status IN ('PLANNING', 'IN_PROGRESS') THEN 0
+                ELSE 1
+            END ASC,
+            p.deadline ASC
+    """, Project.class).getResultList();
     }
+
+
 
     public List<Project> getDoneProjects() {
         return entityManager.createQuery("""

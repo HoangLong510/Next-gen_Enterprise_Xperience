@@ -42,7 +42,9 @@ public class ApiResponse<T> {
         return new ApiResponse<>
                 (null, message, 404, null);
     }
-
+    public static <T> ApiResponse<T> validation(Map<String,String> errors) {
+        return new ApiResponse<>(null, "validation-errors", 400, errors);
+    }
     //badRequest
     public static <T> ApiResponse<T>
     badRequest(BindingResult bindingResult) {
@@ -67,6 +69,10 @@ public class ApiResponse<T> {
         return new ApiResponse<>
                 (null, message, 400, errors);
     }
+    public static <T> ApiResponse<T> unauthorized(String message) {
+        return new ApiResponse<>(null, message, 401, null);
+    }
+
 
     public static <T> ApiResponse<T> badRequest(String message) {
         return new ApiResponse<>(null, message, 400, null);

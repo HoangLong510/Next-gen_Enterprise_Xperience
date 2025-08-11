@@ -23,6 +23,7 @@
 	"create-department-success": "Create department successfully",
 	"edit-department-success": "Edit department successfully",
 	"update-department-success": "Update department successfully",
+<<<<<<< Updated upstream
 	"fund-created": "Fund created successfully.",
 	"transaction-created": "Transaction created successfully.",
   	"fund-status-updated": "Fund status updated successfully.",
@@ -31,4 +32,46 @@
   	"failed-to-change-fund-status": "Failed to change fund status.",
 	"insufficient-fund-balance": "...",
 	"file-type-not-supported":"File type not supported! Please choose again."
+=======
+	  "project-created-successfully": "Project created successfully",
+  "project-updated-successfully": "Project updated successfully",
+  "project-canceled-successfully": "Project canceled successfully",
+  "project-not-found": "Project not found",
+  "document-not-found": "Document not found",
+  "document-already-linked": "Document is already linked to another project",
+  "only-project-manager-can-link-repo": "Only project manager can link repository",
+  "repo-linked-successfully": "Repository linked successfully",
+
+  "phase-created-successfully": "Phase created successfully",
+  "phase-started-successfully": "Phase started successfully",
+  "phase-completed-successfully": "Phase completed successfully",
+  "phase-already-started-or-completed": "Phase already started or completed",
+  "previous-phase-not-completed": "Previous phase is not completed yet",
+  "phase-not-in-progress": "Phase is not in progress",
+  "phase-not-found": "Phase not found",
+  "deadline-before-previous-phase": "Deadline is before previous phase deadline",
+"updated-successfully": "Updated successfully",
+
+  "confirm-cancel-phase-title": "Move Phase to CANCELED?",
+  "confirm-cancel-phase-message": "This may affect workflow and reporting. Are you sure you want to change the status to CANCELED?",
+  "task-created-successfully": "Task created successfully",
+  "task-status-updated-successfully": "Task status updated successfully",
+  "task-not-found": "Task not found",
+  "deadline-before-today": "Deadline cannot be before today",
+  "deadline-after-phase-deadline": "Deadline cannot be after phase deadline",
+  "deadline-after-project-deadline": "Deadline cannot be after project deadline",
+    "confirm-cancel-project-message": "Are you sure you want to cancel this project? This action will mark the whole project as canceled.",
+"project-deadline-conflict": "Cannot update project deadline. Some phases or tasks have deadlines after the selected date.",
+  "deadline-cannot-be-in-the-past": "Deadline cannot be in the past",
+  "cannot-set-planning-when-has-tasks": "Cannot set Planning when project already has tasks.",
+  "cannot-complete-project-while-some-tasks-not-completed": "Cannot complete project while some tasks are not completed.",
+  "confirm-cancel-task-title": "Move task to CANCELED?",
+  "confirm-cancel-task-message": "This may affect workflow and reporting. Are you sure you want to change the task status to CANCELED?",
+  "confirm-delete-evidence-title": "Delete this evidence?",
+  "confirm-delete-evidence-message": "This action will permanently delete the selected proof file. Are you sure?",
+  "confirm-clear-evidence-title": "Clear all evidence?",
+  "confirm-clear-evidence-message": "This action will permanently delete all proof files of this task. Are you sure?",
+  "clear-all-evidence": "Clear all evidence"
+
+>>>>>>> Stashed changes
 }

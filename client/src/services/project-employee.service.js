@@ -24,9 +24,26 @@ export const getProjectEmployees = (projectId) =>
   api.get(`/projects/${projectId}/employees`);
 
 // ➕ Add employees to project
-export const addEmployeesToProject = (projectId, requestDto) =>
-  api.post(`/projects/${projectId}/employees`, requestDto);
+export const addEmployeesToProject = async (projectId, requestDto) => {
+  try {
+    const res = await api.post(`/projects/${projectId}/employees`, requestDto);
+    return res.data; // giữ message
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};
+
 
 // ❌ Remove employees from project
-export const removeEmployeesFromProject = (projectId, requestDto) =>
-  api.delete(`/projects/${projectId}/employees`, { data: requestDto });
+export const removeEmployeesFromProject = async (projectId, requestDto) => {
+  try {
+    const res = await api.delete(`/projects/${projectId}/employees`, {
+      data: requestDto,
+    });
+    return res.data; // giữ message
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};

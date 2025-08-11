@@ -73,13 +73,18 @@ public class Employee {
     @OneToOne(mappedBy = "hod")
     @JsonIgnoreProperties("hod")
     private Department hodDepartment;
+
     @ManyToMany(mappedBy = "employees")
     private List<Project> projects;
+
+    // Thay subTasks bằng tasks
     @OneToMany(mappedBy = "assignee")
-    private List<SubTask> subTasks;
+    private List<Task> tasks;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
+
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 

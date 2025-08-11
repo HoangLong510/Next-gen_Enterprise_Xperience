@@ -1,4 +1,3 @@
-// ~/components/ProjectForm.jsx
 import {
   Dialog,
   DialogTitle,
@@ -7,9 +6,11 @@ import {
   Button,
   Stack,
   TextField,
-  MenuItem,
   Typography,
 } from "@mui/material";
+import { useDispatch } from "react-redux";
+import { setPopup } from "~/libs/features/popup/popupSlice";
+import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -24,21 +25,25 @@ const schema = yup.object({
     .required("Description is required")
     .min(10)
     .max(1000),
-  priority: yup
-    .string()
-    .required("Priority is required")
-    .oneOf(["LOW", "MEDIUM", "HIGH"]),
   deadline: yup
-    .date()
-    .required("Deadline is required")
-    .min(dayjs().toDate(), "Deadline must be today or later"),
+    .string()
+    .nullable()
+    .matches(/^\d{4}-\d{2}-\d{2}$/, "invalid-date-format")
+    .test("not-in-past", "deadline-cannot-be-in-the-past", (value) => {
+      if (!value) return true;
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      const localToday = `${year}-${month}-${day}`;
+      return value >= localToday;
+    }),
 });
 
 const defaultValues = {
   name: "",
   description: "",
-  priority: "MEDIUM",
-  deadline: dayjs().add(7, "day").format("YYYY-MM-DD"), // mặc định 7 ngày nữa
+  deadline: dayjs().add(7, "day").format("YYYY-MM-DD"),
 };
 
 export default function ProjectFormCreate({
@@ -60,6 +65,7 @@ export default function ProjectFormCreate({
   defaultValues, // dùng defaultValues, nhưng luôn reset lại bên dưới
 });
 
+<<<<<<< Updated upstream
 useEffect(() => {
   if (document) {
     reset({
@@ -81,21 +87,60 @@ useEffect(() => {
   const deadlineValue = document?.projectDeadline
     ? dayjs(document.projectDeadline).format("YYYY-MM-DD")
     : "";
+=======
+  useEffect(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    const localToday = `${year}-${month}-${day}`;
 
-  const handleFormSubmit = async (data) => {
-    const payload = {
-      ...data,
-      documentId,
-    };
-    const res = await createProjectFromDocument(payload);
-
-    if (res.status === 200) {
-      onSubmit?.(); // reload nếu truyền vào
-      onClose();
+    if (initialData) {
+      let deadline = initialData.deadline ?? "";
+      if (deadline && deadline < localToday) {
+        deadline = localToday;
+      }
+      reset({ ...defaultValues, ...initialData, deadline });
     } else {
-      alert(res.message || "Failed to create project");
+      reset(defaultValues);
     }
+  }, [initialData, reset]);
+>>>>>>> Stashed changes
+
+const dispatch = useDispatch();
+const { t } = useTranslation("messages");
+
+const handleFormSubmit = async (data) => {
+  const payload = {
+    ...data,
+    documentId,
   };
+  const res = await createProjectFromDocument(payload);
+
+  if (res?.status === 200 ||  res.status === 201) {        // BE trả về status 201 khi create thành công
+    dispatch(
+      setPopup({
+        type: "success",
+        message: res.message || "project-created-successfully", // message key từ BE hoặc fallback
+      })
+    );
+    onSubmit?.();
+    onClose();
+  } else {
+    dispatch(
+      setPopup({
+        type: "error",
+        message: res.message || "create-project-failed", // fallback khi BE không trả message
+      })
+    );
+  }
+};
+
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  const localToday = `${year}-${month}-${day}`;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -156,6 +201,7 @@ useEffect(() => {
                 InputLabelProps={{ shrink: true }}
                 error={!!errors.deadline}
                 helperText={errors.deadline?.message}
+<<<<<<< Updated upstream
               />
             )}
           />
@@ -174,6 +220,13 @@ useEffect(() => {
               />
             )}
           />
+=======
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: localToday }}
+              />
+            )}
+          />
+>>>>>>> Stashed changes
         </Stack>
       </DialogContent>
 

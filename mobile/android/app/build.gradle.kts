@@ -8,7 +8,11 @@ plugins {
 android {
     namespace = "com.example.mobile"
     compileSdk = flutter.compileSdkVersion
+<<<<<<< Updated upstream
     ndkVersion = flutter.ndkVersion
+=======
+    ndkVersion = "27.0.12077973"
+>>>>>>> Stashed changes
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

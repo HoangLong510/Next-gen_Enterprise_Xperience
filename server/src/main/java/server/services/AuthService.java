@@ -45,12 +45,19 @@ public class AuthService {
     // Hết phần thêm
 
     public ApiResponse<?> login(LoginDto request, BindingResult result) {
+<<<<<<< Updated upstream
         if(request.getCaptchaToken() != null) {
             boolean captchaValid = recaptchaService.verify(request.getCaptchaToken());
             if (!captchaValid) {
                 return ApiResponse.badRequest("captcha-verification-failed");
             }
         }
+=======
+//        boolean captchaValid = recaptchaService.verify(request.getCaptchaToken());
+//        if (!captchaValid) {
+//            return ApiResponse.badRequest("captcha-verification-failed");
+//        }
+>>>>>>> Stashed changes
 
         if (result.hasErrors()) {
             return ApiResponse.badRequest(result);
