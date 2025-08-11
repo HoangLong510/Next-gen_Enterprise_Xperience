@@ -6,10 +6,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import server.dtos.*;
-<<<<<<< Updated upstream
+
 import server.models.*;
 import server.models.enums.*;
-=======
+
+import server.models.*;
+import server.models.enums.*;
+
+
 import server.models.Account;
 import server.models.Document;
 import server.models.Project;
@@ -17,15 +21,14 @@ import server.models.Task;
 import server.models.enums.PhaseStatus;
 import server.models.enums.ProjectStatus;
 import server.models.enums.TaskStatus;
->>>>>>> Stashed changes
+
 import server.repositories.*;
 import server.utils.ApiResponse;
 import server.utils.JwtUtil;
 
-<<<<<<< Updated upstream
+
 import java.io.IOException;
-=======
->>>>>>> Stashed changes
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -144,19 +147,15 @@ public class ProjectService {
                 .name(document.getProjectName())
                 .description(document.getProjectDescription())
                 .createdAt(LocalDate.now())
-<<<<<<< Updated upstream
                 .deadline(document.getProjectDeadline())
-                .priority(document.getProjectPriority())
-=======
                 .deadline(dto.getDeadline())
->>>>>>> Stashed changes
                 .status(ProjectStatus.PLANNING)
                 .document(document)
                 .projectManager(pm)
                 .build();
 
         projectRepository.save(project);
-<<<<<<< Updated upstream
+
         projectRepository.flush();
 
         document.setProject(project);
@@ -167,10 +166,10 @@ public class ProjectService {
                 project.getId(),
                 false
         );
-        return ApiResponse.success(null, "project-created");
-=======
+  
+
         return ApiResponse.success(null, "project-created-successfully");
->>>>>>> Stashed changes
+
     }
 
     public ApiResponse<?> deleteProject(Long id) {
