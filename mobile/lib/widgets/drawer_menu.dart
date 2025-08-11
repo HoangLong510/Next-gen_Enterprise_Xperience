@@ -28,10 +28,6 @@ Widget buildDrawerMenu(String userRole, BuildContext context) {
                 onTap: () {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
-                  print("🔍 Navigating to: ${item.route}");
->>>>>>> Stashed changes
 =======
                   print("🔍 Navigating to: ${item.route}");
 >>>>>>> Stashed changes

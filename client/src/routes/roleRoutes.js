@@ -1,6 +1,5 @@
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
 import DefaultLayout from "~/layouts/default_layout"
 import DocumentDetail from "~/pages/management/document/DocumentDetail"
 import AccountsManagement from "~/pages/management/accounts/index.jsx"
@@ -148,49 +147,6 @@ const roleRoutes = [
   },
 >>>>>>> Stashed changes
 
-=======
-import DefaultLayout from "~/layouts/default_layout";
-import DocumentDetail from "~/pages/management/document/DocumentDetail";
-import AccountsManagement from "~/pages/management/accounts/index.jsx";
-import DocumentList from "~/pages/management/document/DocumentList";
-import AddDepartmentPage from "~/pages/departments/add";
-import AddEmployeeDepartmentPage from "~/pages/departments/add-employees";
-import EditDepartmentPage from "~/pages/departments/edit";
-import CreateAccountManagementPage from "~/pages/management/accounts/create";
-import ProjectManagement from "~/pages/management/project/list-project";
-import ProjectDetailPage from "~/pages/management/project/ProjectDetailPage";
-import ProjectKanbanBoard from "~/components/project/KanbanForm";
-
-const roleRoutes = [
-  // Accounts
-  {
-    path: "/management/accounts",
-    component: AccountsManagement,
-    layout: DefaultLayout,
-    roles: ["ADMIN"],
-  },
-  {
-    path: "/management/accounts/create",
-    component: CreateAccountManagementPage,
-    layout: DefaultLayout,
-    roles: ["ADMIN"],
-  },
-
-  // Documents
-  {
-    path: "/management/documents",
-    component: DocumentList,
-    layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM"],
-  },
-  {
-    path: "/management/documents/:id",
-    component: DocumentDetail,
-    layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM"],
-  },
-
->>>>>>> Stashed changes
 =======
 import DefaultLayout from "~/layouts/default_layout";
 import DocumentDetail from "~/pages/management/document/DocumentDetail";

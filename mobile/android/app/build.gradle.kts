@@ -10,11 +10,7 @@ android {
     compileSdk = flutter.compileSdkVersion
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
     ndkVersion = flutter.ndkVersion
-=======
-    ndkVersion = "27.0.12077973"
->>>>>>> Stashed changes
 =======
     ndkVersion = "27.0.12077973"
 >>>>>>> Stashed changes

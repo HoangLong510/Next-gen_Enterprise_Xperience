@@ -25,7 +25,6 @@
 	"update-department-success": "Cập nhật phòng ban thành công",
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
 	"fund-created": "Tạo quỹ thành công.",
 	"failed-to-create-fund": "Tạo quỹ thất bại.",
 	"transaction-created": "Tạo giao dịch thành công.",
@@ -41,8 +40,6 @@
  	"fetch-data-error": "Lỗi khi tải dữ liệu. Vui lòng thử lại!"
 }
 =======
-=======
->>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 	"project-created-successfully": "Tạo dự án thành công",
@@ -85,10 +82,6 @@
   "clear-all-evidence": "Xóa tất cả evidence"
 
 <<<<<<< Updated upstream
-<<<<<<< Updated upstream
-}
->>>>>>> Stashed changes
-=======
 }
 >>>>>>> Stashed changes
 =======
