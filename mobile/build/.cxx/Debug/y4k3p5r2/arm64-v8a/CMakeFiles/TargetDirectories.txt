@@ -1,2 +1,0 @@
-E:/Study/Project4/Next-gen_Enterprise_Xperience/mobile/build/.cxx/Debug/y4k3p5r2/arm64-v8a/CMakeFiles/edit_cache.dir
-E:/Study/Project4/Next-gen_Enterprise_Xperience/mobile/build/.cxx/Debug/y4k3p5r2/arm64-v8a/CMakeFiles/rebuild_cache.dir
