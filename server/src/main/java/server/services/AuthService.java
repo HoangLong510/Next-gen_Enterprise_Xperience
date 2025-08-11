@@ -46,10 +46,10 @@ public class AuthService {
 
 
     public ApiResponse<?> login(LoginDto request, BindingResult result) {
-        boolean captchaValid = recaptchaService.verify(request.getCaptchaToken());
-        if (!captchaValid) {
-            return ApiResponse.badRequest("captcha-verification-failed");
-        }
+//        boolean captchaValid = recaptchaService.verify(request.getCaptchaToken());
+//        if (!captchaValid) {
+//            return ApiResponse.badRequest("captcha-verification-failed");
+//        }
 
         if (result.hasErrors()) {
             return ApiResponse.badRequest(result);
@@ -139,6 +139,7 @@ public class AuthService {
         Account account = accountOptional.get();
 
         ProfileDto profileDto = new ProfileDto();
+        profileDto.setId(account.getId());
         profileDto.setUsername(username);
         profileDto.setFirstName(account.getEmployee().getFirstName());
         profileDto.setLastName(account.getEmployee().getLastName());

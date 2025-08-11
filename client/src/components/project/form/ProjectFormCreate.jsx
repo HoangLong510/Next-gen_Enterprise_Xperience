@@ -203,6 +203,7 @@ const handleFormSubmit = async (data) => {
                 helperText={errors.deadline?.message}
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
               />
             )}
           />
@@ -221,6 +222,13 @@ const handleFormSubmit = async (data) => {
               />
             )}
           />
+=======
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: localToday }}
+              />
+            )}
+          />
+>>>>>>> Stashed changes
 =======
                 InputLabelProps={{ shrink: true }}
                 inputProps={{ min: localToday }}
