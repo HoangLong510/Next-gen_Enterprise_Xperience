@@ -24,6 +24,7 @@
 	"edit-department-success": "Edit department successfully",
 	"update-department-success": "Update department successfully",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 	"fund-created": "Fund created successfully.",
 	"transaction-created": "Transaction created successfully.",
   	"fund-status-updated": "Fund status updated successfully.",
@@ -33,6 +34,8 @@
 	"insufficient-fund-balance": "...",
 	"file-type-not-supported":"File type not supported! Please choose again."
 =======
+=======
+>>>>>>> Stashed changes
 	  "project-created-successfully": "Project created successfully",
   "project-updated-successfully": "Project updated successfully",
   "project-canceled-successfully": "Project canceled successfully",
@@ -73,5 +76,8 @@
   "confirm-clear-evidence-message": "This action will permanently delete all proof files of this task. Are you sure?",
   "clear-all-evidence": "Clear all evidence"
 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 }

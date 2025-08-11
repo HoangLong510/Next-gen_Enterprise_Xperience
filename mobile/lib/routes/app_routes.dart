@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/guards/role_guard.dart';
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 import 'package:mobile/screens/fund/fund_create_page.dart';
 import 'package:mobile/screens/fund/fund_detail_page.dart';
 import 'package:mobile/screens/fund/fund_list_page.dart';
@@ -16,21 +17,32 @@ import 'package:mobile/screens/home_page.dart';
 import 'package:mobile/screens/login_page.dart';
 import 'package:mobile/screens/logout_page.dart';
 >>>>>>> Stashed changes
+=======
+import 'package:mobile/screens/home_page.dart';
+import 'package:mobile/screens/login_page.dart';
+import 'package:mobile/screens/logout_page.dart';
+>>>>>>> Stashed changes
 import 'package:mobile/widgets/custom_layout.dart';
 import 'package:mobile/screens/dispatches/dispatches_list_page.dart';
 import 'package:mobile/screens/dispatches/dispatch_detail_page.dart';
 import 'package:mobile/screens/dispatches/dispatch_create_page.dart';
 import 'package:mobile/screens/notifaications/notification_list_page.dart';
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
 Route<dynamic> generateRoute(RouteSettings settings) {
   final name = settings.name;
 =======
+=======
+>>>>>>> Stashed changes
 import 'package:mobile/screens/projects/project_list_page.dart';
 
 Route<dynamic> generateRoute(RouteSettings settings) {
   final name = settings.name;
    print("Route: $name"); 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
   // --- 1. Xử lý dynamic route trước ---
   if (name != null) {
@@ -74,6 +86,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       }
     }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         // /accountant/funds/:id
     if (name.startsWith("/accountant/funds/") && !name.endsWith("/edit")) {
       final id = int.tryParse(name.split("/").last);
@@ -112,6 +125,8 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return _errorPage("Lỗi: ID phiếu lương không hợp lệ");
     }
   }
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 
@@ -174,8 +189,11 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         ),
       );
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
 =======
+=======
+>>>>>>> Stashed changes
 case "/utilities/projects":
   return MaterialPageRoute(
     builder: (_) => RoleGuard(
@@ -183,6 +201,9 @@ case "/utilities/projects":
       child: CustomLayout(child: ProjectListPage()),
     ),
   );
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     case "/login":
       return MaterialPageRoute(builder: (_) => const LoginPage());
@@ -201,6 +222,7 @@ case "/utilities/projects":
           child: CustomLayout(child: LogoutPage()),
         ),
       );
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
     case "/accountant/funds":
       return _buildPage(
@@ -226,6 +248,8 @@ case "/utilities/projects":
         child: SalarySummaryPage(),
       );
 
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
     default:
