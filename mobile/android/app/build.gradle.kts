@@ -9,10 +9,24 @@ android {
     namespace = "com.example.mobile"
     compileSdk = flutter.compileSdkVersion
 <<<<<<< Updated upstream
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
     ndkVersion = flutter.ndkVersion
 =======
     ndkVersion = "27.0.12077973"
 >>>>>>> Stashed changes
+<<<<<<< HEAD
+=======
+=======
+    ndkVersion = "27.0.12077973"
+>>>>>>> Stashed changes
+=======
+    ndkVersion = "27.0.12077973"
+>>>>>>> Stashed changes
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

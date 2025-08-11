@@ -202,6 +202,11 @@ const handleFormSubmit = async (data) => {
                 error={!!errors.deadline}
                 helperText={errors.deadline?.message}
 <<<<<<< Updated upstream
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
               />
             )}
           />
@@ -227,6 +232,23 @@ const handleFormSubmit = async (data) => {
             )}
           />
 >>>>>>> Stashed changes
+<<<<<<< HEAD
+=======
+=======
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: localToday }}
+              />
+            )}
+          />
+>>>>>>> Stashed changes
+=======
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: localToday }}
+              />
+            )}
+          />
+>>>>>>> Stashed changes
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
         </Stack>
       </DialogContent>
 

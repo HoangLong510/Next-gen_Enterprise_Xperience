@@ -45,6 +45,7 @@ public class AuthService {
     // Hết phần thêm
 
     public ApiResponse<?> login(LoginDto request, BindingResult result) {
+<<<<<<< HEAD
 <<<<<<< Updated upstream
         if(request.getCaptchaToken() != null) {
             boolean captchaValid = recaptchaService.verify(request.getCaptchaToken());
@@ -53,11 +54,16 @@ public class AuthService {
             }
         }
 =======
+=======
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 //        boolean captchaValid = recaptchaService.verify(request.getCaptchaToken());
 //        if (!captchaValid) {
 //            return ApiResponse.badRequest("captcha-verification-failed");
 //        }
+<<<<<<< HEAD
 >>>>>>> Stashed changes
+=======
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 
         if (result.hasErrors()) {
             return ApiResponse.badRequest(result);

@@ -7,9 +7,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import server.dtos.*;
 <<<<<<< Updated upstream
+<<<<<<< HEAD
 import server.models.*;
 import server.models.enums.*;
 =======
+=======
+
+import server.models.*;
+import server.models.enums.*;
+
+=======
+>>>>>>> Stashed changes
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 import server.models.Account;
 import server.models.Document;
 import server.models.Project;
@@ -23,6 +32,10 @@ import server.utils.ApiResponse;
 import server.utils.JwtUtil;
 
 <<<<<<< Updated upstream
+<<<<<<< HEAD
+=======
+
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 import java.io.IOException;
 =======
 >>>>>>> Stashed changes
@@ -149,6 +162,15 @@ public class ProjectService {
                 .priority(document.getProjectPriority())
 =======
                 .deadline(dto.getDeadline())
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 >>>>>>> Stashed changes
                 .status(ProjectStatus.PLANNING)
                 .document(document)
@@ -157,6 +179,11 @@ public class ProjectService {
 
         projectRepository.save(project);
 <<<<<<< Updated upstream
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
         projectRepository.flush();
 
         document.setProject(project);
@@ -171,6 +198,15 @@ public class ProjectService {
 =======
         return ApiResponse.success(null, "project-created-successfully");
 >>>>>>> Stashed changes
+<<<<<<< HEAD
+=======
+=======
+        return ApiResponse.success(null, "project-created-successfully");
+>>>>>>> Stashed changes
+=======
+        return ApiResponse.success(null, "project-created-successfully");
+>>>>>>> Stashed changes
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
     }
 
     public ApiResponse<?> deleteProject(Long id) {

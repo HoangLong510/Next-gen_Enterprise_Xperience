@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/guards/role_guard.dart';
 <<<<<<< Updated upstream
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 import 'package:mobile/screens/fund/fund_create_page.dart';
 import 'package:mobile/screens/fund/fund_detail_page.dart';
 import 'package:mobile/screens/fund/fund_list_page.dart';
@@ -16,21 +21,55 @@ import 'package:mobile/screens/home_page.dart';
 import 'package:mobile/screens/login_page.dart';
 import 'package:mobile/screens/logout_page.dart';
 >>>>>>> Stashed changes
+<<<<<<< HEAD
+=======
+=======
+import 'package:mobile/screens/home_page.dart';
+import 'package:mobile/screens/login_page.dart';
+import 'package:mobile/screens/logout_page.dart';
+>>>>>>> Stashed changes
+=======
+import 'package:mobile/screens/home_page.dart';
+import 'package:mobile/screens/login_page.dart';
+import 'package:mobile/screens/logout_page.dart';
+>>>>>>> Stashed changes
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 import 'package:mobile/widgets/custom_layout.dart';
 import 'package:mobile/screens/dispatches/dispatches_list_page.dart';
 import 'package:mobile/screens/dispatches/dispatch_detail_page.dart';
 import 'package:mobile/screens/dispatches/dispatch_create_page.dart';
 import 'package:mobile/screens/notifaications/notification_list_page.dart';
 <<<<<<< Updated upstream
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 
 Route<dynamic> generateRoute(RouteSettings settings) {
   final name = settings.name;
 =======
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 import 'package:mobile/screens/projects/project_list_page.dart';
 
 Route<dynamic> generateRoute(RouteSettings settings) {
   final name = settings.name;
    print("Route: $name"); 
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 >>>>>>> Stashed changes
   // --- 1. Xử lý dynamic route trước ---
   if (name != null) {
@@ -74,6 +113,11 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       }
     }
 <<<<<<< Updated upstream
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
         // /accountant/funds/:id
     if (name.startsWith("/accountant/funds/") && !name.endsWith("/edit")) {
       final id = int.tryParse(name.split("/").last);
@@ -114,6 +158,13 @@ Route<dynamic> generateRoute(RouteSettings settings) {
   }
 =======
 >>>>>>> Stashed changes
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 
     // TODO: /project/:id nếu sau này có
     // if (name.startsWith("/project/")) { ... }
@@ -174,8 +225,19 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         ),
       );
 <<<<<<< Updated upstream
+<<<<<<< HEAD
 
 =======
+=======
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+
+=======
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 case "/utilities/projects":
   return MaterialPageRoute(
     builder: (_) => RoleGuard(
@@ -183,6 +245,15 @@ case "/utilities/projects":
       child: CustomLayout(child: ProjectListPage()),
     ),
   );
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
 >>>>>>> Stashed changes
     case "/login":
       return MaterialPageRoute(builder: (_) => const LoginPage());
@@ -202,6 +273,11 @@ case "/utilities/projects":
         ),
       );
 <<<<<<< Updated upstream
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
     case "/accountant/funds":
       return _buildPage(
         allowRoles: ["ADMIN", "ACCOUNTANT"],
@@ -228,6 +304,13 @@ case "/utilities/projects":
 
 =======
 >>>>>>> Stashed changes
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+>>>>>>> parent of c9933c3 (Revert "minh/conflixx")
     default:
       return MaterialPageRoute(
         builder: (_) =>
