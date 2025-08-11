@@ -11,8 +11,9 @@ i18n
 	.use(initReactI18next)
 	.init({
 		// ngôn ngữ mặc định
-		fallbackLng: "en",
-		// cấu hình nơi lưu ngôn ngữ
+		fallbackLng: "en",ns: ["popup", "messages"],  
+    	defaultNS: "popup", 
+
 		detection: {
 			order: ["localStorage", "navigator"],
 			caches: ["localStorage"],

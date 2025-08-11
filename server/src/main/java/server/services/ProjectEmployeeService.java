@@ -20,6 +20,7 @@ public class ProjectEmployeeService {
 
     private final ProjectRepository projectRepository;
     private final EmployeeRepository employeeRepository;
+
     public ApiResponse<?> searchAvailableByRoleAndName(Long projectId, String keyword) {
         String searchKeyword = keyword == null ? "" : keyword.trim();
         List<Employee> employees = employeeRepository.searchAvailableByRoleAndName(projectId, searchKeyword);
@@ -30,6 +31,7 @@ public class ProjectEmployeeService {
 
         return ApiResponse.success(result, "search-available-employees-by-role-and-name-success");
     }
+
     public ApiResponse<?> getAvailableEmployees(Long projectId, String keyword, Long departmentId) {
         Project project = projectRepository.findById(projectId).orElse(null);
         if (project == null) {
@@ -64,11 +66,12 @@ public class ProjectEmployeeService {
         List<ProjectEmployeeDto> result = employees.stream()
                 .map(emp -> {
                     ProjectEmployeeDto dto = toDto(emp);
-                    boolean hasSubTaskInProject = emp.getSubTasks() != null && emp.getSubTasks().stream()
-                            .anyMatch(subTask -> subTask.getTask() != null &&
-                                    subTask.getTask().getProject() != null &&
-                                    Objects.equals(subTask.getTask().getProject().getId(), projectId));
-                    dto.setCanRemove(!hasSubTaskInProject);
+                    // Kiểm tra task thay cho subtask theo luồng mới
+                    boolean hasTaskInProject = emp.getTasks() != null && emp.getTasks().stream()
+                            .anyMatch(task -> task.getPhase() != null &&
+                                    task.getPhase().getProject() != null &&
+                                    Objects.equals(task.getPhase().getProject().getId(), projectId));
+
                     return dto;
                 })
                 .toList();
@@ -102,17 +105,19 @@ public class ProjectEmployeeService {
 
         List<Employee> removable = toRemove.stream()
                 .filter(project.getEmployees()::contains)
-                .filter(emp -> emp.getSubTasks() == null || emp.getSubTasks().stream()
-                        .noneMatch(st -> st.getTask() != null &&
-                                st.getTask().getProject() != null &&
-                                Objects.equals(st.getTask().getProject().getId(), projectId)))
+                .filter(emp -> emp.getTasks() == null || emp.getTasks().stream()
+                        .noneMatch(task -> task.getPhase() != null &&
+                                task.getPhase().getProject() != null &&
+                                Objects.equals(task.getPhase().getProject().getId(), projectId)))
                 .toList();
+
 
         project.getEmployees().removeAll(removable);
         projectRepository.save(project);
 
         return ApiResponse.success(null, "employees-removed-successfully");
     }
+
     public ApiResponse<?> filterAvailable(Long projectId, String keyword, Long departmentId) {
         String key = keyword == null ? "" : keyword.trim();
         List<Employee> employees = employeeRepository.filterAvailableEmployees(projectId, departmentId, key);
@@ -123,6 +128,7 @@ public class ProjectEmployeeService {
 
         return ApiResponse.success(result, "available-employees-filtered");
     }
+
     private ProjectEmployeeDto toDto(Employee e) {
         ProjectEmployeeDto dto = new ProjectEmployeeDto();
         dto.setId(e.getId());
@@ -131,7 +137,14 @@ public class ProjectEmployeeService {
         dto.setAvatar(e.getAvatar());
         dto.setEmail(e.getEmail());
         dto.setPhone(e.getPhone());
-        dto.setDepartmentName(e.getDepartment() != null ? e.getDepartment().getName() : null);
+           // Nếu employee.department null nhưng họ là HOD của 1 phòng, gán tên phòng đó
+                   String deptName = null;
+           if (e.getDepartment() != null) {
+                 deptName = e.getDepartment().getName();
+               } else if (e.getHodDepartment() != null) {
+                 deptName = e.getHodDepartment().getName();
+               }
+           dto.setDepartmentName(deptName);
         dto.setUsername(e.getAccount() != null ? e.getAccount().getUsername() : null);
         dto.setRole(e.getAccount() != null ? e.getAccount().getRole().name() : null);
         return dto;

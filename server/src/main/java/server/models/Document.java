@@ -27,7 +27,8 @@ public class Document {
     private String title;
 
     private String content;
-
+    @Column(name = "code", length = 50, unique = true, nullable = false)
+    private String code;
     private String fileUrl;
 
     @Column(name = "project_name")

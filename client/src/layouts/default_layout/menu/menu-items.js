@@ -14,6 +14,7 @@ import WorkIcon from '@mui/icons-material/Work';
 import { PunchClock } from "@mui/icons-material";
 
 export const menuItems = [
+<<<<<<< Updated upstream
   {
     title: "Management",
     items: [
@@ -122,3 +123,81 @@ export const menuItems = [
     ],
   },
 ];
+=======
+	{
+		title: "Management",
+		items: [
+			{
+				label: "Finance",
+				icon: AttachMoneyIcon,
+				href: "/management/finance",
+				roles: ["ADMIN", "MANAGER", "ACCOUNTANT"]
+			},
+			{
+				label: "Accounts",
+				icon: ManageAccountsIcon,
+				href: "/management/accounts",
+				roles: ["ADMIN"]
+			},
+			{
+				label: "Settings",
+				icon: SettingsIcon,
+				href: "/management/settings",
+				roles: ["ADMIN"]
+			}
+		]
+	},
+	{
+		title: "Employees",
+		items: [
+			{
+				label: "Profiles",
+				icon: AssignmentIndIcon,
+				href: "/employees/profiles",
+				roles: ["ADMIN", "MANAGER"]
+			},
+			{
+				label: "Contracts",
+				icon: FilePresentIcon,
+				href: "/employees/contracts",
+				roles: ["ADMIN", "MANAGER"]
+			}
+		]
+	},
+	{
+		title: "Utilities",
+		items: [
+			{
+				label: "Departments",
+				icon: Diversity1Icon,
+				href: "/departments",
+				roles: ["ADMIN", "MANAGER", "HOD", "EMPLOYEE"]
+			},
+			{
+				label: "Projects",
+				icon: WorkIcon,
+				href: "/management/projects",
+				roles: ["ADMIN", "MANAGER", "PM"]
+			},
+			{
+				label: "Dispatches",
+				icon: AssignmentIcon,
+				href: "/management/documents",
+				roles: ["ADMIN", "MANAGER", "PM"]
+			},
+			{
+				label: "Tasks",
+				icon: TaskAltIcon,
+				href: "/utilities/tasks",
+				roles: ["HOD", "EMPLOYEE"]
+			},
+			{
+				label: "Leave Request",
+				icon: DescriptionIcon,
+				href: "/leave-request",
+				roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"]
+			}
+		]
+	}
+]
+>>>>>>> Stashed changes

@@ -4,8 +4,10 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import server.models.Account;
@@ -45,7 +47,14 @@ public class JwtUtil {
 
         return username.equals(account.getUsername()) && isValid && !isTokenExpired(token);
     }
-
+    public String extractUsernameFromRequest(HttpServletRequest request) {
+        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String jwt = authHeader.substring(7);
+            return extractUsername(jwt);
+        }
+        return null;
+    }
     // Phương thức kiểm tra tính hợp lệ của Refresh Token
     public boolean isValidRefreshToken(String refreshToken, UserDetails account) {
         String username = extractUsername(refreshToken);
