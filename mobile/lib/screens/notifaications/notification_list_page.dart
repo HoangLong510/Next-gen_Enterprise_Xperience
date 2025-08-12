@@ -71,6 +71,12 @@ class _NotificationListPageState extends State<NotificationListPage> {
       case NotificationType.PROJECT:
         Navigator.pushNamed(context, '/project/${n.referenceId}');
         break;
+      case NotificationType.ATTENDANCE: // 👈 thêm case này
+      // nếu bạn đã có route cố định "/attendance/detail" nhận arguments:
+        Navigator.pushNamed(context, '/attendance/detail', arguments: n.referenceId);
+        // hoặc nếu bạn set dynamic path: Navigator.pushNamed(context, '/attendance/detail/${n.referenceId}');
+        break;
+
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Chưa hỗ trợ loại thông báo này')),

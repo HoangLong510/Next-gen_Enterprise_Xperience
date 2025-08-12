@@ -34,4 +34,5 @@ public class DocumentResponseDto {
     private Double fundBalance;
     private String fundPurpose;
     private String accountantName;
+    private String managerNote;
 }

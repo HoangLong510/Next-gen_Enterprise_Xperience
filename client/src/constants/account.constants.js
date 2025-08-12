@@ -5,6 +5,7 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp"
 import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount"
 import AccountTreeIcon from "@mui/icons-material/AccountTree"
 import GroupIcon from "@mui/icons-material/Group"
+import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 
 export const ROLE_CONFIGS = [
 	{
@@ -41,6 +42,11 @@ export const ROLE_CONFIGS = [
 		value: "HR",
 		color: "primary",
 		icon: GroupIcon
+	},
+	{
+		value: "SECRETARY",
+		color: "primary",
+		icon: AssignmentIndIcon
 	}
 ]
 

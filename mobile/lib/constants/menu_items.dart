@@ -95,6 +95,12 @@ const List<MenuSection> menuItems = [
         route: "/leave-request",
         roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
       ),
+      MenuItemData(
+        label: "AttenDance",
+        icon: Icons.access_time,
+        route: "/attendance/list",
+        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE","ACCOUNTANT","HR"],
+      ),
     ],
   ),
 ];

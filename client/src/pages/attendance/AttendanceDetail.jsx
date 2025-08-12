@@ -13,6 +13,10 @@ import {
   useTheme,
   TextField,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import {
   AccessTime,
@@ -79,6 +83,10 @@ export default function AttendanceDetail() {
   const [submitting, setSubmitting] = useState(false);
   const [isEditingNote, setIsEditingNote] = useState(false);
   const currentAccount = useSelector((state) => state.account.value);
+  const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
+  const [resolveApproved, setResolveApproved] = useState(true);
+  const [resolveNote, setResolveNote] = useState("");
+  const [resolveTouched, setResolveTouched] = useState(false);
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -92,30 +100,41 @@ export default function AttendanceDetail() {
     fetchDetail();
   }, [id]);
 
-  const handleResolve = async (approved) => {
-    if (!attendance.checkOutNote) {
+  const openResolveDialog = (approved) => {
+    if (!attendance.checkOutEmployeeNote) {
       dispatch(
         setPopup({ type: "error", message: "No explanatory notes yet." })
       );
       return;
     }
+    setResolveApproved(approved);
+    setResolveNote("");
+    setResolveTouched(false);
+    setResolveDialogOpen(true);
+  };
 
+  const doResolve = async () => {
+    if (!resolveApproved && !resolveNote.trim()) {
+      setResolveTouched(true);
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await resolveMissingCheckOutApi(
         attendance.id,
-        attendance.checkOutNote,
-        approved
+        resolveNote.trim(),
+        resolveApproved
       );
       setAttendance(res);
       dispatch(
         setPopup({
           type: "success",
-          message: approved
+          message: resolveApproved
             ? "Explanation accepted"
             : "Refused to explain",
         })
       );
+      setResolveDialogOpen(false);
     } catch (err) {
       dispatch(
         setPopup({
@@ -127,13 +146,12 @@ export default function AttendanceDetail() {
       setSubmitting(false);
     }
   };
-
   const handleSubmitNote = async () => {
     if (!note.trim()) return;
     setSubmitting(true);
     try {
       await submitMissingCheckOutNoteApi(attendance.id, note.trim());
-      setAttendance((prev) => ({ ...prev, checkOutNote: note.trim() }));
+      setAttendance((prev) => ({ ...prev, checkOutEmployeeNote: note.trim() }));
       setIsEditingNote(false);
       setNote("");
       dispatch(
@@ -600,19 +618,19 @@ export default function AttendanceDetail() {
                 color="text.primary"
                 sx={{ lineHeight: 1.6 }}
               >
-                {attendance.checkOutNote || "No explanation provided."}
+                {attendance.checkOutEmployeeNote || "No explanation provided."}
               </Typography>
 
               {attendance.status === "MISSING_CHECKOUT" &&
                 attendance.account?.id === currentAccount?.id && (
                   <>
-                    {attendance.checkOutNote ? (
+                    {attendance.checkOutEmployeeNote ? (
                       // Nếu đã có ghi chú rồi thì cho phép chỉnh sửa
                       <Button
                         variant="outlined"
                         sx={{ mt: 2 }}
                         onClick={() => {
-                          setNote(attendance.checkOutNote);
+                          setNote(attendance.checkOutEmployeeNote);
                           setIsEditingNote(true);
                         }}
                       >
@@ -673,29 +691,100 @@ export default function AttendanceDetail() {
                 )}
               {currentAccount?.role === "HR" &&
                 attendance.status === "MISSING_CHECKOUT" &&
-                attendance.checkOutNote && (
+                !!attendance.checkOutEmployeeNote && (
                   <Box mt={3} display="flex" gap={2}>
                     <Button
                       variant="contained"
                       color="success"
                       disabled={submitting}
-                      onClick={() => handleResolve(true)}
+                      onClick={() => openResolveDialog(true)}
                     >
-                      {submitting ? "Processing..." : "Browse"}
+                      {submitting ? "Processing..." : "Approve"}
                     </Button>
                     <Button
                       variant="outlined"
                       color="error"
                       disabled={submitting}
-                      onClick={() => handleResolve(false)}
+                      onClick={() => openResolveDialog(false)}
                     >
-                      Từ chối
+                      Reject
                     </Button>
                   </Box>
                 )}
+
+              {(attendance.hrDecision || attendance.checkOutHrNote) && (
+                <Box mt={2}>
+                  <Chip
+                    label={
+                      attendance.hrDecision === "APPROVED"
+                        ? "Approved"
+                        : "Rejected"
+                    }
+                    color={
+                      attendance.hrDecision === "APPROVED" ? "success" : "error"
+                    }
+                    sx={{ mr: 1 }}
+                  />
+                  {attendance.hrResolvedAt && (
+                    <Typography variant="body2" sx={{ display: "inline" }}>
+                      • {new Date(attendance.hrResolvedAt).toLocaleString()}
+                    </Typography>
+                  )}
+                  {attendance.checkOutHrNote && (
+                    <Typography variant="body1" sx={{ mt: 1 }}>
+                      HR note: {attendance.checkOutHrNote}
+                    </Typography>
+                  )}
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Stack>
+        <Dialog
+          open={resolveDialogOpen}
+          onClose={() => setResolveDialogOpen(false)}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogTitle>
+            {resolveApproved ? "Approve explanation" : "Reject explanation"}
+          </DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              fullWidth
+              multiline
+              minRows={3}
+              label={
+                resolveApproved ? "HR note (optional)" : "HR note (required)"
+              }
+              value={resolveNote}
+              onChange={(e) => setResolveNote(e.target.value)}
+              onBlur={() => setResolveTouched(true)}
+              error={!resolveApproved && resolveTouched && !resolveNote.trim()}
+              helperText={
+                !resolveApproved && resolveTouched && !resolveNote.trim()
+                  ? "Please enter a reason to reject."
+                  : " "
+              }
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setResolveDialogOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              onClick={doResolve}
+              disabled={submitting || (!resolveApproved && !resolveNote.trim())}
+            >
+              {submitting
+                ? "Saving..."
+                : resolveApproved
+                ? "Approve"
+                : "Reject"}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Paper>
     </Box>
   );

@@ -84,4 +84,7 @@ public class Document {
 
     @Column(columnDefinition = "TEXT")
     private String signature;
+
+    @Column(columnDefinition = "TEXT")
+    private String managerNote;
 }

@@ -78,10 +78,12 @@ public class AttendanceController {
     @PostMapping("/check-out")
     public ResponseEntity<?> checkOut(
             @RequestParam Long accountId,
-            @RequestParam("image") MultipartFile image
+            @RequestParam("image") MultipartFile image,
+            @RequestParam double latitude,
+            @RequestParam double longitude
     ) {
         try {
-            Attendance attendance = attendanceService.checkOut(accountId, image);
+            Attendance attendance = attendanceService.checkOut(accountId, image, latitude, longitude);
             return ResponseEntity.ok(attendance);
         } catch (RuntimeException | IOException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Check-out failed: " + e.getMessage());
@@ -181,10 +183,12 @@ public class AttendanceController {
     public ResponseEntity<?> resolveMissingCheckOut(
             @RequestParam Long attendanceId,
             @RequestParam String note,
-            @RequestParam boolean approved
+            @RequestParam boolean approved,
+            HttpServletRequest request
     ) {
         try {
-            Attendance updated = attendanceService.resolveMissingCheckOut(attendanceId, note, approved);
+            Account hr = authService.getCurrentAccount(request);
+            Attendance updated = attendanceService.resolveMissingCheckOut(attendanceId, note, approved, hr);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());

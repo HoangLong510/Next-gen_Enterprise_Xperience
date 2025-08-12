@@ -17,6 +17,7 @@ import {
   Card,
   CardContent,
   Grid,
+  TextField,
 } from "@mui/material";
 import {
   Person,
@@ -28,13 +29,15 @@ import {
   FilePresent,
 } from "@mui/icons-material";
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import HistoryIcon from "@mui/icons-material/History";
+import { Link, useParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { setPopup } from "~/libs/features/popup/popupSlice";
 import {
   fetchDocumentDetailApi,
   downloadDocumentFileApi,
   signDocumentApi,
+  addManagerNoteApi,
 } from "~/services/document.service";
 import SignatureCanvas from "react-signature-canvas";
 import ProjectFormCreate from "~/components/project/form/ProjectFormCreate";
@@ -52,16 +55,35 @@ export default function DocumentDetail() {
   const account = useSelector((state) => state.account.value);
   const dispatch = useDispatch();
 
+  // NOTE của giám đốc
+  const [managerNote, setManagerNote] = useState("");
+  const [noteSaving, setNoteSaving] = useState(false);
+
   const fetchDetail = async () => {
     setLoading(true);
     const res = await fetchDocumentDetailApi(id);
-    if (res.status === 200) setDoc(res.data);
+    if (res.status === 200) {
+      setDoc(res.data);
+      if (account?.role !== "MANAGER") {
+        setManagerNote(
+          typeof res.data?.managerNote === "string" ? res.data.managerNote : ""
+        );
+      }
+    } else {
+      dispatch(
+        setPopup({
+          type: "error",
+          message: res.message || "Load document failed",
+        })
+      );
+    }
     setLoading(false);
   };
 
   useEffect(() => {
+    if (!id) return;
     fetchDetail();
-  }, [id]);
+  }, [id, account?.role]);
 
   const handleDownload = async () => {
     if (!doc?.fileUrl) return;
@@ -103,10 +125,48 @@ export default function DocumentDetail() {
     setLoading(false);
     setSignDialogOpen(false);
     if (res.status === 200) {
-      dispatch(setPopup({ type: "success", message: "Ký công văn thành công" }));
+      dispatch(
+        setPopup({ type: "success", message: "Ký công văn thành công" })
+      );
       fetchDetail();
     } else {
-      dispatch(setPopup({ type: "error", message: res.message || "Ký công văn thất bại!" }));
+      dispatch(
+        setPopup({
+          type: "error",
+          message: res.message || "Ký công văn thất bại!",
+        })
+      );
+    }
+  };
+
+  // Gửi ghi chú của MANAGER
+  const handleSubmitNote = async () => {
+    if (!managerNote.trim()) {
+      dispatch(setPopup({ type: "error", message: "Vui lòng nhập ghi chú" }));
+      return;
+    }
+    setNoteSaving(true);
+    const res = await addManagerNoteApi(id, managerNote.trim());
+    setNoteSaving(false);
+    if (res.status === 200) {
+      dispatch(
+        setPopup({ type: "success", message: "Đã gửi ghi chú cho thư ký" })
+      );
+      // Hiển thị ngay trên UI
+      setDoc((prev) =>
+        prev ? { ...prev, managerNote: managerNote.trim() } : prev
+      );
+      // Xoá nội dung ô nhập để tránh gửi lại
+      setManagerNote("");
+      // Tuỳ chọn: sync lại từ server (an toàn vì fetchDetail không đổ vào input khi role=MANAGER)
+      fetchDetail();
+    } else {
+      dispatch(
+        setPopup({
+          type: "error",
+          message: res.message || "Gửi ghi chú thất bại!",
+        })
+      );
     }
   };
 
@@ -234,7 +294,6 @@ export default function DocumentDetail() {
                 />
               </Card>
             )}
-
             <Card elevation={3} sx={{ mb: 4, borderRadius: 3 }}>
               <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                 <Typography
@@ -266,7 +325,6 @@ export default function DocumentDetail() {
                 </Box>
               </CardContent>
             </Card>
-
             <Card elevation={3} sx={{ mb: 4, borderRadius: 3 }}>
               <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                 <Typography
@@ -298,6 +356,26 @@ export default function DocumentDetail() {
                       }}
                     >
                       {downloading ? "Downloading..." : "Download Word file"}
+                    </Button>
+                  )}
+
+                  {/* Nút xem lịch sử công văn */}
+                  {(account?.role === "ADMIN" ||
+                    account?.role === "MANAGER") && (
+                    <Button
+                      variant="outlined"
+                      startIcon={<HistoryIcon />}
+                      component={Link}
+                      to={`/management/documents/${doc.id}/histories`}
+                      sx={{
+                        fontWeight: 700,
+                        textTransform: "none",
+                        borderRadius: 2,
+                        px: 3,
+                        py: 1.5,
+                      }}
+                    >
+                      View document history
                     </Button>
                   )}
 
@@ -337,12 +415,102 @@ export default function DocumentDetail() {
                       Create Project
                     </Button>
                   )}
-                </Stack>
+                </Stack>{" "}
+                {account?.role === "MANAGER" && doc.status === "NEW" && (
+                  <Box
+                    sx={{
+                      mt: 2,
+                      borderRadius: 2,
+                      border: `1px dashed ${alpha(
+                        theme.palette.warning.main,
+                        0.6
+                      )}`,
+                      p: 2,
+                      background: alpha(theme.palette.warning.light, 0.08),
+                    }}
+                  >
+                    <Typography
+                      variant="subtitle1"
+                      fontWeight={700}
+                      color="warning.main"
+                      sx={{ mb: 1.5 }}
+                    >
+                      📌 Ghi chú cho thư ký
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      multiline
+                      minRows={3}
+                      value={managerNote}
+                      onChange={(e) => setManagerNote(e.target.value)}
+                      placeholder="Nhập ghi chú yêu cầu chỉnh sửa..."
+                    />
+                    <Stack
+                      direction="row"
+                      justifyContent="flex-end"
+                      sx={{ mt: 1.5 }}
+                    >
+                      <Button
+                        variant="contained"
+                        color="warning"
+                        onClick={handleSubmitNote}
+                        disabled={noteSaving}
+                        sx={{ textTransform: "none", borderRadius: 2 }}
+                      >
+                        {noteSaving ? "Đang gửi..." : "Gửi yêu cầu chỉnh sửa"}
+                      </Button>
+                    </Stack>
+                  </Box>
+                )}
               </CardContent>
             </Card>
+            <Divider sx={{ mb: 4 }} />{" "}
+            {/* Hiển thị ghi chú mới nhất (chỉ MANAGER & SECRETARY & ADMIN) */}
+            {(account?.role === "MANAGER" ||
+              account?.role === "ADMIN" ||
+              account?.role === "SECRETARY") &&
+              doc?.managerNote && (
+                <Card elevation={3} sx={{ mb: 4, borderRadius: 3 }}>
+                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                    <Typography
+                      variant="h6"
+                      fontWeight={600}
+                      color="warning.main"
+                      sx={{ mb: 1.5 }}
+                    >
+                      🗒️ Ghi chú mới nhất từ Giám đốc
+                    </Typography>
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        background: alpha(theme.palette.warning.light, 0.08),
+                        border: `1px solid ${alpha(
+                          theme.palette.warning.main,
+                          0.3
+                        )}`,
+                        whiteSpace: "pre-wrap",
+                        mb: 2, // thêm margin dưới để cách nút
+                      }}
+                    >
+                      {doc.managerNote}
+                    </Box>
 
-            <Divider sx={{ mb: 4 }} />
-
+                    {/* Nếu ADMIN và doc đang NEW thì hiện nút chỉnh sửa */}
+                    {account?.role === "ADMIN" && doc.status === "NEW" && (
+                      <Button
+                        variant="contained"
+                        color="warning"
+                        component={Link}
+                        to={`/management/documents/${doc.id}/update`}
+                        sx={{ textTransform: "none", borderRadius: 2 }}
+                      >
+                        Chỉnh sửa theo ghi chú
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             <Card elevation={3} sx={{ borderRadius: 3 }}>
               <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                 <Typography

@@ -13,6 +13,8 @@ import CreateSalaryPage from "~/pages/accountant/salary"
 import ProjectManagement from "~/pages/management/project/list-project"
 import ProjectDetailPage from "~/pages/management/project/ProjectDetailPage"
 import SalaryDetail from "~/pages/accountant/salary-detail"
+import DocumentUpdate from "~/pages/management/document/DocumentUpdate"
+import DocumentHistoryList from "~/pages/management/document/DocumentHistoryList"
 const roleRoutes = [
 	{
 		path: "/management/accounts",
@@ -31,6 +33,18 @@ const roleRoutes = [
 		component: DocumentList,
 		layout: DefaultLayout,
 		roles: ["ADMIN", "MANAGER", "PM","ACCOUNTANT"]
+	},
+	{
+		path: "/management/documents/:id/update",
+		component: DocumentUpdate,
+		layout: DefaultLayout,
+		roles: ["ADMIN"]
+	},
+	{
+		path: "/management/documents/:id/histories",
+		component: DocumentHistoryList,
+		layout: DefaultLayout,
+		roles: ["MANAGER","ADMIN"]
 	},
 	{
 		path: "/management/projects",

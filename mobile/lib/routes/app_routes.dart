@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/guards/role_guard.dart';
+import 'package:mobile/screens/attendance/attendance_list_page.dart';
+import 'package:mobile/screens/attendance/face_attendance_page.dart';
 import 'package:mobile/screens/home_page.dart';
 import 'package:mobile/screens/login_page.dart';
 import 'package:mobile/screens/logout_page.dart';
@@ -8,6 +10,7 @@ import 'package:mobile/screens/dispatches/dispatches_list_page.dart';
 import 'package:mobile/screens/dispatches/dispatch_detail_page.dart';
 import 'package:mobile/screens/dispatches/dispatch_create_page.dart';
 import 'package:mobile/screens/notifaications/notification_list_page.dart';
+import 'package:mobile/screens/attendance/attendance_details_page.dart';
 
 Route<dynamic> generateRoute(RouteSettings settings) {
   final name = settings.name;
@@ -55,6 +58,28 @@ Route<dynamic> generateRoute(RouteSettings settings) {
 
     // TODO: /project/:id nếu sau này có
     // if (name.startsWith("/project/")) { ... }
+
+    // /attendance/detail/:id
+    if (name.startsWith("/attendance/detail/")) {
+      final idStr = name.substring("/attendance/detail/".length);
+      final id = int.tryParse(idStr);
+      if (id != null) {
+        return _buildPage(
+          allowRoles: [
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
+          ],
+          child: AttendanceDetailPage(attendanceId: id),
+        );
+      } else {
+        return _errorPage("Lỗi: ID attendance không hợp lệ");
+      }
+    }
   }
 
   switch (name) {
@@ -73,6 +98,57 @@ Route<dynamic> generateRoute(RouteSettings settings) {
           child: CustomLayout(child: HomePage()),
         ),
       );
+
+    case "/attendance/list":
+      return MaterialPageRoute(
+        builder: (_) => RoleGuard(
+          allowRoles: [
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
+          ],
+          child: CustomLayout(child: AttendanceListPage()),
+        ),
+      );
+
+    case "/attendance/detail":
+      final id = settings.arguments as int?;
+      if (id == null) return _errorPage("Thiếu attendanceId");
+      return MaterialPageRoute(
+        builder: (_) => RoleGuard(
+          allowRoles: [
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
+          ],
+          child: CustomLayout(child: AttendanceDetailPage(attendanceId: id)),
+        ),
+      );
+
+    case "/attendance":
+      return MaterialPageRoute(
+        builder: (_) => RoleGuard(
+          allowRoles: [
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
+          ],
+          child: CustomLayout(child: CheckInCheckOutPage()),
+        ),
+      );
+
     case "/management/documents":
       return MaterialPageRoute(
         builder: (_) => RoleGuard(

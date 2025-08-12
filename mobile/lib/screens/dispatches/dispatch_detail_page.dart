@@ -23,10 +23,15 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
   DocumentModel? document;
   bool isLoading = true;
   String? previewHtml;
+
   final SignatureController _signatureController = SignatureController(
     penStrokeWidth: 3,
     penColor: Colors.blue,
   );
+
+  // NOTE
+  final TextEditingController _noteController = TextEditingController();
+  bool _noteSaving = false;
 
   @override
   void initState() {
@@ -42,7 +47,10 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
         document = doc;
         previewHtml = html;
       });
+      // Prefill note field (nếu MANAGER mở lại muốn sửa/ghi đè)
+      _noteController.text = doc.managerNote ?? '';
     } catch (e) {
+      // ignore: avoid_print
       print("Error fetching detail: $e");
     } finally {
       setState(() => isLoading = false);
@@ -54,10 +62,9 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
       final base64 = base64Encode(signatureBytes);
       final res = await DocumentService.signDocument(widget.id, base64);
       if (res.status == 200) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Ký công văn thành công")));
-        await fetchDetail(); // hoặc bỏ nếu không cần load lại tại đây
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("Ký công văn thành công")));
+        await fetchDetail();
         return true;
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -66,10 +73,38 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
         return false;
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Lỗi khi ký công văn")));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Lỗi khi ký công văn")));
       return false;
+    }
+  }
+
+  Future<void> handleSubmitNote() async {
+    final note = _noteController.text.trim();
+    if (note.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Vui lòng nhập ghi chú")));
+      return;
+    }
+    setState(() => _noteSaving = true);
+    try {
+      final res = await DocumentService.addManagerNote(widget.id, note);
+      if (res.status == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Đã lưu ghi chú")),
+        );
+        await fetchDetail(); // sync lại UI
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(res.message ?? "Lưu ghi chú thất bại")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Có lỗi khi lưu ghi chú")),
+      );
+    } finally {
+      setState(() => _noteSaving = false);
     }
   }
 
@@ -115,7 +150,7 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
           title: const Text("✍️ Ký công văn"),
           content: SizedBox(
             width: double.maxFinite,
-            height: 320, // Đặt chiều cao cố định
+            height: 320,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -155,17 +190,12 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
                   if (signature != null) {
                     final result = await handleSign(signature);
                     if (result) {
-                      Navigator.pop(
-                        context,
-                        'signed',
-                      ); // chỉ pop khi ký thành công
+                      Navigator.pop(context, 'signed');
                     }
                   }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Bạn cần ký trước khi xác nhận."),
-                    ),
+                    const SnackBar(content: Text("Bạn cần ký trước khi xác nhận.")),
                   );
                 }
               },
@@ -189,10 +219,10 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
     }
 
     final doc = document!;
-    final currentUser = Provider.of<AuthProvider>(
-      context,
-      listen: false,
-    ).account;
+    final currentUser = Provider.of<AuthProvider>(context, listen: false).account;
+    final isManager = currentUser?.role == 'MANAGER';
+    final canManagerNote = isManager && doc.status == DocumentStatus.NEW;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Chi tiết công văn"),
@@ -200,7 +230,7 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
         actions: [
           if (doc.status == DocumentStatus.NEW &&
               doc.signature == null &&
-              currentUser?.role == 'MANAGER') // ✅ Thêm điều kiện này
+              isManager)
             IconButton(
               onPressed: showSignDialog,
               icon: const Icon(Icons.edit_document),
@@ -213,6 +243,7 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Thông tin cơ bản
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -223,13 +254,11 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    doc.title,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text(doc.title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      )),
                   const SizedBox(height: 12),
                   buildField("Mã công văn", doc.code),
                   buildField("Người gửi", doc.createdBy),
@@ -243,27 +272,77 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            if (previewHtml != null)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "📄 Xem trước công văn (Word):",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Html(data: previewHtml!),
-                  ),
-                ],
+
+            const SizedBox(height: 16),
+
+            // Khu vực ghi chú của Giám đốc
+            if (canManagerNote) ...[
+              const SizedBox(height: 8),
+              const Text(
+                "🗒️ Ghi chú cho thư ký",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: _noteController,
+                maxLines: 5,
+                decoration: InputDecoration(
+                  hintText: "Nhập ghi chú yêu cầu chỉnh sửa...",
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton(
+                  onPressed: _noteSaving ? null : handleSubmitNote,
+                  child: Text(_noteSaving ? "Đang gửi..." : "Gửi yêu cầu chỉnh sửa"),
+                ),
+              ),
+            ],
+
+            // Hiển thị ghi chú gần nhất (MANAGER/ADMIN/SECRETARY)
+            if ((currentUser?.role == 'MANAGER' ||
+                    currentUser?.role == 'ADMIN' ||
+                    currentUser?.role == 'SECRETARY') &&
+                (doc.managerNote != null && doc.managerNote!.trim().isNotEmpty)) ...[
+              const SizedBox(height: 16),
+              const Text(
+                "🗒️ Ghi chú mới nhất từ Giám đốc",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  border: Border.all(color: Colors.orange.shade200),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(doc.managerNote!),
+              ),
+            ],
+
+            const SizedBox(height: 24),
+
+            // Preview Word -> HTML
+            if (previewHtml != null) ...[
+              const Text(
+                "📄 Xem trước công văn (Word):",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Html(data: previewHtml!),
+              ),
+            ],
           ],
         ),
       ),
@@ -273,6 +352,7 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
   @override
   void dispose() {
     _signatureController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 }
