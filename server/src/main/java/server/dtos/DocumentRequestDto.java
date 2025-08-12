@@ -16,7 +16,6 @@ public class DocumentRequestDto {
     private String projectName;
     private String projectDescription;
     private LocalDate projectDeadline;
-    private ProjectPriority projectPriority;
     private Long pmId;
     private String fundName;
     private Double fundBalance;

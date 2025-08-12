@@ -85,7 +85,7 @@ const roleRoutes = [
     path: "/management/projects/:id",
     component: ProjectDetailPage,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM"],
+    roles: ["ADMIN", "MANAGER", "PM","EMPLOYEE"],
   },
 
   // Kanban (Project & Phase)
@@ -99,7 +99,7 @@ const roleRoutes = [
     path: "/projects/:projectId/phase/:phaseId/kanban",
     component: ProjectKanbanBoard,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM"],
+    roles: ["ADMIN", "MANAGER", "PM","EMPLOYEE"],
   },
 
   // Departments

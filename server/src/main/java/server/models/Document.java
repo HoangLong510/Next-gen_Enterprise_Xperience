@@ -39,10 +39,6 @@ public class Document {
     @Column(name = "project_deadline")
     private LocalDate projectDeadline;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "project_priority")
-    private ProjectPriority projectPriority;
-
     @ManyToOne
     @JoinColumn(name = "created_by_id")
     private Account createdBy;

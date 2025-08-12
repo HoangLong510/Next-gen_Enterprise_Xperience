@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zwobble.mammoth.DocumentConverter;
@@ -90,11 +89,6 @@ public class DocumentService {
                     .stream()
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Accountant not found"));
-        } else {
-            if (request.getReceiverId() != null) {
-                receiver = accountRepository.findById(request.getReceiverId())
-                        .orElseThrow(() -> new IllegalArgumentException("Receiver not found"));
-            }
         }
 
         Document.DocumentBuilder builder = Document.builder()
@@ -113,7 +107,6 @@ public class DocumentService {
             builder.projectName(request.getProjectName());
             builder.projectDescription(request.getProjectDescription());
             builder.projectDeadline(request.getProjectDeadline());
-            builder.projectPriority(request.getProjectPriority());
             builder.pm(pm);
         }
 
@@ -151,7 +144,6 @@ public class DocumentService {
             placeholders.put("moTaDuAn", saved.getProjectDescription() != null ? saved.getProjectDescription() : "");
             placeholders.put("hanHoanThanh", saved.getProjectDeadline() != null ?
                     saved.getProjectDeadline().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "");
-            placeholders.put("mucDoUuTien", saved.getProjectPriority() != null ? saved.getProjectPriority().toString() : "");
             // Lấy tên PM
             if (saved.getPm() != null && saved.getPm().getEmployee() != null) {
                 var emp = saved.getPm().getEmployee();
@@ -166,7 +158,6 @@ public class DocumentService {
             placeholders.put("tenDuAn", "");
             placeholders.put("moTaDuAn", "");
             placeholders.put("hanHoanThanh", "");
-            placeholders.put("mucDoUuTien", "");
             placeholders.put("tenPM", "");
         }
 
@@ -245,7 +236,6 @@ public class DocumentService {
 
         dto.setProjectName(doc.getProjectName());
         dto.setProjectDescription(doc.getProjectDescription());
-        dto.setProjectPriority(doc.getProjectPriority() != null ? doc.getProjectPriority().toString() : null);
         dto.setProjectDeadline(doc.getProjectDeadline() != null ? doc.getProjectDeadline().toString() : null);
 
         // PM
@@ -369,7 +359,6 @@ public class DocumentService {
             placeholders.put("hanHoanThanh", doc.getProjectDeadline() != null
                     ? doc.getProjectDeadline().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                     : "");
-            placeholders.put("mucDoUuTien", doc.getProjectPriority() != null ? doc.getProjectPriority().toString() : "");
             // Lấy tên PM
             if (doc.getPm() != null && doc.getPm().getEmployee() != null) {
                 var emp = doc.getPm().getEmployee();
@@ -383,7 +372,6 @@ public class DocumentService {
             placeholders.put("tenDuAn", "");
             placeholders.put("moTaDuAn", "");
             placeholders.put("hanHoanThanh", "");
-            placeholders.put("mucDoUuTien", "");
             placeholders.put("tenPM", "");
         }
 
@@ -619,7 +607,6 @@ public class DocumentService {
                 .fileUrl(doc.getFileUrl())
                 .projectName(doc.getProjectName())
                 .projectDescription(doc.getProjectDescription())
-                .projectPriority(doc.getProjectPriority() != null ? doc.getProjectPriority().toString() : null)
                 .projectDeadline(doc.getProjectDeadline() != null ? doc.getProjectDeadline().toString() : null)
                 .fundName(doc.getFundName())
                 .fundBalance(doc.getFundBalance())
@@ -665,7 +652,6 @@ public class DocumentService {
                 .fileUrl(doc.getFileUrl())
                 .projectName(doc.getProjectName())
                 .projectDescription(doc.getProjectDescription())
-                .projectPriority(doc.getProjectPriority() != null ? doc.getProjectPriority().toString() : null)
                 .projectDeadline(doc.getProjectDeadline() != null ? doc.getProjectDeadline().toString() : null)
                 .fundName(doc.getFundName())
                 .fundBalance(doc.getFundBalance())
@@ -690,7 +676,6 @@ public class DocumentService {
             doc.setProjectName(req.getProjectName());
             doc.setProjectDescription(req.getProjectDescription());
             doc.setProjectDeadline(req.getProjectDeadline());
-            doc.setProjectPriority(req.getProjectPriority());
 
             if (req.getPmId() != null) {
                 Account candidate = accountRepository.findById(req.getPmId())
@@ -725,7 +710,6 @@ public class DocumentService {
             placeholders.put("tenDuAn", doc.getProjectName() != null ? doc.getProjectName() : "");
             placeholders.put("moTaDuAn", doc.getProjectDescription() != null ? doc.getProjectDescription() : "");
             placeholders.put("hanHoanThanh", doc.getProjectDeadline() != null ? doc.getProjectDeadline().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "");
-            placeholders.put("mucDoUuTien", doc.getProjectPriority() != null ? doc.getProjectPriority().toString() : "");
             if (doc.getPm() != null && doc.getPm().getEmployee() != null) {
                 var emp = doc.getPm().getEmployee();
                 placeholders.put("tenPM", emp.getFirstName() + " " + emp.getLastName());
@@ -736,7 +720,6 @@ public class DocumentService {
             placeholders.put("tenDuAn", "");
             placeholders.put("moTaDuAn", "");
             placeholders.put("hanHoanThanh", "");
-            placeholders.put("mucDoUuTien", "");
             placeholders.put("tenPM", "");
         }
 
