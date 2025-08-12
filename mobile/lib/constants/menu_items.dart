@@ -62,7 +62,6 @@ const List<MenuSection> menuItems = [
       ),
     ],
   ),
-  // Finances (bị trùng với Management > Finance) đã được loại bỏ
   MenuSection(
     title: "Utilities",
     items: [
@@ -84,7 +83,7 @@ const List<MenuSection> menuItems = [
         route: "/management/documents",
         roles: ["ADMIN", "MANAGER", "PM"],
       ),
-      // Theo rule trước đó: Tasks dành cho HOD & EMPLOYEE
+      // Tasks chỉ dành cho HOD & EMPLOYEE
       MenuItemData(
         label: "Tasks",
         icon: Icons.task_alt,

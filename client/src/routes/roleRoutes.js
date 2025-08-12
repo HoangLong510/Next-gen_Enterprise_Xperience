@@ -20,7 +20,7 @@ import CreateSalaryPage from "~/pages/accountant/salary";
 import SalaryDetail from "~/pages/accountant/salary-detail";
 
 const roleRoutes = [
-  // Accounts
+  // Accounts — ADMIN
   {
     path: "/management/accounts",
     component: AccountsManagement,
@@ -34,7 +34,7 @@ const roleRoutes = [
     roles: ["ADMIN"],
   },
 
-  // Documents
+  // Documents — có ACCOUNTANT
   {
     path: "/management/documents",
     component: DocumentList,
@@ -48,7 +48,7 @@ const roleRoutes = [
     roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
   },
 
-  // Projects
+  // Projects — ADMIN/MANAGER/PM
   {
     path: "/management/projects",
     component: ProjectManagement,
@@ -62,7 +62,7 @@ const roleRoutes = [
     roles: ["ADMIN", "MANAGER", "PM"],
   },
 
-  // Kanban (theo Project/Phase) — chỉ ADMIN/MANAGER/PM
+  // Kanban (Project & Phase) — ADMIN/MANAGER/PM
   {
     path: "/projects/:id/kanban",
     component: ProjectKanbanBoard,
@@ -128,7 +128,7 @@ const roleRoutes = [
     roles: ["ADMIN", "HOD", "ACCOUNTANT"],
   },
 
-  // Tasks (HOD & EMPLOYEE) — dùng KanbanForm có filter Project
+  // Tasks — HOD & EMPLOYEE (Kanban có filter Project)
   {
     path: "/utilities/tasks",
     component: ProjectKanbanBoard,

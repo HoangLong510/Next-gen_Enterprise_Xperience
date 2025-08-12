@@ -23,7 +23,6 @@
 	"create-department-success": "Tạo phòng ban thành công",
 	"edit-department-success": "Chỉnh sửa phòng ban thành công",
 	"update-department-success": "Cập nhật phòng ban thành công",
-
 	"fund-created": "Tạo quỹ thành công.",
 	"failed-to-create-fund": "Tạo quỹ thất bại.",
 	"transaction-created": "Tạo giao dịch thành công.",
@@ -37,7 +36,6 @@
   	"employee-add-success": "Thêm nhân viên mới thành công!",
  	"employee-delete-success": "Xóa nhân viên thành công!",
  	"fetch-data-error": "Lỗi khi tải dữ liệu. Vui lòng thử lại!",
-
 
 	"project-created-successfully": "Tạo dự án thành công",
 	"project-updated-successfully": "Cập nhật dự án thành công",
@@ -79,5 +77,7 @@
   "clear-all-evidence": "Xóa tất cả evidence"
 
 
+
 }
+
 

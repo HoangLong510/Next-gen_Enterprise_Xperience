@@ -10,10 +10,6 @@ import server.dtos.*;
 import server.models.*;
 import server.models.enums.*;
 
-import server.models.*;
-import server.models.enums.*;
-
-
 import server.models.Account;
 import server.models.Document;
 import server.models.Project;
@@ -28,6 +24,7 @@ import server.utils.JwtUtil;
 
 
 import java.io.IOException;
+
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -147,15 +144,16 @@ public class ProjectService {
                 .name(document.getProjectName())
                 .description(document.getProjectDescription())
                 .createdAt(LocalDate.now())
+
                 .deadline(document.getProjectDeadline())
                 .deadline(dto.getDeadline())
+
                 .status(ProjectStatus.PLANNING)
                 .document(document)
                 .projectManager(pm)
                 .build();
 
         projectRepository.save(project);
-
         projectRepository.flush();
 
         document.setProject(project);
@@ -166,7 +164,6 @@ public class ProjectService {
                 project.getId(),
                 false
         );
-  
 
         return ApiResponse.success(null, "project-created-successfully");
 

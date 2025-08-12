@@ -20,7 +20,11 @@ import dayjs from "dayjs";
 
 const schema = yup.object({
   name: yup.string().required("Project name is required").min(3).max(100),
-  description: yup.string().required("Description is required").min(10).max(1000),
+  description: yup
+    .string()
+    .required("Description is required")
+    .min(10)
+    .max(1000),
   deadline: yup
     .string()
     .nullable()
@@ -34,15 +38,16 @@ const schema = yup.object({
       const localToday = `${year}-${month}-${day}`;
       return value >= localToday;
     }),
+
   // Cho phép có priority nhưng không bắt buộc (để không vướng validate)
   priority: yup.string().nullable().notRequired(),
+
 });
 
 const defaultValues = {
   name: "",
   description: "",
   deadline: dayjs().add(7, "day").format("YYYY-MM-DD"),
-  priority: "MEDIUM",
 };
 
 export default function ProjectFormCreate({
@@ -55,6 +60,7 @@ export default function ProjectFormCreate({
   pmName,
 }) {
   const {
+
     control,
     handleSubmit,
     reset,
@@ -87,6 +93,49 @@ export default function ProjectFormCreate({
     } else if (initialData) {
       let deadline =
         initialData.deadline ?? dayjs().add(7, "day").format("YYYY-MM-DD");
+
+  control,
+  handleSubmit,
+  reset,
+  formState: { errors },
+} = useForm({
+  resolver: yupResolver(schema),
+  defaultValues, // dùng defaultValues, nhưng luôn reset lại bên dưới
+});
+
+
+useEffect(() => {
+  if (document) {
+    reset({
+      name: document.projectName || "",
+      description: document.projectDescription || "",
+      priority: document.projectPriority || "MEDIUM",
+      deadline: document.projectDeadline
+        ? dayjs(document.projectDeadline).format("YYYY-MM-DD")
+        : dayjs().add(7, "day").format("YYYY-MM-DD"),
+    });
+  } else if (initialData) {
+    reset({ ...defaultValues, ...initialData });
+  } else {
+    reset(defaultValues);
+  }
+}, [document, open]);
+
+
+  const deadlineValue = document?.projectDeadline
+    ? dayjs(document.projectDeadline).format("YYYY-MM-DD")
+    : "";
+
+  useEffect(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    const localToday = `${year}-${month}-${day}`;
+
+    if (initialData) {
+      let deadline = initialData.deadline ?? "";
+
       if (deadline && deadline < localToday) {
         deadline = localToday;
       }
@@ -94,6 +143,7 @@ export default function ProjectFormCreate({
     } else {
       reset(defaultValues);
     }
+
   }, [document, initialData, open, reset]);
 
   const dispatch = useDispatch();
@@ -120,7 +170,45 @@ export default function ProjectFormCreate({
         })
       );
     }
+
+  }, [initialData, reset]);
+
+
+const dispatch = useDispatch();
+const { t } = useTranslation("messages");
+
+const handleFormSubmit = async (data) => {
+  const payload = {
+    ...data,
+    documentId,
+
   };
+  const res = await createProjectFromDocument(payload);
+
+  if (res?.status === 200 ||  res.status === 201) {        // BE trả về status 201 khi create thành công
+    dispatch(
+      setPopup({
+        type: "success",
+        message: res.message || "project-created-successfully", // message key từ BE hoặc fallback
+      })
+    );
+    onSubmit?.();
+    onClose();
+  } else {
+    dispatch(
+      setPopup({
+        type: "error",
+        message: res.message || "create-project-failed", // fallback khi BE không trả message
+      })
+    );
+  }
+};
+
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  const localToday = `${year}-${month}-${day}`;
 
   const today = new Date();
   const year = today.getFullYear();
@@ -134,10 +222,11 @@ export default function ProjectFormCreate({
         <Typography fontWeight={600}>Create Project from Document</Typography>
       </DialogTitle>
 
-      <DialogContent>
+        <DialogContent>
         <Stack spacing={2} mt={1}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            📌 Project Manager: <strong>{pmName || document?.pmName || ""}</strong>
+            📌 Project Manager:{" "}
+            <strong>{pmName || document?.pmName || ""}</strong>
           </Typography>
 
           <Controller
@@ -155,7 +244,6 @@ export default function ProjectFormCreate({
               />
             )}
           />
-
           <Controller
             name="description"
             control={control}
@@ -173,7 +261,6 @@ export default function ProjectFormCreate({
               />
             )}
           />
-
           <Controller
             name="deadline"
             control={control}
@@ -189,10 +276,10 @@ export default function ProjectFormCreate({
                 inputProps={{ min: localToday }}
                 error={!!errors.deadline}
                 helperText={errors.deadline?.message}
+
               />
             )}
           />
-
           <Controller
             name="priority"
             control={control}
@@ -208,6 +295,13 @@ export default function ProjectFormCreate({
               />
             )}
           />
+
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: localToday }}
+              />
+            )}
+          />
+
         </Stack>
       </DialogContent>
 
