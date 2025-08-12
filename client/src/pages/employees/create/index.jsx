@@ -76,7 +76,17 @@ const schema = yup.object({
 		.string()
 		.required("role-is-required")
 		.oneOf(
-			["MANAGER", "PM", "HR", "ACCOUNTANT", "HOD", "EMPLOYEE"],
+			[
+				"ADMIN",
+				"MANAGER",
+				"PM",
+				"HR",
+				"ACCOUNTANT",
+				"HOD",
+				"EMPLOYEE",
+				"CHIEFACCOUNTANT",
+				"SECRETARY"
+			],
 			"invalid-role"
 		)
 })

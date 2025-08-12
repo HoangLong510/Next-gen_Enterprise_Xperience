@@ -249,6 +249,7 @@ public class EmployeeService {
         dto.setRole(account.getRole());
         dto.setDateBirth(account.getEmployee().getDateBirth());
         dto.setAddress(account.getEmployee().getAddress());
+        dto.setEnabled(account.isEnabled());
 
         return ApiResponse.success(dto, "get-employee-details-successfully");
     }

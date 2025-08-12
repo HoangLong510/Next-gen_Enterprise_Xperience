@@ -53,11 +53,12 @@
 	"department-description-is-required": "Mô tả của phòng ban là bắt buộc",
 	"hod-is-required": "Trưởng phòng là bắt buộc",
 	"phase-name-is-required": "Tên phase là bắt buộc",
-  "phase-name-must-be-at-least-3-characters": "Tên phase tối thiểu 3 ký tự",
-  "phase-name-must-be-at-most-100-characters": "Tên phase tối đa 100 ký tự",
-  "deadline-is-required": "Hạn phase là bắt buộc",
-  "invalid-date-format": "Định dạng ngày không hợp lệ",
-  "deadline-before-today": "Hạn không được trước hôm nay",
-  "deadline-before-previous-phase": "Hạn không được trước phase liền trước",
-  "deadline-after-project-deadline": "Hạn không được vượt quá hạn của dự án"
+	"phase-name-must-be-at-least-3-characters": "Tên phase tối thiểu 3 ký tự",
+	"phase-name-must-be-at-most-100-characters": "Tên phase tối đa 100 ký tự",
+	"deadline-is-required": "Hạn phase là bắt buộc",
+	"invalid-date-format": "Định dạng ngày không hợp lệ",
+	"deadline-before-today": "Hạn không được trước hôm nay",
+	"deadline-before-previous-phase": "Hạn không được trước phase liền trước",
+	"deadline-after-project-deadline": "Hạn không được vượt quá hạn của dự án",
+	"invalid-role": "Vai trò không hợp lệ"
 }
