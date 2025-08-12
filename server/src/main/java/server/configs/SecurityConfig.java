@@ -49,6 +49,9 @@ public class SecurityConfig {
                                 "/auth/fetch-data",
                                 "/auth/refresh-token",
                                 "/uploads/**",
+                                "/github/login",
+                                "/github/callback",
+                                "/github/webhook",
                                 "/ws/**", "/ws", "/ws/info" , "/ws/info/**"
                         ).permitAll()
                         .anyRequest().authenticated()

@@ -9,4 +9,5 @@ public class AccountResponse {
     private String role;         // ADMIN, MANAGER, HOD, PM, EMPLOYEE
     private String fullName;     // Employee full name
     private String email;        // Employee email (optional)
+    private String phone;
 }

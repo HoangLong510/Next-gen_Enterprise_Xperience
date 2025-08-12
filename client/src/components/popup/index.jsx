@@ -60,6 +60,10 @@ export default function Popup() {
 	const { t } = useTranslation("popup")
 	const { t: tMess } = useTranslation("messages")
 	const popup = useSelector((state) => state.popup.value)
+	console.log("Popup message key nhận được:", popup.data?.message)
+console.log("Kết quả dịch (messages):", tMess(popup.data?.message))
+console.log("Kết quả dịch (popup):", t(popup.data?.message))
+
 	const dispatch = useDispatch()
 	const theme = useTheme()
 

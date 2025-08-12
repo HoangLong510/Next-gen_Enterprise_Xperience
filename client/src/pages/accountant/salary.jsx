@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-
+import { useDispatch } from "react-redux";
+import { setPopup } from "~/libs/features/popup/popupSlice";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -25,8 +27,15 @@ import {
   TableRow,
   Paper,
   Stack,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Grid,
+  Avatar,
 } from "@mui/material";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import DownloadIcon from "@mui/icons-material/Download";
 import { Add as AddIcon, Close as CloseIcon } from "@mui/icons-material";
 
 import SingleSalaryForm from "~/pages/accountant/form-single-payslip";
@@ -35,9 +44,9 @@ import MultipleSalaryForm from "~/pages/accountant/form-multiple-payslip";
 import {
   createSalaryApi,
   getAllDepartmentsApi,
-  getAllSalariesWithFiltersApi,
-  getEmployeeBasicInfoApi,
+  generateMonthlySalaryApi,
   getSalarySummaryApi,
+  getAllRolesApi,
 } from "~/services/accountant/salary.service";
 import { formatCurrency } from "~/utils/function";
 import CustomAvatar from "~/components/custom-avatar";
@@ -45,15 +54,19 @@ import CustomAvatar from "~/components/custom-avatar";
 const positionsList = ["EMPLOYEE", "MANAGER", "DIRECTOR", "INTERN"];
 
 export default function PayrollTable() {
+  const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [drawerMode, setDrawerMode] = useState("");
   const [formType, setFormType] = useState(null);
   const [singleInput, setSingleInput] = useState("");
   const [baseSalary, setBaseSalary] = useState("");
   const [empInfo, setEmpInfo] = useState(null);
+  const [rolesList, setRolesList] = useState([]);
   const [data, setData] = useState([]);
   const [departmentsList, setDepartmentsList] = useState([]);
+
+  const dispatch = useDispatch();
+
   const [filters, setFilters] = useState({
     department: "",
     position: "",
@@ -62,30 +75,6 @@ export default function PayrollTable() {
 
   const handleCreateSingle = () => setFormType("single");
   const handleCreateMultiple = () => setFormType("multiple");
-
-  const handleSearchEmployee = async () => {
-    if (!singleInput.trim()) return;
-    const res = await getEmployeeBasicInfoApi(singleInput);
-    if (res.status === 200) setEmpInfo(res.data);
-    else {
-      setEmpInfo(null);
-      alert(res.message);
-    }
-  };
-
-  const handleSubmitSingleSalary = async () => {
-    if (!singleInput || !baseSalary) return alert("Vui lòng nhập đầy đủ");
-    const res = await createSalaryApi(singleInput, baseSalary);
-    if (res.status === 201) {
-      alert("Tạo phiếu thành công");
-      setDrawerOpen(false);
-      setSingleInput("");
-      setBaseSalary("");
-      setEmpInfo(null);
-    } else {
-      alert(res.message);
-    }
-  };
 
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -101,38 +90,83 @@ export default function PayrollTable() {
   }, []);
 
   useEffect(() => {
-    const fetchSalarySummary = async () => {
-      const res = await getSalarySummaryApi(filters);
+    const fetchDepartments = async () => {
+      const res = await getAllDepartmentsApi();
       if (res.status === 200) {
-        const grouped = groupSalariesByDepartment(res.data);
-        setData(grouped);
+        setDepartmentsList(res.data);
       } else {
-        console.error("Lỗi lấy tổng hợp lương:", res.message);
+        console.error("Lỗi lấy danh sách phòng ban:", res.message);
       }
     };
 
+    const fetchRoles = async () => {
+      const res = await getAllRolesApi();
+      if (res.status === 200) {
+        setRolesList(res.data);
+      } else {
+        console.error("Lỗi lấy danh sách vai trò:", res.message);
+      }
+    };
+    fetchRoles();
+  }, []);
+
+  const fetchSalarySummary = async () => {
+    const res = await getSalarySummaryApi(filters);
+    if (res.status === 200) {
+      const grouped = groupSalariesByMonthAndDepartment(res.data);
+      setData(grouped);
+    } else {
+      console.error("Lỗi lấy tổng hợp lương:", res.message);
+    }
+  };
+
+  useEffect(() => {
     fetchSalarySummary();
   }, [filters]);
 
-  const calculateTotalBaseSalary = () => {
-    return data.reduce((sum, item) => sum + (item.baseSalary || 0), 0);
+  const calculateTotalField = (field) => {
+    return data.reduce((sum, monthGroup) => {
+      return (
+        sum +
+        monthGroup.departments.reduce((deptSum, dept) => {
+          return (
+            deptSum +
+            dept.salaries.reduce(
+              (salarySum, sal) => salarySum + (sal[field] || 0),
+              0
+            )
+          );
+        }, 0)
+      );
+    }, 0);
   };
-  const totalBaseSalary = calculateTotalBaseSalary();
 
-  const groupSalariesByDepartment = (summaryData) => {
+  const totalBaseSalary = calculateTotalField("baseSalary");
+  const totalActualReceived = calculateTotalField("actualSalary");
+
+  const groupSalariesByMonthAndDepartment = (summaryData) => {
     const map = new Map();
 
     summaryData.forEach((item) => {
-      const dept = item.department || "Không xác định";
-      if (!map.has(dept)) {
-        map.set(dept, []);
+      const key = `${item.month}/${item.year}`;
+      if (!map.has(key)) {
+        map.set(key, new Map());
       }
-      map.get(dept).push(item);
+
+      const deptMap = map.get(key);
+      const dept = item.department || " Not determined";
+      if (!deptMap.has(dept)) {
+        deptMap.set(dept, []);
+      }
+      deptMap.get(dept).push(item);
     });
 
-    return Array.from(map.entries()).map(([name, salaries]) => ({
-      name,
-      salaries,
+    return Array.from(map.entries()).map(([monthYear, deptMap]) => ({
+      monthYear,
+      departments: Array.from(deptMap.entries()).map(([name, salaries]) => ({
+        name,
+        salaries,
+      })),
     }));
   };
 
@@ -178,29 +212,54 @@ export default function PayrollTable() {
       name: "",
     });
   };
+  const calculateTotalActualReceived = () => {
+    return data.reduce(
+      (sum, dept) =>
+        sum +
+        dept.salaries.reduce((subSum, sal) => subSum + (sal.total || 0), 0),
+      0
+    );
+  };
+  const handleGenerateSalary = async () => {
+    const res = await generateMonthlySalaryApi({
+      year: currentYear,
+      month: currentMonth,
+    });
+    if (res.status === 200) {
+      dispatch(setPopup({ type: "success", message: res.message }));
+      fetchSalarySummary();
+    } else {
+      dispatch(setPopup({ type: "error", message: res.message }));
+    }
+  };
 
   return (
     <Box sx={{ width: "100%", p: 3 }}>
       <Box display="flex" justifyContent="space-between" flexWrap="wrap" mb={3}>
         <Box>
           <Typography variant="h4" fontWeight="bold" color="primary">
-            BẢNG LƯƠNG
+            SALARY SHEET
           </Typography>
           <Typography variant="subtitle1">
-            Tháng: {currentMonth}/{currentYear}
+            Month: {currentMonth}/{currentYear}
           </Typography>
           <Typography variant="subtitle1">
-            {" "}
-            {`Ngày công chuẩn: ${standardWorkingDays}`}
+            {`Standard working day: ${standardWorkingDays}`}
           </Typography>
         </Box>
-        <Button
-          startIcon={<AddIcon />}
-          variant="contained"
-          onClick={() => setDrawerOpen(true)}
-        >
-          Tạo Phiếu Lương
-        </Button>
+
+        <Stack direction="row" spacing={2}>
+          <Button variant="outlined" onClick={handleGenerateSalary}>
+            Calculate monthly salary {currentMonth}/{currentYear}
+          </Button>
+          <Button
+            startIcon={<AddIcon />}
+            variant="contained"
+            onClick={() => setDrawerOpen(true)}
+          >
+            Create Pay Slip
+          </Button>
+        </Stack>
       </Box>
 
       <Drawer
@@ -274,7 +333,8 @@ export default function PayrollTable() {
 
           {formType === "single" && (
             <SingleSalaryForm
-              onClose={() => {
+              onSuccess={() => {
+                fetchSalarySummary();
                 setDrawerOpen(false);
                 setFormType(null);
               }}
@@ -297,16 +357,16 @@ export default function PayrollTable() {
         className="flex items-center gap-2"
       >
         <FilterListIcon className="h-4 w-4" />
-        {showFilters ? "Ẩn Bộ Lọc" : "Hiện Bộ Lọc"}
+        {showFilters ? "Hide Filters" : "Show Filters"}
       </Button>
 
       {/* Filters */}
       {showFilters && (
-        <Card sx={{ p: 2, mr: 4 }}>
+        <Card sx={{ p: 2 }}>
           <CardHeader
             title={
               <Typography variant="h6" fontWeight="bold">
-                Bộ Lọc
+                Filter
               </Typography>
             }
             sx={{ pb: 0 }}
@@ -323,7 +383,7 @@ export default function PayrollTable() {
             >
               {/* Phòng Ban */}
               <FormControl fullWidth>
-                <InputLabel id="department-label">Phòng Ban</InputLabel>
+                <InputLabel id="department-label">Department</InputLabel>
                 <Select
                   labelId="department-label"
                   value={filters.department}
@@ -332,7 +392,7 @@ export default function PayrollTable() {
                     handleFilterChange("department", e.target.value)
                   }
                 >
-                  <MenuItem value="all">Tất cả</MenuItem>
+                  <MenuItem value="all">All</MenuItem>
                   {departmentsList.map((dept) => (
                     <MenuItem key={dept} value={dept}>
                       {dept}
@@ -341,31 +401,28 @@ export default function PayrollTable() {
                 </Select>
               </FormControl>
 
-              {/* Chức Vụ */}
+              {/* Vai Trò */}
               <FormControl fullWidth>
-                <InputLabel id="position-label">Chức Vụ</InputLabel>
+                <InputLabel id="role-label">Position</InputLabel>
                 <Select
-                  labelId="position-label"
-                  value={filters.position}
-                  label="Chức Vụ"
-                  onChange={(e) =>
-                    handleFilterChange("position", e.target.value)
-                  }
+                  labelId="role-label"
+                  value={filters.role || "all"}
+                  label="Position"
+                  onChange={(e) => handleFilterChange("role", e.target.value)}
                 >
-                  <MenuItem value="all">Tất cả</MenuItem>
-                  {positionsList.map((position) => (
-                    <MenuItem key={position} value={position}>
-                      {position}
+                  <MenuItem value="all">All</MenuItem>
+                  {rolesList.map((role) => (
+                    <MenuItem key={role} value={role}>
+                      {role}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
-
               {/* Tên Nhân Viên */}
               <TextField
                 fullWidth
-                label="Tên Nhân Viên"
-                placeholder="Nhập tên..."
+                label="Input name"
+                placeholder="Name..."
                 value={filters.name}
                 onChange={(e) => handleFilterChange("name", e.target.value)}
               />
@@ -379,7 +436,7 @@ export default function PayrollTable() {
                   fullWidth
                   sx={{ height: "56px" }}
                 >
-                  Xóa Bộ Lọc
+                  Clear filter
                 </Button>
               </Box>
             </Box>
@@ -397,96 +454,151 @@ export default function PayrollTable() {
                   #
                 </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                  Mã Nhân Viên
+                  Code
                 </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                  Chức Vụ
+                  Position
                 </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                  Lương Cơ Bản
+                  Base Salary
                 </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                  Người Tạo
+                  Created By
                 </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                  Ngày Tạo
+                  Date
                 </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                  Thực Tế Nhận
+                  Actual Reception
                 </TableCell>
                 <TableCell sx={{ color: "white", fontWeight: "bold" }}>
-                  Tệp PDF
+                  Status
+                </TableCell>
+                <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                  PDF file
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {data.map((department, deptIndex) => (
-                <React.Fragment key={deptIndex}>
-                  <TableRow sx={{ backgroundColor: "#e3f2fd" }}>
+              {data.map((monthGroup, monthIndex) => (
+                <React.Fragment key={monthIndex}>
+                  <TableRow sx={{ backgroundColor: "#bbdefb" }}>
                     <TableCell
                       colSpan={9}
                       sx={{ fontWeight: "bold", color: "#0d47a1" }}
                     >
-                      {department.name}
+                      {monthGroup.monthYear}
                     </TableCell>
                   </TableRow>
+                  {monthGroup.departments.map((department, deptIndex) => (
+                    <React.Fragment key={deptIndex}>
+                      <TableRow sx={{ backgroundColor: "#e3f2fd" }}>
+                        <TableCell
+                          colSpan={9}
+                          sx={{ fontWeight: "bold", color: "#1976d2" }}
+                        >
+                          {department.name}
+                        </TableCell>
+                      </TableRow>
+                      {department.salaries.map((item, index) => (
+                        <TableRow
+                          key={item.id}
+                          hover
+                          onClick={() =>
+                            navigate(`/finance/salary/detail/${item.id}`)
+                          }
+                        >
+                          <TableCell>{index + 1}</TableCell>
+                          <TableCell>{item.code}</TableCell>
+                          <TableCell>{item.role}</TableCell>
+                          <TableCell>
+                            {formatCurrency(item.baseSalary)}
+                          </TableCell>
+                          <TableCell>
+                            <Stack
+                              direction="row"
+                              alignItems="center"
+                              spacing={1}
+                            >
+                              <CustomAvatar
+                                src={item.createdByAvatar}
+                                alt={item.createdBy}
+                                sx={{ width: 30, height: 30 }}
+                              />
+                              <Typography variant="body2" noWrap>
+                                {item.createdBy || ""}
+                              </Typography>
+                            </Stack>
+                          </TableCell>
 
-                  {department.salaries.map((item, index) => (
-                    <TableRow key={item.code}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>{item.code}</TableCell>
-                      <TableCell>{item.role}</TableCell>
-                      <TableCell>{formatCurrency(item.baseSalary)}</TableCell>
-                      <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <CustomAvatar
-                            src={item.createdByAvatar}
-                            alt={item.createdBy}
-                            sx={{ width: 30, height: 30 }}
-                          />
-                          <Typography variant="body2" noWrap>
-                            {item.createdBy || ""}
-                          </Typography>
-                        </Stack>
-                      </TableCell>
-
-                      <TableCell>
-                        {new Date(item.createdAt).toLocaleString("vi-VN")}
-                      </TableCell>
-                      <TableCell
-                        style={{ fontWeight: "bold", color: "#2e7d32" }}
-                      >
-                        {formatCurrency(item.total)}
-                      </TableCell>
-                      <TableCell>
-                        {item.fileUrl ? (
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            href={item.fileUrl}
-                            target="_blank"
+                          <TableCell>
+                            <Typography variant="body2">
+                              {new Date(item.createdAt).toLocaleDateString(
+                                "vi-VN"
+                              )}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {new Date(item.createdAt).toLocaleTimeString(
+                                "vi-VN"
+                              )}
+                            </Typography>
+                          </TableCell>
+                          <TableCell
+                            style={{ fontWeight: "bold", color: "#2e7d32" }}
                           >
-                            Tải xuống
-                          </Button>
-                        ) : (
-                          "Không có"
-                        )}
-                      </TableCell>
-                    </TableRow>
+                            {formatCurrency(item.actualSalary)}
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={item.status}
+                              color={
+                                item.status === "PAID"
+                                  ? "success"
+                                  : item.status === "APPROVED"
+                                  ? "info"
+                                  : item.status === "PENDING"
+                                  ? "warning"
+                                  : item.status === "CANCELED"
+                                  ? "error"
+                                  : "default"
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {item.fileUrl ? (
+                              <Button
+                                variant="outlined"
+                                size="small"
+                                href={item.fileUrl}
+                                target="_blank"
+                              >
+                                Download
+                              </Button>
+                            ) : (
+                              "None"
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </React.Fragment>
                   ))}
                 </React.Fragment>
               ))}
             </TableBody>
           </Table>
-          <Typography
-            variant="h6"
-            align="right"
-            mt={2}
-            color="primary"
-            fontWeight="bold"
-          >
-            Tổng:{formatCurrency(totalBaseSalary)}
-          </Typography>
+          <Box sx={{ width: "100%", p: 3 }}>
+            <Typography
+              variant="h6"
+              align="right"
+              color="success.main"
+              fontWeight="bold"
+            >
+              Total received: {formatCurrency(totalActualReceived)}
+            </Typography>
+          </Box>
         </TableContainer>
       </Box>
     </Box>

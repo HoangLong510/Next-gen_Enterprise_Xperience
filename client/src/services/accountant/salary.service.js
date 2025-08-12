@@ -32,9 +32,9 @@ export const createSalaryApi = async (input, baseSalary) => {
   }
 };
 
-export const getSalaryHistoryByEmployeeApi = async (employeeId) => {
+export const getSalaryHistoryByEmployeeApi = async (employeeCode) => {
   try {
-    const res = await api.get(`/accountant/salaries/history/${employeeId}`);
+    const res = await api.get(`/accountant/salaries/history/${employeeCode}`);
     return res.data;
   } catch (error) {
     return error.response?.data || { status: 500, message: "server-is-busy" };
@@ -90,6 +90,29 @@ export const importSalaryFromExcelApi = async (formData) => {
       headers: { "Content-Type": "multipart/form-data" },
       responseType: "json", 
     });
+    return res.data;
+  } catch (error) {
+    return error.response?.data || { status: 500, message: "server-is-busy" };
+  }
+};
+export const generateMonthlySalaryApi = async ({ year, month }) => {
+  try {
+    const res = await api.post("/accountant/salaries/generate", null, {
+      params: { year, month },
+    });
+    return res.data;
+  } catch (error) {
+    return error.response?.data || { status: 500, message: "server-is-busy" };
+  }
+};
+import axios from "~/utils/axios"; 
+
+export const getSalaryByIdApi = (id) => {
+  return axios.get(`/accountant/salaries/${id}`);
+};
+export const getAllRolesApi = async () => {
+  try {
+    const res = await api.get("/accountant/salaries/roles");
     return res.data;
   } catch (error) {
     return error.response?.data || { status: 500, message: "server-is-busy" };

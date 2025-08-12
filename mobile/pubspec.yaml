@@ -10,12 +10,21 @@ dependencies:
     flutter:
         sdk: flutter
     provider: ^6.1.5
+    signature: ^5.4.0
     flutter_dotenv: ^5.2.1
     cupertino_icons: ^1.0.8
     http: ^1.4.0
     dio: ^5.4.2
     shared_preferences: ^2.2.2
     easy_localization: ^3.0.8
+    flutter_html: ^3.0.0
+    stomp_dart_client: ^0.4.4
+    web_socket_channel: ^2.4.0
+<<<<<<< Updated upstream
+    intl: 0.20.2
+    image_picker: ^0.8.5+3
+=======
+>>>>>>> Stashed changes
 
 dev_dependencies:
     flutter_test:

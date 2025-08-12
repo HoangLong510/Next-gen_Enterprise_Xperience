@@ -5,4 +5,5 @@ import lombok.Data;
 @Data
 public class LeaveRequestApproveRequest {
     private String signature; // base64 image
+    private String rejectReason;
 }

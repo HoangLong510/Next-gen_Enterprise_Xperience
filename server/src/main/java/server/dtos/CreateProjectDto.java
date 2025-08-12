@@ -4,7 +4,6 @@ import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import server.models.enums.ProjectPriority;
 
 import java.time.LocalDate;
 
@@ -21,8 +20,7 @@ public class CreateProjectDto {
     @FutureOrPresent(message = "Deadline must be today or in the future")
     private LocalDate deadline;
 
-    @NotNull(message = "Priority is required")
-    private ProjectPriority priority;
+
 
     @NotNull(message = "Document ID is required")
     private Long documentId;

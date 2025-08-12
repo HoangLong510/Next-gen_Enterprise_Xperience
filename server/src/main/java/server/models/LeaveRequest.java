@@ -8,9 +8,11 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import server.models.enums.LeaveStatus;
+import server.models.enums.LeaveType;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 
 @Entity
@@ -31,6 +33,20 @@ public class LeaveRequest {
 
     private LocalDate startDate;
     private LocalDate endDate;
+
+    @ElementCollection
+    @CollectionTable(name = "leave_days", joinColumns = @JoinColumn(name = "leave_request_id"))
+    @Column(name = "day")
+    private java.util.List<LocalDate> daysOff; // <== NGÀY NGẮT QUÃNG
+
+    @Column(name = "batch_id")
+    private String batchId;
+
+    @Enumerated(EnumType.STRING)
+    private LeaveType leaveType = LeaveType.FULL_DAY;
+
+    private LocalTime startTime;
+    private LocalTime endTime;
 
     @Column(columnDefinition = "TEXT")
     private String reason;

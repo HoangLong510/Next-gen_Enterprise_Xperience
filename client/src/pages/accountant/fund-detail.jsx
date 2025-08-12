@@ -25,6 +25,10 @@ import {
   AlertTitle,
   TextField,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import ArrowBack from "@mui/icons-material/ArrowBack";
 import AccountBalance from "@mui/icons-material/AccountBalance";
@@ -43,7 +47,11 @@ import Clear from "@mui/icons-material/Clear";
 import {
   getFundByIdApi,
   getTransactionsApi,
+  updateFundApi,
+  getFundEditHistoryApi,
 } from "~/services/accountant/fund.service";
+import { setPopup } from "~/libs/features/popup/popupSlice";
+import { useDispatch } from "react-redux";
 import CustomAvatar from "~/components/custom-avatar";
 
 export default function FundDetails() {
@@ -52,11 +60,21 @@ export default function FundDetails() {
   const [fund, setFund] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
+  const [editOpen, setEditOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [editHistory, setEditHistory] = useState([]);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    purpose: "",
+    balance: 0,
+  });
 
   // Filter states
   const [filterKeyword, setFilterKeyword] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+
+  const dispatch = useDispatch();
 
   useEffect(() => {
     fetchData();
@@ -115,12 +133,40 @@ export default function FundDetails() {
       const keywordMatch =
         tx.note?.toLowerCase().includes(filterKeyword.toLowerCase()) ||
         tx.createdBy?.toLowerCase().includes(filterKeyword.toLowerCase()) ||
-        tx.createdByDisplay?.toLowerCase().includes(filterKeyword.toLowerCase());
+        tx.createdByDisplay
+          ?.toLowerCase()
+          .includes(filterKeyword.toLowerCase());
       const typeMatch = filterType ? tx.type === filterType : true;
       const statusMatch = filterStatus ? tx.status === filterStatus : true;
       return keywordMatch && typeMatch && statusMatch;
     });
   }, [transactions, filterKeyword, filterType, filterStatus]);
+
+  const fetchEditHistory = async () => {
+    try {
+      const res = await getFundEditHistoryApi(fund.id);
+      setEditHistory(res.data);
+      setHistoryOpen(true);
+    } catch (error) {
+      dispatch(setPopup({ message: "Không lấy được lịch sử", type: "error" }));
+    }
+  };
+
+  const handleUpdateFund = async () => {
+  try {
+    const payload = {
+      name: editForm.name,
+      purpose: editForm.purpose,
+      balance: editForm.balance,
+    };
+    const res = await updateFundApi(fund.id, payload);
+    setFund(res.data); 
+    dispatch(setPopup({ message: "Cập nhật quỹ thành công", type: "success" }));
+    setEditOpen(false);
+  } catch (error) {
+    dispatch(setPopup({ message: "Cập nhật thất bại", type: "error" }));
+  }
+};
 
   if (!fund) {
     return (
@@ -136,7 +182,7 @@ export default function FundDetails() {
           The requested fund could not be found or you don't have permission to
           view it.
         </Alert>
-        <Button
+        <Button 
           variant="contained"
           startIcon={<ArrowBack />}
           onClick={() => navigate(-1)}
@@ -159,12 +205,16 @@ export default function FundDetails() {
       <Card
         sx={{
           mb: 3,
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          bgcolor: "primary.main",
           color: "white",
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Box display="flex" alignItems="center" justifyContent="space-between">
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="space-between"
+          >
             <Box display="flex" alignItems="center" gap={2}>
               <IconButton
                 onClick={() => navigate(-1)}
@@ -184,13 +234,54 @@ export default function FundDetails() {
                 </Typography>
               </Box>
             </Box>
-            <Button
-              variant="contained"
-              startIcon={<Refresh />}
-              onClick={fetchData}
-            >
-              Refresh
-            </Button>
+            <Box display="flex" gap={1}>
+              <Button
+                variant="contained"
+                onClick={() => {
+                  setEditForm({
+                    name: fund.name,
+                    purpose: fund.purpose,
+                    balance: fund.balance,
+                  });
+                  setEditOpen(true);
+                }}
+                sx={{
+                  bgcolor: "rgba(255,255,255,0.2)",
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.3)" },
+                  backdropFilter: "blur(10px)",
+                  color: "white",
+                }}
+              >
+                Edit
+              </Button>
+
+              <Button
+                variant="contained"
+                onClick={fetchEditHistory}
+                sx={{
+                  bgcolor: "rgba(255,255,255,0.2)",
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.3)" },
+                  backdropFilter: "blur(10px)",
+                  color: "white",
+                }}
+              >
+                Edit history
+              </Button>
+
+              <Button
+                variant="contained"
+                startIcon={<Refresh />}
+                onClick={fetchData}
+                sx={{
+                  bgcolor: "rgba(255,255,255,0.2)",
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.3)" },
+                  backdropFilter: "blur(10px)",
+                  color: "white",
+                }}
+              >
+                Refresh
+              </Button>
+            </Box>
           </Box>
         </CardContent>
       </Card>
@@ -205,7 +296,11 @@ export default function FundDetails() {
             }}
           >
             <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
+              <Box
+                display="flex"
+                alignItems="center"
+                justifyContent="space-between"
+              >
                 <Box>
                   <Typography variant="h4" fontWeight={700}>
                     ${Number(fund.balance).toLocaleString()}
@@ -225,7 +320,7 @@ export default function FundDetails() {
 
       {/* Filters */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid size={{xs:12, sm:4, md:3}} >
+        <Grid size={{ xs: 12, sm: 4, md: 3 }}>
           <TextField
             label="Search"
             fullWidth
@@ -233,7 +328,7 @@ export default function FundDetails() {
             onChange={(e) => setFilterKeyword(e.target.value)}
           />
         </Grid>
-        <Grid  size={{xs:12, sm:4, md:3}}>
+        <Grid size={{ xs: 12, sm: 4, md: 3 }}>
           <TextField
             label="Type"
             select
@@ -246,7 +341,7 @@ export default function FundDetails() {
             <MenuItem value="DECREASE">Decrease</MenuItem>
           </TextField>
         </Grid>
-        <Grid  size={{xs:12, sm:4, md:3}}>
+        <Grid size={{ xs: 12, sm: 4, md: 3 }}>
           <TextField
             label="Status"
             select
@@ -260,12 +355,16 @@ export default function FundDetails() {
             <MenuItem value="REJECTED">Rejected</MenuItem>
           </TextField>
         </Grid>
-        <Grid  size={{xs:12, sm:4, md:3}}>
+        <Grid size={{ xs: 12, sm: 4, md: 3 }}>
           <Button
             fullWidth
             startIcon={<Clear />}
             onClick={clearFilters}
             variant="outlined"
+            sx={{
+              height: "56px",
+              fontWeight: 500,
+            }}
           >
             Clear Filters
           </Button>
@@ -277,7 +376,7 @@ export default function FundDetails() {
         <Box
           sx={{
             p: 2,
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            bgcolor: "primary.main",
             color: "white",
           }}
         >
@@ -299,7 +398,7 @@ export default function FundDetails() {
           </Box>
         ) : (
           <TableContainer sx={{ overflowX: "hidden" }}>
-            <Table tableLayout="fixed">
+            <Table sx={{ tableLayout: "fixed" }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ maxWidth: 80 }}>ID</TableCell>
@@ -311,7 +410,7 @@ export default function FundDetails() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {transactions.map((tx, index) => (
+                {filteredTransactions.map((tx, index) => (
                   <Fade in={true} timeout={300 + index * 100} key={tx.id}>
                     <TableRow
                       sx={{
@@ -331,7 +430,11 @@ export default function FundDetails() {
                           textOverflow: "ellipsis",
                         }}
                       >
-                        <Typography variant="body2" fontWeight={600} color="primary">
+                        <Typography
+                          variant="body2"
+                          fontWeight={600}
+                          color="primary"
+                        >
                           {tx.id}
                         </Typography>
                         <Typography
@@ -363,7 +466,9 @@ export default function FundDetails() {
                           variant="h6"
                           fontWeight={700}
                           color={
-                            tx.type === "INCREASE" ? "success.main" : "error.main"
+                            tx.type === "INCREASE"
+                              ? "success.main"
+                              : "error.main"
                           }
                         >
                           {tx.type === "INCREASE" ? "+" : "-"}$
@@ -393,8 +498,6 @@ export default function FundDetails() {
                               width: 32,
                               height: 32,
                               fontSize: 14,
-                              background:
-                                "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                             }}
                           >
                             <CustomAvatar
@@ -429,6 +532,108 @@ export default function FundDetails() {
           </TableContainer>
         )}
       </Card>
+      <Dialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle
+          sx={{
+            bgcolor: "primary.main",
+            color: "white",
+            fontWeight: 600,
+            px: 3,
+            py: 2,
+          }}
+        >
+          Cập nhật Quỹ
+        </DialogTitle>
+
+        <DialogContent>
+          <TextField
+            label="Tên quỹ"
+            fullWidth
+            margin="normal"
+            value={editForm.name}
+            onChange={(e) =>
+              setEditForm((prev) => ({ ...prev, name: e.target.value }))
+            }
+          />
+          <TextField
+            label="Mục đích"
+            fullWidth
+            margin="normal"
+            multiline
+            value={editForm.purpose}
+            onChange={(e) =>
+              setEditForm((prev) => ({ ...prev, purpose: e.target.value }))
+            }
+          />
+          <TextField
+            label="Số dư"
+            fullWidth
+            margin="normal"
+            type="number"
+            value={editForm.balance}
+            onChange={(e) =>
+              setEditForm((prev) => ({
+                ...prev,
+                balance: parseFloat(e.target.value) || 0,
+              }))
+            }
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setEditOpen(false)}>Hủy</Button>
+          <Button variant="contained" onClick={handleUpdateFund}>
+            Lưu
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle
+          sx={{ bgcolor: "primary.main", color: "white", fontWeight: 600 }}
+        >
+          Lịch sử chỉnh sửa quỹ
+        </DialogTitle>
+        <DialogContent dividers>
+          {editHistory.length === 0 ? (
+            <Typography>Chưa có lịch sử chỉnh sửa.</Typography>
+          ) : (
+            editHistory.map((item, index) => (
+              <Box
+                key={index}
+                mb={2}
+                p={2}
+                sx={{ border: "1px solid #ccc", borderRadius: 2 }}
+              >
+                <Typography variant="subtitle2">
+                  Thời gian: {new Date(item.backedUpAt).toLocaleString()}
+                </Typography>
+                <Typography variant="body2">Tên: {item.name}</Typography>
+                <Typography variant="body2">
+                  Mục đích: {item.purpose}
+                </Typography>
+                <Typography variant="body2">
+                  Số dư: {Number(item.balance).toLocaleString()} VND
+                </Typography>
+                <Typography variant="body2">
+                  Người chỉnh sửa: {item.updatedBy}
+                </Typography>
+              </Box>
+            ))
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setHistoryOpen(false)}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

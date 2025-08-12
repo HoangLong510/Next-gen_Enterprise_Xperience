@@ -12,18 +12,12 @@ public class CreateEmployeeDto {
 
     @NotBlank(message = "first-name-is-required")
     @Size(min = 2, max = 30, message = "first-name-must-be-between-2-and-30-characters")
-    @Pattern(
-            regexp = "^[\\p{L}\\s]+$",
-            message = "first-name-must-contain-only-letters-and-spaces"
-    )
+    @Pattern(regexp = "^[\\p{L}\\s]+$", message = "first-name-must-contain-only-letters-and-spaces")
     private String firstName;
 
     @NotBlank(message = "last-name-is-required")
     @Size(min = 2, max = 30, message = "last-name-must-be-between-2-and-30-characters")
-    @Pattern(
-            regexp = "^[\\p{L}\\s]+$",
-            message = "last-name-must-contain-only-letters-and-spaces"
-    )
+    @Pattern(regexp = "^[\\p{L}\\s]+$", message = "last-name-must-contain-only-letters-and-spaces")
     private String lastName;
 
     @NotBlank(message = "email-is-required")
@@ -32,8 +26,8 @@ public class CreateEmployeeDto {
 
     @NotBlank(message = "phone-is-required")
     @Pattern(
-            regexp = "^(0|\\+84)(3[2-9]|5[6|8|9]|7[0|6-9]|8[1-5]|9[0-9])[0-9]{7}$",
-            message = "invalid-phone-number"
+        regexp = "^(0|\\+84)(3[2-9]|5[6|8|9]|7[0|6-9]|8[1-5]|9[0-9])[0-9]{7}$",
+        message = "invalid-phone-number"
     )
     private String phone;
 
@@ -42,8 +36,8 @@ public class CreateEmployeeDto {
 
     @NotBlank(message = "gender-is-required")
     @Pattern(
-            regexp = "^(MALE|FEMALE|ORTHER)$",
-            message = "invalid-gender"
+        regexp = "^(MALE|FEMALE|OTHER)$",
+        message = "invalid-gender"
     )
     private String gender;
 
@@ -54,8 +48,8 @@ public class CreateEmployeeDto {
 
     @NotBlank(message = "role-is-required")
     @Pattern(
-            regexp = "^(MANAGER|PM|HR|ACCOUNTANT|HOD|EMPLOYEE)$",
-            message = "invalid-role"
+        regexp = "^(ADMIN|MANAGER|PM|HR|ACCOUNTANT|HOD|EMPLOYEE|CHIEFACCOUNTANT)$",
+        message = "invalid-role"
     )
     private String role;
 }

@@ -2,10 +2,11 @@ package server.models;
 
 import jakarta.persistence.*;
 import lombok.*;
+import server.models.enums.TaskSize;
 import server.models.enums.TaskStatus;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -20,26 +21,32 @@ public class Task {
 
     private String name;
 
-    private String description; // 🆕 Mô tả task
-
+    private String description; // Mô tả task
+    @Enumerated(EnumType.STRING) // 👈 mới thêm
+    private TaskSize size;        // 👈 mới thêm
     private LocalDate deadline;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
     private TaskStatus status;
+    @ManyToOne
+    @JoinColumn(name = "phase_id")
+    private Phase phase;
+
 
     @ManyToOne
-    @JoinColumn(name = "project_id")
-    private Project project;
+    @JoinColumn(name = "assignee_id")
+    private Employee assignee;
 
-    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<SubTask> subTasks;
+    // GitHub branch info (moved từ SubTask sang Task)
+    private String githubBranch;
+    private boolean branchCreated;
+
+    // Pull Request info
+    private String pullRequestUrl;
+    private boolean merged;
+    private LocalDateTime mergedAt;
 
     @Column(nullable = false)
     private boolean hidden = false;
-
-    // GitHub repository info
-    private String repoLink;
-    private String repoOwner;
-    private String repoName;
-    private String defaultBranch;
 }

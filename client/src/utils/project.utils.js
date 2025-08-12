@@ -1,6 +1,12 @@
 /**
  * Tính phần trăm tiến độ dự án dựa trên số task đã hoàn thành
  */
+const toLocalDate = (d) => {
+  if (!d) return null;
+  // nếu d là 'YYYY-MM-DD' giữ nguyên, else parse
+  const [y, m, day] = d.toString().split('-').map(Number);
+  return new Date(y, (m ?? 1) - 1, day ?? 1); // 00:00 local
+};
 export const calculateProgress = (tasks) => {
 	if (!tasks || tasks.length === 0) return 0
 	const completed = tasks.filter((t) => t.completed).length
@@ -17,37 +23,46 @@ export const formatDate = (isoDate) => {
 	const year = date.getFullYear()
 	return `${day}/${month}/${year}`
 }
-
-/**
- * Kiểm tra đã quá hạn chưa (so với hôm nay)
- */
-export const isOverdue = (endDate) => {
-	const today = new Date()
-	const end = new Date(endDate)
-	return end < today
+export function formatStatus(status) {
+  if (!status) return "";
+  return status
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, c => c.toUpperCase()); // "IN_PROGRESS" -> "In Progress"
 }
+
+export const isOverdue = (deadlineStr) => {
+  if (!deadlineStr) return false;
+  const today = new Date();
+  const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const deadline = toLocalDate(deadlineStr);
+  return deadline < todayLocal;
+};
 
 /**
  * Tính số ngày còn lại đến hạn
- */
-export const calculateDaysRemaining = (endDate) => {
-	const today = new Date()
-	const end = new Date(endDate)
-	const diffTime = end.getTime() - today.getTime()
-	const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24))
-	return Math.max(diffDays, 0)
-}
+ */export const calculateDaysRemaining = (deadlineStr) => {
+  if (!deadlineStr) return 0;
+  const today = new Date();
+  const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const deadline = toLocalDate(deadlineStr);
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const diff = Math.floor((deadline - todayLocal) / msPerDay);
+  return Math.max(0, diff); // hôm nay => 0
+};
 
 /**
  * Tính số ngày đã trễ
  */
-export const getDaysOverdue = (endDate) => {
-	const today = new Date()
-	const end = new Date(endDate)
-	const diffTime = today.getTime() - end.getTime()
-	const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24))
-	return Math.max(diffDays, 0)
-}
+export const getDaysOverdue = (deadlineStr) => {
+  if (!deadlineStr) return 0;
+  const today = new Date();
+  const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const deadline = toLocalDate(deadlineStr);
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const diff = Math.floor((todayLocal - deadline) / msPerDay);
+  return Math.max(0, diff);
+};
 
 /**
  * Trả về màu chip theo status

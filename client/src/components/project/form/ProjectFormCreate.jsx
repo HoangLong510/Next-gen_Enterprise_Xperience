@@ -1,4 +1,3 @@
-// ~/components/ProjectForm.jsx
 import {
   Dialog,
   DialogTitle,
@@ -7,9 +6,11 @@ import {
   Button,
   Stack,
   TextField,
-  MenuItem,
   Typography,
 } from "@mui/material";
+import { useDispatch } from "react-redux";
+import { setPopup } from "~/libs/features/popup/popupSlice";
+import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -24,21 +25,29 @@ const schema = yup.object({
     .required("Description is required")
     .min(10)
     .max(1000),
-  priority: yup
-    .string()
-    .required("Priority is required")
-    .oneOf(["LOW", "MEDIUM", "HIGH"]),
   deadline: yup
-    .date()
-    .required("Deadline is required")
-    .min(dayjs().toDate(), "Deadline must be today or later"),
+    .string()
+    .nullable()
+    .matches(/^\d{4}-\d{2}-\d{2}$/, "invalid-date-format")
+    .test("not-in-past", "deadline-cannot-be-in-the-past", (value) => {
+      if (!value) return true;
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      const localToday = `${year}-${month}-${day}`;
+      return value >= localToday;
+    }),
+
+  // Cho phép có priority nhưng không bắt buộc (để không vướng validate)
+  priority: yup.string().nullable().notRequired(),
+
 });
 
 const defaultValues = {
   name: "",
   description: "",
-  priority: "MEDIUM",
-  deadline: dayjs().add(7, "day").format("YYYY-MM-DD"), // mặc định 7 ngày nữa
+  deadline: dayjs().add(7, "day").format("YYYY-MM-DD"),
 };
 
 export default function ProjectFormCreate({
@@ -46,11 +55,45 @@ export default function ProjectFormCreate({
   onClose,
   onSubmit,
   initialData = null,
-  documentId,
   document,
+  documentId,
   pmName,
 }) {
   const {
+
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues,
+  });
+
+  useEffect(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    const localToday = `${year}-${month}-${day}`;
+
+    if (document) {
+      let data = {
+        name: document.projectName || "",
+        description: document.projectDescription || "",
+        priority: document.projectPriority ?? "MEDIUM",
+        deadline: document.projectDeadline
+          ? dayjs(document.projectDeadline).format("YYYY-MM-DD")
+          : dayjs().add(7, "day").format("YYYY-MM-DD"),
+      };
+      if (data.deadline && data.deadline < localToday) {
+        data = { ...data, deadline: localToday };
+      }
+      reset(data);
+    } else if (initialData) {
+      let deadline =
+        initialData.deadline ?? dayjs().add(7, "day").format("YYYY-MM-DD");
+
   control,
   handleSubmit,
   reset,
@@ -59,6 +102,7 @@ export default function ProjectFormCreate({
   resolver: yupResolver(schema),
   defaultValues, // dùng defaultValues, nhưng luôn reset lại bên dưới
 });
+
 
 useEffect(() => {
   if (document) {
@@ -82,20 +126,95 @@ useEffect(() => {
     ? dayjs(document.projectDeadline).format("YYYY-MM-DD")
     : "";
 
+  useEffect(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    const localToday = `${year}-${month}-${day}`;
+
+    if (initialData) {
+      let deadline = initialData.deadline ?? "";
+
+      if (deadline && deadline < localToday) {
+        deadline = localToday;
+      }
+      reset({ ...defaultValues, ...initialData, deadline });
+    } else {
+      reset(defaultValues);
+    }
+
+  }, [document, initialData, open, reset]);
+
+  const dispatch = useDispatch();
+  const { t } = useTranslation("messages");
+
   const handleFormSubmit = async (data) => {
-    const payload = {
-      ...data,
-      documentId,
-    };
+    const payload = { ...data, documentId };
     const res = await createProjectFromDocument(payload);
 
-    if (res.status === 200) {
-      onSubmit?.(); // reload nếu truyền vào
+    if (res?.status === 200 || res?.status === 201) {
+      dispatch(
+        setPopup({
+          type: "success",
+          message: res.message || "project-created-successfully",
+        })
+      );
+      onSubmit?.();
       onClose();
     } else {
-      alert(res.message || "Failed to create project");
+      dispatch(
+        setPopup({
+          type: "error",
+          message: res?.message || "create-project-failed",
+        })
+      );
     }
+
+  }, [initialData, reset]);
+
+
+const dispatch = useDispatch();
+const { t } = useTranslation("messages");
+
+const handleFormSubmit = async (data) => {
+  const payload = {
+    ...data,
+    documentId,
+
   };
+  const res = await createProjectFromDocument(payload);
+
+  if (res?.status === 200 ||  res.status === 201) {        // BE trả về status 201 khi create thành công
+    dispatch(
+      setPopup({
+        type: "success",
+        message: res.message || "project-created-successfully", // message key từ BE hoặc fallback
+      })
+    );
+    onSubmit?.();
+    onClose();
+  } else {
+    dispatch(
+      setPopup({
+        type: "error",
+        message: res.message || "create-project-failed", // fallback khi BE không trả message
+      })
+    );
+  }
+};
+
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  const localToday = `${year}-${month}-${day}`;
+
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  const localToday = `${year}-${month}-${day}`;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -154,8 +273,10 @@ useEffect(() => {
                 size="small"
                 disabled
                 InputLabelProps={{ shrink: true }}
+                inputProps={{ min: localToday }}
                 error={!!errors.deadline}
                 helperText={errors.deadline?.message}
+
               />
             )}
           />
@@ -174,6 +295,13 @@ useEffect(() => {
               />
             )}
           />
+
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: localToday }}
+              />
+            )}
+          />
+
         </Stack>
       </DialogContent>
 
@@ -181,11 +309,7 @@ useEffect(() => {
         <Button onClick={onClose} variant="outlined" color="inherit">
           Cancel
         </Button>
-        <Button
-          onClick={handleSubmit(handleFormSubmit)}
-          variant="contained"
-          sx={{ bgcolor: "#118D57" }}
-        >
+        <Button onClick={handleSubmit(handleFormSubmit)} variant="contained" sx={{ bgcolor: "#118D57" }}>
           Create
         </Button>
       </DialogActions>

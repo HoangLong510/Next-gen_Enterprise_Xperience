@@ -6,5 +6,6 @@ import server.models.Project;
 
 @Repository
 public interface ProjectRepository extends JpaRepository<Project, Long> {
-    // Không cần extends Custom nữa
+    boolean existsByIdAndEmployees_Id(Long projectId, Long employeeId);
+
 }

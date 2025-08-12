@@ -8,13 +8,12 @@ import org.springframework.web.client.RestTemplate;
 import server.dtos.BranchRequestDto;
 import server.models.Account;
 import server.models.Project;
-import server.models.SubTask;
+import server.models.Task;
 import server.repositories.AccountRepository;
-import server.repositories.SubTaskRepository;
+import server.repositories.TaskRepository;
 import server.utils.ApiResponse;
 import server.utils.JwtUtil;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -24,7 +23,7 @@ public class GitHubBranchService {
 
     private final JwtUtil jwtUtil;
     private final AccountRepository accountRepository;
-    private final SubTaskRepository subTaskRepository;
+    private final TaskRepository taskRepository;
     private final GitHubTokenService gitHubTokenService;
 
     public ApiResponse<?> createBranch(BranchRequestDto dto, HttpServletRequest request) {
@@ -41,20 +40,28 @@ public class GitHubBranchService {
             return ApiResponse.errorServer("invalid-account");
         }
 
-        // 2. Lấy SubTask
-        Optional<SubTask> subTaskOpt = subTaskRepository.findById(dto.getSubTaskId());
-        if (subTaskOpt.isEmpty()) {
-            return ApiResponse.notfound("SubTask not found");
+        // 2. Lấy Task
+        Optional<Task> taskOpt = taskRepository.findById(dto.getTaskId()); // dto.getSubTaskId() dùng để truyền taskId giờ
+        if (taskOpt.isEmpty()) {
+            return ApiResponse.notfound("Task not found");
         }
 
-        SubTask subTask = subTaskOpt.get();
+        Task task = taskOpt.get();
 
-        // 3. Kiểm tra quyền
-        if (!subTask.getAssignee().getAccount().equals(account)) {
+        // 3. Lấy Project qua Stage của Task
+        if (task.getPhase() == null || task.getPhase().getProject() == null) {
+            return ApiResponse.errorServer("Project not found for this task");
+        }
+        Project project = task.getPhase().getProject();
+
+        // 4. Kiểm tra quyền (chỉ PM hoặc nhân viên trong dự án mới được tạo branch)
+        if (!project.getProjectManager().equals(account) &&
+                !project.getEmployees().stream()
+                        .anyMatch(emp -> emp.getAccount().equals(account))) {
             return ApiResponse.errorServer("unauthorized");
         }
 
-        // 4. Lấy token GitHub
+        // 5. Lấy token GitHub
         String token = dto.getAccessToken();
         if (token == null || token.isBlank()) {
             Optional<String> tokenOpt = gitHubTokenService.getToken(account);
@@ -64,25 +71,24 @@ public class GitHubBranchService {
             token = tokenOpt.get();
         }
 
-        // 5. Ghép tên branch
-        String newBranch = dto.getBranchName() + "-subtask-" + subTask.getId();
+        // 6. Ghép tên branch
+        String newBranch = dto.getBranchName() + "-task-" + task.getId();
 
-        // 6. Lấy thông tin repo
-        Project project = subTask.getTask().getProject();
+        // 7. Lấy thông tin repo
         String owner = project.getRepoOwner();
         String repo = project.getRepoName();
         String baseBranch = project.getDefaultBranch();
 
-        // 7. Lấy SHA của base branch
+        // 8. Lấy SHA của base branch
         String sha = getBaseBranchSha(owner, repo, baseBranch, token);
 
-        // 8. Gọi GitHub API để tạo branch
+        // 9. Gọi GitHub API để tạo branch
         String url = "https://api.github.com/repos/" + owner + "/" + repo + "/git/refs";
         RestTemplate restTemplate = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
-        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.setAccept(java.util.List.of(MediaType.APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         String payload = """
@@ -99,22 +105,22 @@ public class GitHubBranchService {
             return ApiResponse.errorServer("Failed to create branch");
         }
 
-        // 9. Lưu vào DB
-        subTask.setGithubBranch(newBranch);
-        subTask.setBranchCreated(true);
-        subTaskRepository.save(subTask);
+        // 10. Lưu vào DB
+        task.setGithubBranch(newBranch);
+        task.setBranchCreated(true);
+        taskRepository.save(task);
 
         return ApiResponse.success(null, "Branch created successfully");
     }
 
     private String getBaseBranchSha(String owner, String repo, String branch, String token) {
-        String url = "https://api.github.com/repos/" + owner + "/" + repo + "/git/ref/heads/" + branch;
+        String url = "https://api.github.com/repos/" + owner + "/" + repo + "/git/refs/heads/" + branch;
 
         RestTemplate restTemplate = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
-        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.setAccept(java.util.List.of(MediaType.APPLICATION_JSON));
 
         HttpEntity<Void> request = new HttpEntity<>(headers);
         ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, request, Map.class);

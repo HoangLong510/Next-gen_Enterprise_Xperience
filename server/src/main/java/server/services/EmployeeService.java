@@ -17,10 +17,12 @@ import server.dtos.CreateEmployeeDto;
 import server.dtos.EmployeeDepartmentDto;
 import server.dtos.GetEmployeesToAddToDepartmentDto;
 import server.models.Account;
+import server.models.Department;
 import server.models.Employee;
 import server.models.enums.Gender;
 import server.models.enums.Role;
 import server.repositories.AccountRepository;
+import server.repositories.DepartmentRepository;
 import server.repositories.EmployeeRepository;
 import server.specification.EmployeeSpecification;
 import server.utils.AccountGenerator;
@@ -38,7 +40,25 @@ public class EmployeeService {
     private final AccountRepository accountRepository;
     private final UploadFileService uploadFileService;
     private final EmailService emailService;
+
+    // từ nhánh Long/excel-import-employees
     private final AccountGenerator accountGenerator;
+
+    // từ nhánh main
+    private final DepartmentRepository departmentRepository;
+
+    // phần thêm của quân
+    public ApiResponse<?> getSimpleEmployeeList() {
+        List<Employee> employees = employeeRepository.findAll();
+        List<EmployeeDepartmentDto> dtoList = employees.stream().map(emp -> {
+            EmployeeDepartmentDto dto = new EmployeeDepartmentDto();
+            dto.setId(emp.getId());
+            dto.setFullName(emp.getLastName() + " " + emp.getFirstName());
+            return dto;
+        }).toList();
+        return ApiResponse.success(dtoList, "get-employee-simple-list-success");
+    }
+    // hết phần thêm của quân
 
     public ApiResponse<?> create(CreateEmployeeDto request, BindingResult result) {
 
@@ -54,6 +74,11 @@ public class EmployeeService {
 
         if (result.hasErrors()) {
             return ApiResponse.badRequest(result);
+        }
+
+        boolean existsChiefAccountant = accountRepository.existsByRole(Role.CHIEFACCOUNTANT);
+        if (request.getRole().equals(Role.CHIEFACCOUNTANT.name()) && existsChiefAccountant) {
+            result.rejectValue("role", "", "chief-accountant-already-exists");
         }
 
         String generatedUsername = accountGenerator.generateUniqueUsername(request.getFirstName(), request.getLastName());
@@ -73,6 +98,7 @@ public class EmployeeService {
         employee.setAddress(request.getAddress());
         employee.setGender(Gender.valueOf(request.getGender()));
         employee.setDateBirth(request.getDateBirth());
+        employee.setCode(employee.generateCode());
         employee.setAccount(account);
 
         employeeRepository.save(employee);
@@ -121,24 +147,20 @@ public class EmployeeService {
             String username = authentication.getName();
             Account account = accountRepository.findByUsername(username).orElse(null);
 
-            // nếu không có file
             if (file.isEmpty()) {
                 return ApiResponse.badRequest("file-is-empty");
             }
 
-            // kiểm tra đuôi file jpg/png/gif
             String contentType = file.getContentType();
             if (contentType == null ||
-                    !(contentType.equals("image/jpeg") ||
-                            contentType.equals("image/png") ||
-                            contentType.equals("image/gif"))) {
+                !(contentType.equals("image/jpeg") ||
+                  contentType.equals("image/png") ||
+                  contentType.equals("image/gif"))) {
                 return ApiResponse.badRequest("invalid-image-type");
             }
 
-            // lưu file
             String filePath = uploadFileService.storeFile("images", file).replace("\\", "/");
 
-            // nếu user đã có ảnh đại diện từ xóa cái cũ
             if (account.getEmployee().getAvatar() != null) {
                 uploadFileService.deleteFile(account.getEmployee().getAvatar());
             }
@@ -153,7 +175,9 @@ public class EmployeeService {
     }
 
     public ApiResponse<?> getListHod() {
-        List<Employee> listHod = employeeRepository.findAllByAccountRole(Role.HOD);
+        List<Employee> listHod = employeeRepository.findAllByAccountRoleIn(
+            List.of(Role.HOD, Role.CHIEFACCOUNTANT)
+        );
         return ApiResponse.success(listHod, "successfully");
     }
 
@@ -166,39 +190,40 @@ public class EmployeeService {
 
         Specification<Employee> spec = EmployeeSpecification.searchTerm(req.getSearchTerm());
 
-        if("true".equalsIgnoreCase(req.getFilterInDepartment())){
+        if ("true".equalsIgnoreCase(req.getFilterInDepartment())) {
             spec = spec.and(EmployeeSpecification.inDepartment(req.getId()));
-        } else if("false".equalsIgnoreCase(req.getFilterInDepartment())){
+        } else if ("false".equalsIgnoreCase(req.getFilterInDepartment())) {
             spec = spec.and(EmployeeSpecification.noDepartment());
         } else {
             spec = spec.and(EmployeeSpecification.inDepartmentOrNoDepartment(req.getId()));
         }
 
-        spec = spec.and(EmployeeSpecification.hasAnyRole(List.of(Role.EMPLOYEE)));
+        Department department = departmentRepository.findById(req.getId()).orElse(null);
+        if (department != null && isAccountingDepartmentName(department.getName())) {
+            spec = spec.and(EmployeeSpecification.hasAnyRole(List.of(Role.ACCOUNTANT)));
+        } else {
+            spec = spec.and(EmployeeSpecification.hasAnyRole(List.of(Role.EMPLOYEE)));
+        }
 
         Page<Employee> page = employeeRepository.findAll(spec, pageable);
 
         List<EmployeeDepartmentDto> dtoList = page.getContent().stream()
-                .map(emp -> {
-                    EmployeeDepartmentDto dto = new EmployeeDepartmentDto();
-                    boolean inDepartment = false;
-                    if (emp.getDepartment() != null) {
-                        if (emp.getDepartment().getId().equals(req.getId())) {
-                            inDepartment = true;
-                        }
-                    }
-                    dto.setId(emp.getId());
-                    dto.setFirstName(emp.getFirstName());
-                    dto.setLastName(emp.getLastName());
-                    dto.setEmail(emp.getEmail());
-                    dto.setPhone(emp.getPhone());
-                    dto.setAddress(emp.getAddress());
-                    dto.setAvatar(emp.getAvatar());
-                    dto.setUsername(emp.getAccount().getUsername());
-                    dto.setInDepartment(inDepartment);
-                    return dto;
-                })
-                .toList();
+            .map(emp -> {
+                EmployeeDepartmentDto dto = new EmployeeDepartmentDto();
+                boolean inDepartment = emp.getDepartment() != null &&
+                        emp.getDepartment().getId().equals(req.getId());
+                dto.setId(emp.getId());
+                dto.setFirstName(emp.getFirstName());
+                dto.setLastName(emp.getLastName());
+                dto.setEmail(emp.getEmail());
+                dto.setPhone(emp.getPhone());
+                dto.setAddress(emp.getAddress());
+                dto.setAvatar(emp.getAvatar());
+                dto.setUsername(emp.getAccount().getUsername());
+                dto.setInDepartment(inDepartment);
+                return dto;
+            })
+            .toList();
 
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("totalPage", page.getTotalPages());
@@ -207,6 +232,7 @@ public class EmployeeService {
         return ApiResponse.success(responseData, "get-employees-to-add-to-department-successfully");
     }
 
+    // từ nhánh Long/excel-import-employees
     public ApiResponse<?> getEmployeeDetailsByAccountId(Long accountId) {
         Account account = accountRepository.findById(accountId).orElse(null);
         if (account == null) {
@@ -225,5 +251,16 @@ public class EmployeeService {
         dto.setAddress(account.getEmployee().getAddress());
 
         return ApiResponse.success(dto, "get-employee-details-successfully");
+    }
+
+    // từ nhánh main
+    private boolean isAccountingDepartmentName(String name) {
+        if (name == null) return false;
+        String normalized = name.trim().toLowerCase();
+        return normalized.contains("accounting") ||
+               normalized.contains("kế toán") ||
+               normalized.contains("ke toan") ||
+               normalized.contains("tài chính") ||
+               normalized.contains("tai chinh");
     }
 }

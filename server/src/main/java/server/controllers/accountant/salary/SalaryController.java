@@ -30,16 +30,16 @@ public class SalaryController {
         return salaryService.getAllDepartmentNames();
     }
 
+    @GetMapping("/roles")
+    public ApiResponse<?> getAllRoles() {
+        return salaryService.getAllRoles();
+    }
+
     @PostMapping("/create")
     public ApiResponse<?> createSalary(@RequestParam("input") String input,
                                        @RequestParam("baseSalary") BigDecimal baseSalary,
                                        Authentication authentication) {
         return salaryService.createSalary(input, baseSalary, authentication);
-    }
-
-    @GetMapping("/history/{employeeId}")
-    public ApiResponse<?> getSalaryHistoryByEmployee(@PathVariable Long employeeId) {
-        return salaryService.getSalaryHistoryByEmployeeId(employeeId);
     }
 
     @GetMapping
@@ -55,31 +55,30 @@ public class SalaryController {
     public ApiResponse<?> getSalarySummary(
             @RequestParam(value = "department", required = false) String department,
             @RequestParam(value = "position", required = false) String position,
-            @RequestParam(value = "name", required = false) String name
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "role", required = false) String role
     ) {
-        return salaryService.getSalarySummaryList(department, position, name);
+        return salaryService.getSalarySummaryList(department, position, name, role);
     }
 
-    @GetMapping("/template/download")
-    public ResponseEntity<byte[]> downloadSalaryTemplate() {
-        try {
-            ByteArrayInputStream templateStream = salaryService.generateSalaryTemplate();
-            byte[] fileBytes = templateStream.readAllBytes();
 
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=salary-template.xlsx")
-                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                    .body(fileBytes);
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError()
-                    .body(("Failed to generate template: " + e.getMessage()).getBytes());
-        }
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getSalaryById(@PathVariable Long id) {
+        return ResponseEntity.ok(salaryService.getSalaryById(id));
     }
 
-    @PostMapping("/import")
-    public ResponseEntity<ApiResponse<?>> importExcel(@RequestParam("file") MultipartFile file) {
-        ApiResponse<?> result = salaryService.importSalaryFromExcel(file);
-        return ResponseEntity.ok(result);
+    @GetMapping("/history/{code}")
+    public ResponseEntity<?> getSalaryHistoryByCode(@PathVariable String code) {
+        ApiResponse<?> response = salaryService.getSalaryHistoryByEmployeeCode(code);
+        return ResponseEntity.status(response.getStatus()).body(response);
     }
 
+    @PostMapping("/generate")
+    public ResponseEntity<ApiResponse<?>> generateMonthlySalary(
+            @RequestParam int year,
+            @RequestParam int month
+    ) {
+        ApiResponse<?> response = salaryService.generateMonthlySalary(year, month);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
 }
