@@ -6,7 +6,6 @@ import org.springframework.stereotype.Repository;
 import server.models.Document;
 import server.models.DocumentHistory;
 
-import java.util.List;
 
 @Repository
 public interface DocumentHistoryRepository extends JpaRepository<DocumentHistory, Long> , JpaSpecificationExecutor<DocumentHistory> {

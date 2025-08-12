@@ -35,14 +35,12 @@ const schema = yup.object({
 			return value >= today
 		}),
 	// optional
-	priority: yup.string().nullable().notRequired()
 })
 
 const DEFAULT_VALUES = {
 	name: "",
 	description: "",
 	deadline: dayjs().add(7, "day").format("YYYY-MM-DD"),
-	priority: "MEDIUM"
 }
 
 export default function ProjectFormCreate({
@@ -78,7 +76,6 @@ export default function ProjectFormCreate({
 			data = {
 				name: document.projectName || "",
 				description: document.projectDescription || "",
-				priority: document.projectPriority ?? "MEDIUM",
 				deadline: document.projectDeadline
 					? dayjs(document.projectDeadline).format("YYYY-MM-DD")
 					: dayjs().add(7, "day").format("YYYY-MM-DD")
@@ -198,21 +195,6 @@ export default function ProjectFormCreate({
 								inputProps={{ min: localToday }}
 								error={!!errors.deadline}
 								helperText={errors.deadline?.message}
-							/>
-						)}
-					/>
-
-					<Controller
-						name="priority"
-						control={control}
-						render={({ field }) => (
-							<TextField
-								{...field}
-								label="Priority"
-								fullWidth
-								size="small"
-								error={!!errors.priority}
-								helperText={errors.priority?.message}
 							/>
 						)}
 					/>

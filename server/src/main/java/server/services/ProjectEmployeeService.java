@@ -20,6 +20,7 @@ public class ProjectEmployeeService {
 
     private final ProjectRepository projectRepository;
     private final EmployeeRepository employeeRepository;
+    private final NotificationService notificationService;
 
     public ApiResponse<?> searchAvailableByRoleAndName(Long projectId, String keyword) {
         String searchKeyword = keyword == null ? "" : keyword.trim();
@@ -92,6 +93,7 @@ public class ProjectEmployeeService {
 
         project.getEmployees().addAll(toAdd);
         projectRepository.save(project);
+        notificationService.notifyProjectMembersAdded(project, toAdd, project.getProjectManager());
         return ApiResponse.success(null, "employees-added-successfully");
     }
 
@@ -114,7 +116,7 @@ public class ProjectEmployeeService {
 
         project.getEmployees().removeAll(removable);
         projectRepository.save(project);
-
+        notificationService.notifyProjectMembersRemoved(project, removable, project.getProjectManager());
         return ApiResponse.success(null, "employees-removed-successfully");
     }
 

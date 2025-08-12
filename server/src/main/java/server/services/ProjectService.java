@@ -135,9 +135,9 @@ public class ProjectService {
             return ApiResponse.errorServer("Công văn chưa được ký duyệt. Không thể tạo dự án!");
         }
 
-        Account pm = document.getReceiver();
+        Account pm = document.getPm(); // KHÔNG dùng getReceiver() nếu receiver là giám đốc
         if (pm == null) {
-            return ApiResponse.errorServer("Document không có người tiếp nhận (PM)");
+            return ApiResponse.errorServer("Document chưa chọn PM");
         }
 
         Project project = Project.builder()
@@ -161,7 +161,7 @@ public class ProjectService {
         documentRepository.save(document);
         notificationService.createNotification(
                 NotificationType.PROJECT,
-                project.getId(),
+                document.getId(),
                 false
         );
 
