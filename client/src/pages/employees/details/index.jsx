@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
@@ -24,13 +24,17 @@ import {
 	Save as SaveIcon,
 	ArrowBack as ArrowBackIcon
 } from "@mui/icons-material"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import { useDispatch } from "react-redux"
 import { setPopup } from "~/libs/features/popup/popupSlice"
 import { useTranslation } from "react-i18next"
 import { ROLE_CONFIGS } from "~/constants/account.constants"
 import RoleChip from "~/components/role-chip"
-import { createEmployeeApi } from "~/services/employee.service"
+import {
+	createEmployeeApi,
+	editEmployeeApi,
+	getEmployeeDetailsByAccountIdApi
+} from "~/services/employee.service"
 import { formatDateToYYYYMMDD } from "~/utils/function"
 
 const schema = yup.object({
@@ -81,10 +85,12 @@ const schema = yup.object({
 		)
 })
 
-export default function CreateAccountManagementPage() {
+export default function EmployeeDetailsPage() {
+	const { id } = useParams()
 	const theme = useTheme()
 	const dispatch = useDispatch()
-	const { t } = useTranslation("accounts_management_page")
+	const navigate = useNavigate()
+	const { t } = useTranslation("employees_list_page")
 	const { t: tError } = useTranslation("errors")
 
 	const [loading, setLoading] = useState(false)
@@ -111,20 +117,21 @@ export default function CreateAccountManagementPage() {
 
 	const onSubmit = async (data) => {
 		setLoading(true)
-		const res = await createEmployeeApi({
+		const res = await editEmployeeApi({
 			...data,
+			id,
 			dateBirth: formatDateToYYYYMMDD(data.dateBirth)
 		})
 		setLoading(false)
 
-		if (res.status === 201) {
+		if (res.status === 200) {
 			dispatch(
 				setPopup({
 					type: "success",
 					message: res.message
 				})
 			)
-			reset()
+			navigate("/employees")
 		} else {
 			if (res.errors) {
 				Object.entries(res.errors).forEach(([field, message]) => {
@@ -143,9 +150,38 @@ export default function CreateAccountManagementPage() {
 		}
 	}
 
+	const handleFetchData = async () => {
+		setLoading(true)
+		const res = await getEmployeeDetailsByAccountIdApi(id)
+		setLoading(false)
+		if (res.status === 200) {
+			reset({
+				firstName: res.data.firstName,
+				lastName: res.data.lastName,
+				email: res.data.email,
+				phone: res.data.phone,
+				address: res.data.address,
+				gender: res.data.gender,
+				dateBirth: res.data.dateBirth,
+				role: res.data.role
+			})
+		} else {
+			dispatch(
+				setPopup({
+					type: "error",
+					message: res.message
+				})
+			)
+		}
+	}
+
+	useEffect(() => {
+		handleFetchData()
+	}, [])
+
 	return (
 		<>
-			<title>{t("create-account")}</title>
+			<title>{t("edit-employee")}</title>
 
 			<Paper
 				sx={{
@@ -198,10 +234,10 @@ export default function CreateAccountManagementPage() {
 								backgroundClip: "text"
 							}}
 						>
-							{t("create-account")}
+							{t("edit-employee")}
 						</Typography>
 						<Typography variant="body2">
-							{t("create-an-account-for-employee")}
+							{t("edit-employee-in-organization")}
 						</Typography>
 					</Box>
 					<Box
@@ -596,7 +632,7 @@ export default function CreateAccountManagementPage() {
 										}}
 										disabled={loading}
 										LinkComponent={Link}
-										to="/management/accounts"
+										to="/employees"
 									>
 										{t("back")}
 									</Button>
@@ -612,7 +648,7 @@ export default function CreateAccountManagementPage() {
 											textTransform: "capitalize"
 										}}
 									>
-										{t("create")}
+										{t("update")}
 									</Button>
 								</Stack>
 							</Grid>

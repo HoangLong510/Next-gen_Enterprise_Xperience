@@ -77,6 +77,7 @@ public class AuthService {
         token.setAccessToken(accessToken);
         token.setRefreshToken(refreshToken);
         token.setAccount(account.get());
+        token.setDeviceName(request.getDeviceName());
         tokenRepository.save(token);
 
         TokenDto tokenDto = new TokenDto();

@@ -27,11 +27,11 @@ public class Department {
 
     @OneToOne
     @JoinColumn(name = "hod_id")
-    @JsonIgnoreProperties("hodDepartment")
+    @JsonIgnoreProperties({"hodDepartment", "department"})
     private Employee hod;
 
     @OneToMany(mappedBy = "department", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnoreProperties("department")
+    @JsonIgnoreProperties({"hodDepartment", "department"})
     private List<Employee> employees;
 
     private String image;

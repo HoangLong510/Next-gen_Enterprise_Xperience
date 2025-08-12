@@ -33,14 +33,14 @@ export const ROLE_CONFIGS = [
 		icon: SupervisorAccountIcon
 	},
 	{
+		value: "HR",
+		color: "error",
+		icon: GroupIcon
+	},
+	{
 		value: "EMPLOYEE",
 		color: "primary",
 		icon: PersonIcon
-	},
-	{
-		value: "HR",
-		color: "primary",
-		icon: GroupIcon
 	}
 ]
 

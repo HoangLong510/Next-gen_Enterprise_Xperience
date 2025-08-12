@@ -1,6 +1,5 @@
 package server.services;
 
-import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -13,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.multipart.MultipartFile;
+import server.dtos.AccountDto;
 import server.dtos.CreateEmployeeDto;
 import server.dtos.EmployeeDepartmentDto;
 import server.dtos.GetEmployeesToAddToDepartmentDto;
@@ -23,6 +23,7 @@ import server.models.enums.Role;
 import server.repositories.AccountRepository;
 import server.repositories.EmployeeRepository;
 import server.specification.EmployeeSpecification;
+import server.utils.AccountGenerator;
 import server.utils.ApiResponse;
 
 import java.util.HashMap;
@@ -37,16 +38,9 @@ public class EmployeeService {
     private final AccountRepository accountRepository;
     private final UploadFileService uploadFileService;
     private final EmailService emailService;
+    private final AccountGenerator accountGenerator;
 
     public ApiResponse<?> create(CreateEmployeeDto request, BindingResult result) {
-        if (!request.getPassword().equals(request.getConfirmPassword())) {
-            result.rejectValue("confirmPassword", "", "confirm-password-does-not-match");
-        }
-
-        boolean existsUsername = accountRepository.findByUsername(request.getUsername()).isPresent();
-        if (existsUsername) {
-            result.rejectValue("username", "", "username-already-exists");
-        }
 
         boolean existsEmail = employeeRepository.findByEmail(request.getEmail()).isPresent();
         if (existsEmail) {
@@ -62,9 +56,12 @@ public class EmployeeService {
             return ApiResponse.badRequest(result);
         }
 
+        String generatedUsername = accountGenerator.generateUniqueUsername(request.getFirstName(), request.getLastName());
+        String generatedPassword = accountGenerator.generatePassword();
+
         Account account = new Account();
-        account.setUsername(request.getUsername());
-        account.setPassword(passwordEncoder.encode(request.getPassword()));
+        account.setUsername(generatedUsername);
+        account.setPassword(passwordEncoder.encode(generatedPassword));
         account.setRole(Role.valueOf(request.getRole()));
         account.setEnabled(true);
 
@@ -79,9 +76,43 @@ public class EmployeeService {
         employee.setAccount(account);
 
         employeeRepository.save(employee);
-        emailService.sendAccountCreatedEmail(request.getEmail(), request.getUsername(), request.getPassword());
+        emailService.sendAccountCreatedEmail(request.getEmail(), generatedUsername, generatedPassword);
 
         return ApiResponse.created(null, "employee-created-successfully");
+    }
+
+    public ApiResponse<?> edit(CreateEmployeeDto request, BindingResult result) {
+        Employee employee = employeeRepository.findById(request.getId()).orElse(null);
+        if (employee == null) {
+            return ApiResponse.badRequest("account-not-found");
+        }
+
+        boolean existsEmail = employeeRepository.findByEmail(request.getEmail()).isPresent();
+        if (existsEmail && !employee.getEmail().equals(request.getEmail())) {
+            result.rejectValue("email", "", "email-already-exists");
+        }
+
+        boolean existsPhone = employeeRepository.findByPhone(request.getPhone()).isPresent();
+        if (existsPhone && !employee.getPhone().equals(request.getPhone())) {
+            result.rejectValue("phone", "", "phone-already-exists");
+        }
+
+        if (result.hasErrors()) {
+            return ApiResponse.badRequest(result);
+        }
+
+        employee.getAccount().setRole(Role.valueOf(request.getRole()));
+        employee.setFirstName(request.getFirstName());
+        employee.setLastName(request.getLastName());
+        employee.setEmail(request.getEmail());
+        employee.setPhone(request.getPhone());
+        employee.setAddress(request.getAddress());
+        employee.setGender(Gender.valueOf(request.getGender()));
+        employee.setDateBirth(request.getDateBirth());
+
+        employeeRepository.save(employee);
+
+        return ApiResponse.success(null, "edit-employee-successfully");
     }
 
     public ApiResponse<?> changeAvatar(MultipartFile file) {
@@ -174,5 +205,25 @@ public class EmployeeService {
         responseData.put("employees", dtoList);
 
         return ApiResponse.success(responseData, "get-employees-to-add-to-department-successfully");
+    }
+
+    public ApiResponse<?> getEmployeeDetailsByAccountId(Long accountId) {
+        Account account = accountRepository.findById(accountId).orElse(null);
+        if (account == null) {
+            return ApiResponse.badRequest("account-not-found");
+        }
+
+        AccountDto dto = new AccountDto();
+        dto.setId(account.getEmployee().getId());
+        dto.setFirstName(account.getEmployee().getFirstName());
+        dto.setLastName(account.getEmployee().getLastName());
+        dto.setEmail(account.getEmployee().getEmail());
+        dto.setPhone(account.getEmployee().getPhone());
+        dto.setGender(account.getEmployee().getGender());
+        dto.setRole(account.getRole());
+        dto.setDateBirth(account.getEmployee().getDateBirth());
+        dto.setAddress(account.getEmployee().getAddress());
+
+        return ApiResponse.success(dto, "get-employee-details-successfully");
     }
 }

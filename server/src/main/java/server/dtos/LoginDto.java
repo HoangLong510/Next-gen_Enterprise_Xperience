@@ -12,4 +12,6 @@ public class LoginDto {
     private String password;
 
     private String captchaToken;
+
+    private String deviceName;
 }

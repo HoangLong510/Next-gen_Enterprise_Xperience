@@ -42,8 +42,10 @@ import { setPopup } from "~/libs/features/popup/popupSlice"
 import { useDispatch } from "react-redux"
 import { ROLE_CONFIGS } from "~/constants/account.constants"
 import RoleChip from "~/components/role-chip"
-import { useNavigate } from "react-router-dom"
+import AddIcon from "@mui/icons-material/Add"
+import { Link, useNavigate } from "react-router-dom"
 import TrendingDownIcon from "@mui/icons-material/TrendingDown"
+import { TableChart } from "@mui/icons-material"
 
 // Enhanced Status Component
 const StatusIndicator = ({ enabled, t, theme }) => {
@@ -215,9 +217,9 @@ const StatusIndicator = ({ enabled, t, theme }) => {
 	)
 }
 
-export default function AccountList() {
+export default function EmployeesListPage() {
 	const theme = useTheme()
-	const { t, i18n } = useTranslation("accounts_management_page")
+	const { t, i18n } = useTranslation("employees_list_page")
 	const dispatch = useDispatch()
 	const navigate = useNavigate()
 
@@ -289,7 +291,7 @@ export default function AccountList() {
 
 	const statsData = [
 		{
-			title: t("TotalAccounts"),
+			title: t("TotalEmployees"),
 			value: stats.totalAccounts,
 			icon: GroupIcon,
 			color: theme.palette.warning.main,
@@ -325,7 +327,7 @@ export default function AccountList() {
 
 	return (
 		<>
-			<title>{t("accounts-management")}</title>
+			<title>{t("employees-management")}</title>
 
 			<Paper
 				sx={{
@@ -378,10 +380,10 @@ export default function AccountList() {
 								backgroundClip: "text"
 							}}
 						>
-							{t("AccountManagement")}
+							{t("employees-management")}
 						</Typography>
 						<Typography variant="body2">
-							{t("EmployeeAccountManagementAndMonitoringSystem")}
+							{t("EmployeesManagementAndMonitoringSystem")}
 						</Typography>
 					</Box>
 					<Box
@@ -618,8 +620,8 @@ export default function AccountList() {
 						{/* Search Field */}
 						<TextField
 							size="small"
-							label={t("SearchAccount")}
-							placeholder={`${t("EnterYourAccountUsername")}...`}
+							label={t("SearchEmployees")}
+							placeholder={`${t("EnterYourSerchTerm")}...`}
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
 							fullWidth
@@ -714,6 +716,32 @@ export default function AccountList() {
 								</Select>
 							</FormControl>
 						</Stack>
+						<Button
+							LinkComponent={Link}
+							to="/employees/create"
+							variant="contained"
+							startIcon={<AddIcon />}
+							sx={{
+								textWrap: "nowrap",
+								px: 5,
+								textTransform: "capitalize"
+							}}
+						>
+							{t("AddNew")}
+						</Button>
+						<Button
+							LinkComponent={Link}
+							to="/employees/excel-import"
+							variant="outlined"
+							startIcon={<TableChart />}
+							sx={{
+								textWrap: "nowrap",
+								px: 6,
+								textTransform: "capitalize"
+							}}
+						>
+							{t("importData")}
+						</Button>
 					</Stack>
 
 					{/* Active Filters Display */}
@@ -788,8 +816,9 @@ export default function AccountList() {
 										fontWeight: "bold"
 									}}
 								>
-									ID
+									{t("information")}
 								</TableCell>
+
 								<TableCell
 									sx={{
 										backgroundColor: alpha(
@@ -799,8 +828,21 @@ export default function AccountList() {
 										fontWeight: "bold"
 									}}
 								>
-									{t("account")}
+									Email
 								</TableCell>
+
+								<TableCell
+									sx={{
+										backgroundColor: alpha(
+											theme.palette.primary.main,
+											0.05
+										),
+										fontWeight: "bold"
+									}}
+								>
+									{t("phone-number")}
+								</TableCell>
+
 								<TableCell
 									sx={{
 										backgroundColor: alpha(
@@ -853,13 +895,6 @@ export default function AccountList() {
 									(_, idx) => (
 										<TableRow key={idx}>
 											<TableCell sx={{ height: 70 }}>
-												<Skeleton
-													variant="circular"
-													width={32}
-													height={32}
-												/>
-											</TableCell>
-											<TableCell>
 												<Stack
 													direction="row"
 													spacing={2}
@@ -880,6 +915,12 @@ export default function AccountList() {
 												<Skeleton width={60} />
 											</TableCell>
 											<TableCell>
+												<Skeleton width={60} />
+											</TableCell>
+											<TableCell>
+												<Skeleton width={60} />
+											</TableCell>
+											<TableCell>
 												<Skeleton width={80} />
 											</TableCell>
 										</TableRow>
@@ -892,7 +933,7 @@ export default function AccountList() {
 											onClick={() => {
 												if (acc.username !== "admin")
 													navigate(
-														`/management/accounts/details/${acc.id}`
+														`/employees/edit/${acc.id}`
 													)
 											}}
 											key={acc.id}
@@ -919,30 +960,6 @@ export default function AccountList() {
 												}
 											}}
 										>
-											<TableCell sx={{ height: 70 }}>
-												<Box
-													sx={{
-														display: "flex",
-														alignItems: "center",
-														justifyContent:
-															"center",
-														width: 35,
-														height: 35,
-														borderRadius: "50%",
-														backgroundColor: alpha(
-															theme.palette
-																.primary.main,
-															0.1
-														),
-														color: theme.palette
-															.primary.main,
-														fontWeight: "bold",
-														fontSize: "0.875rem"
-													}}
-												>
-													{acc.id}
-												</Box>
-											</TableCell>
 											<TableCell>
 												<Stack
 													direction="row"
@@ -958,7 +975,7 @@ export default function AccountList() {
 													/>
 													<Box>
 														<Typography
-															variant="body1"
+															variant="body2"
 															fontWeight="medium"
 															sx={{
 																lineHeight: 1.2
@@ -966,17 +983,21 @@ export default function AccountList() {
 														>
 															{`${acc.firstName} ${acc.lastName}`}
 														</Typography>
-														<Typography
-															variant="body2"
-															color="text.secondary"
-															sx={{
-																lineHeight: 1.2
-															}}
-														>
-															@{acc.username}
-														</Typography>
 													</Box>
 												</Stack>
+											</TableCell>
+											<TableCell>
+												<Typography variant="body2">
+													{acc.email}
+												</Typography>
+											</TableCell>
+											<TableCell>
+												<Typography
+													variant="body2"
+													sx={{ paddingRight: 3 }}
+												>
+													{acc.phone}
+												</Typography>
 											</TableCell>
 											<TableCell>
 												<RoleChip role={acc.role} />
@@ -1050,7 +1071,7 @@ export default function AccountList() {
 							color="text.secondary"
 							gutterBottom
 						>
-							{t("NoAccountsFound")}
+							{t("NoEmployeesFound")}
 						</Typography>
 						{(searchTerm || roleFilter || statusFilter) && (
 							<Typography variant="body2" color="text.secondary">

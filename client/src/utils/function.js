@@ -71,11 +71,11 @@ export const formatDateToYYYYMMDD = (date) => {
 	return date
 }
 export const formatCurrency = (amount) => {
-  if (typeof amount !== "number") return "-";
-  return amount.toLocaleString("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
-};
+	if (typeof amount !== "number") return "-"
+	return amount.toLocaleString("vi-VN", {
+		style: "currency",
+		currency: "VND",
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 2
+	})
+}

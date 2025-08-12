@@ -12,6 +12,12 @@ import TransactionList from "~/pages/accountant/fund-transaction-list"
 import CreateSalaryPage from "~/pages/accountant/salary"
 import ProjectManagement from "~/pages/management/project/list-project"
 import ProjectDetailPage from "~/pages/management/project/ProjectDetailPage"
+import AccountManagementDetails from "~/pages/management/accounts/details"
+import EmployeesListPage from "~/pages/employees"
+import CreateEmployeePage from "~/pages/employees/create"
+import EmployeeDetailsPage from "~/pages/employees/details"
+import EmployeeExcelImport from "~/pages/employees/excel_import"
+
 const roleRoutes = [
 	{
 		path: "/management/accounts",
@@ -20,8 +26,8 @@ const roleRoutes = [
 		roles: ["ADMIN"]
 	},
 	{
-		path: "/management/accounts/create",
-		component: CreateAccountManagementPage,
+		path: "/management/accounts/details/:id",
+		component: AccountManagementDetails,
 		layout: DefaultLayout,
 		roles: ["ADMIN"]
 	},
@@ -29,7 +35,7 @@ const roleRoutes = [
 		path: "/management/documents",
 		component: DocumentList,
 		layout: DefaultLayout,
-		roles: ["ADMIN", "MANAGER", "PM","ACCOUNTANT"]
+		roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"]
 	},
 	{
 		path: "/management/projects",
@@ -48,7 +54,7 @@ const roleRoutes = [
 		path: "/management/documents/:id",
 		component: DocumentDetail,
 		layout: DefaultLayout,
-		roles: ["ADMIN", "MANAGER", "PM","ACCOUNTANT"]
+		roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"]
 	},
 	{
 		path: "/departments/add",
@@ -73,7 +79,7 @@ const roleRoutes = [
 		path: "/finance/fund",
 		component: FundList,
 		layout: DefaultLayout,
-		roles:["ADMIN"]
+		roles: ["ADMIN"]
 	},
 	{
 		path: "/finance/fund/:fundID",
@@ -85,7 +91,7 @@ const roleRoutes = [
 		path: "/finance/fund/transactions",
 		component: TransactionList,
 		layout: DefaultLayout,
-		roles:["ADMIN"]
+		roles: ["ADMIN"]
 	},
 	{
 		path: "/finance/salary/create",
@@ -93,7 +99,30 @@ const roleRoutes = [
 		layout: DefaultLayout,
 		roles: ["ADMIN"]
 	},
-	/* */
+	{
+		path: "/employees",
+		component: EmployeesListPage,
+		layout: DefaultLayout,
+		roles: ["ADMIN", "MANAGER", "HR"]
+	},
+	{
+		path: "/employees/create",
+		component: CreateEmployeePage,
+		layout: DefaultLayout,
+		roles: ["ADMIN", "MANAGER", "HR"]
+	},
+	{
+		path: "/employees/edit/:id",
+		component: EmployeeDetailsPage,
+		layout: DefaultLayout,
+		roles: ["ADMIN", "MANAGER", "HR"]
+	},
+	{
+		path: "/employees/excel-import",
+		component: EmployeeExcelImport,
+		layout: DefaultLayout,
+		roles: ["ADMIN", "MANAGER", "HR"]
+	}
 ]
 
 export default roleRoutes

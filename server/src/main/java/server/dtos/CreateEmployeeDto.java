@@ -8,21 +8,7 @@ import java.time.LocalDate;
 
 @Data
 public class CreateEmployeeDto {
-
-    @NotBlank(message = "username-is-required")
-    @Size(min = 5, max = 30, message = "username-must-be-between-5-and-30-characters")
-    @Pattern(
-            regexp = "^[a-z][a-z0-9]*$",
-            message = "username-must-start-with-a-lowercase-letter-and-contain-only-lowercase-letters-and-numbers"
-    )
-    private String username;
-
-    @NotBlank(message = "password-is-required")
-    @Size(min = 6, max = 30, message = "password-must-be-between-6-and-30-characters")
-    private String password;
-
-    @NotBlank(message = "confirm-password-is-required")
-    private String confirmPassword;
+    private Long id;
 
     @NotBlank(message = "first-name-is-required")
     @Size(min = 2, max = 30, message = "first-name-must-be-between-2-and-30-characters")
@@ -68,7 +54,7 @@ public class CreateEmployeeDto {
 
     @NotBlank(message = "role-is-required")
     @Pattern(
-            regexp = "^(ADMIN|MANAGER|PM|HR|ACCOUNTANT|HOD|EMPLOYEE)$",
+            regexp = "^(MANAGER|PM|HR|ACCOUNTANT|HOD|EMPLOYEE)$",
             message = "invalid-role"
     )
     private String role;

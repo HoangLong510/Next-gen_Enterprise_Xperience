@@ -81,10 +81,10 @@ const schema = yup.object({
 		)
 })
 
-export default function CreateAccountManagementPage() {
+export default function CreateEmployeePage() {
 	const theme = useTheme()
 	const dispatch = useDispatch()
-	const { t } = useTranslation("accounts_management_page")
+	const { t } = useTranslation("employees_list_page")
 	const { t: tError } = useTranslation("errors")
 
 	const [loading, setLoading] = useState(false)
@@ -145,7 +145,7 @@ export default function CreateAccountManagementPage() {
 
 	return (
 		<>
-			<title>{t("create-account")}</title>
+			<title>{t("create-employee")}</title>
 
 			<Paper
 				sx={{
@@ -198,10 +198,10 @@ export default function CreateAccountManagementPage() {
 								backgroundClip: "text"
 							}}
 						>
-							{t("create-account")}
+							{t("create-employee")}
 						</Typography>
 						<Typography variant="body2">
-							{t("create-an-account-for-employee")}
+							{t("create-employee-for-organization")}
 						</Typography>
 					</Box>
 					<Box
@@ -596,7 +596,7 @@ export default function CreateAccountManagementPage() {
 										}}
 										disabled={loading}
 										LinkComponent={Link}
-										to="/management/accounts"
+										to="/employees"
 									>
 										{t("back")}
 									</Button>

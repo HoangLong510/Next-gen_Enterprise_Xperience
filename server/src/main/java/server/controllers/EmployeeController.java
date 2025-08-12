@@ -18,11 +18,23 @@ import server.utils.ApiResponse;
 public class EmployeeController {
     private final EmployeeService employeeService;
 
-    @PreAuthorize("hasAnyAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'HR', 'MANAGER')")
     @PostMapping("/create")
     public ResponseEntity<?> create(@Valid @RequestBody CreateEmployeeDto request, BindingResult result) {
         try {
             ApiResponse<?> response = employeeService.create(request, result);
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } catch (Exception e) {
+            ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'HR', 'MANAGER')")
+    @PostMapping("/edit")
+    public ResponseEntity<?> edit(@Valid @RequestBody CreateEmployeeDto request, BindingResult result) {
+        try {
+            ApiResponse<?> response = employeeService.edit(request, result);
             return ResponseEntity.status(response.getStatus()).body(response);
         } catch (Exception e) {
             ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
@@ -56,6 +68,18 @@ public class EmployeeController {
     public ResponseEntity<?> getEmployeesToAddToDepartment(@RequestBody GetEmployeesToAddToDepartmentDto req) {
         try{
             ApiResponse<?> response = employeeService.GetEmployeesToAddToDepartment(req);
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } catch (Exception e) {
+            ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'HR', 'MANAGER')")
+    @GetMapping("/get-employee-details-by-account-id/{id}")
+    public ResponseEntity<?> getEmployeeDetailsByAccountId(@PathVariable("id") Long id) {
+        try{
+            ApiResponse<?> response = employeeService.getEmployeeDetailsByAccountId(id);
             return ResponseEntity.status(response.getStatus()).body(response);
         } catch (Exception e) {
             ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());

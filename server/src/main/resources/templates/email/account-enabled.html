@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Account Enabled</title>
+</head>
+<body style="margin:0;padding:0;background:#f6f6f6;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f6f6;">
+    <tr>
+        <td>
+            <table width="480" cellpadding="0" cellspacing="0" align="center" style="margin:40px auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                <tr>
+                    <td style="background:#118D57;padding:24px 0;border-radius:8px 8px 0 0;text-align:center;">
+                        <h1 style="color:#fff;margin:0;font-size:26px;font-family:sans-serif;letter-spacing:1px;">Account Enabled</h1>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:32px;font-family:sans-serif;">
+                        <h2 style="color:#118D57;margin-top:0;">
+                            Hello, <span th:text="${firstName} + ' ' + ${lastName}">[Full Name]</span>
+                        </h2>
+                        <p style="font-size:16px;color:#333;margin-bottom:24px;">
+                            Your account with username:
+                            <strong th:text="${username}">[username]</strong> has been <strong>successfully enabled</strong>.
+                        </p>
+                        <p style="font-size:15px;color:#555;margin-bottom:24px;">
+                            You now have full access to the system and its features. Welcome back!
+                        </p>
+                        <p style="font-size:14px;color:#1B5E20;background:#E8F5E9;padding:12px 20px;border-radius:5px;margin-top:20px;">
+                            <strong>Reminder:</strong><br>
+                            Please ensure your login information is kept secure. Contact support if you need help.
+                        </p>
+                        <p style="font-size:13px;color:#888;margin-top:36px;">
+                            If you have any questions or issues, don’t hesitate to reach out to our support team.<br>
+                            <span style="color:#118D57;">Thank you!</span>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="background:#f6f6f6;text-align:center;padding:18px 0;border-radius:0 0 8px 8px;font-size:12px;color:#aaa;">
+                        &copy; <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2025</span> Your Company. All rights reserved.
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

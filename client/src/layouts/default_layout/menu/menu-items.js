@@ -7,7 +7,7 @@ import FilePresentIcon from "@mui/icons-material/FilePresent"
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney"
 import TaskAltIcon from "@mui/icons-material/TaskAlt"
 import DescriptionIcon from "@mui/icons-material/Description"
-import WorkIcon from '@mui/icons-material/Work';
+import WorkIcon from "@mui/icons-material/Work"
 import { PunchClock } from "@mui/icons-material"
 export const menuItems = [
 	{
@@ -37,10 +37,10 @@ export const menuItems = [
 		title: "Employees",
 		items: [
 			{
-				label: "Profiles",
+				label: "Employee List",
 				icon: AssignmentIndIcon,
-				href: "/employees/profiles",
-				roles: ["ADMIN", "MANAGER"]
+				href: "/employees",
+				roles: ["ADMIN", "MANAGER", "HR"]
 			},
 			{
 				label: "Contracts",
@@ -56,23 +56,23 @@ export const menuItems = [
 			}
 		]
 	},
-   {
-    title: "Finance",
-    items: [
-      {
-        label: "Fund",
-        icon: AssignmentIndIcon,
-        href: "/finance/fund",
-        roles: ["ADMIN", "MANAGER","ACCOUNTANT"],
-      },
-      {
-        label: "Salary",
-        icon: FilePresentIcon,
-        href: "/finance/salary/create",
-        roles: ["ADMIN", "MANAGER","ACCOUNTANT"],
-      },
-    ],
-  },
+	{
+		title: "Finance",
+		items: [
+			{
+				label: "Fund",
+				icon: AssignmentIndIcon,
+				href: "/finance/fund",
+				roles: ["ADMIN", "MANAGER", "ACCOUNTANT"]
+			},
+			{
+				label: "Salary",
+				icon: FilePresentIcon,
+				href: "/finance/salary/create",
+				roles: ["ADMIN", "MANAGER", "ACCOUNTANT"]
+			}
+		]
+	},
 	{
 		title: "Utilities",
 		items: [
@@ -92,7 +92,7 @@ export const menuItems = [
 				label: "Dispatches",
 				icon: AssignmentIcon,
 				href: "/management/documents",
-				roles: ["ADMIN", "MANAGER", "PM","ACCOUNTANT"]
+				roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"]
 			},
 			{
 				label: "Tasks",
@@ -105,9 +105,7 @@ export const menuItems = [
 				icon: DescriptionIcon,
 				href: "/leave-request",
 				roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"]
-			},
-
+			}
 		]
 	}
 ]
-
