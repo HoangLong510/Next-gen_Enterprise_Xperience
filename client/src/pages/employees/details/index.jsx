@@ -22,7 +22,10 @@ import {
 import {
 	Business as BusinessIcon,
 	Save as SaveIcon,
-	ArrowBack as ArrowBackIcon
+	ArrowBack as ArrowBackIcon,
+	LockReset as LockResetIcon,
+	Block,
+	Check
 } from "@mui/icons-material"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { useDispatch } from "react-redux"
@@ -31,11 +34,11 @@ import { useTranslation } from "react-i18next"
 import { ROLE_CONFIGS } from "~/constants/account.constants"
 import RoleChip from "~/components/role-chip"
 import {
-	createEmployeeApi,
 	editEmployeeApi,
 	getEmployeeDetailsByAccountIdApi
 } from "~/services/employee.service"
 import { formatDateToYYYYMMDD } from "~/utils/function"
+import { changeStatusApi, resetPasswordApi } from "~/services/account.service"
 
 const schema = yup.object({
 	firstName: yup
@@ -94,6 +97,9 @@ export default function EmployeeDetailsPage() {
 	const { t: tError } = useTranslation("errors")
 
 	const [loading, setLoading] = useState(false)
+	const [openResetPassword, setOpenResetPassword] = useState(false)
+	const [openChangeStatus, setOpenChangeStatus] = useState(false)
+	const [enabled, setEnabled] = useState(false)
 
 	const {
 		control,
@@ -155,6 +161,7 @@ export default function EmployeeDetailsPage() {
 		const res = await getEmployeeDetailsByAccountIdApi(id)
 		setLoading(false)
 		if (res.status === 200) {
+			setEnabled(res.data.enabled)
 			reset({
 				firstName: res.data.firstName,
 				lastName: res.data.lastName,
@@ -165,6 +172,47 @@ export default function EmployeeDetailsPage() {
 				dateBirth: res.data.dateBirth,
 				role: res.data.role
 			})
+		} else {
+			dispatch(
+				setPopup({
+					type: "error",
+					message: res.message
+				})
+			)
+		}
+	}
+
+	const handleResetPasswordAccount = async () => {
+		setOpenResetPassword(false)
+		const res = await resetPasswordApi(id)
+		if (res.status === 200) {
+			dispatch(
+				setPopup({
+					type: "success",
+					message: res.message
+				})
+			)
+		} else {
+			dispatch(
+				setPopup({
+					type: "error",
+					message: res.message
+				})
+			)
+		}
+	}
+
+	const handleChangeStatusAccount = async () => {
+		setOpenChangeStatus(false)
+		const res = await changeStatusApi(id)
+		if (res.status === 200) {
+			dispatch(
+				setPopup({
+					type: "success",
+					message: res.message
+				})
+			)
+			setEnabled(!enabled)
 		} else {
 			dispatch(
 				setPopup({
@@ -637,19 +685,77 @@ export default function EmployeeDetailsPage() {
 										{t("back")}
 									</Button>
 
-									{/* Create Button */}
-									<Button
-										type="submit"
-										variant="contained"
-										size="medium"
-										disabled={loading}
-										startIcon={<SaveIcon />}
-										sx={{
-											textTransform: "capitalize"
-										}}
+									<Stack
+										direction={{ xs: "column", sm: "row" }}
+										spacing={2}
+										justifyContent="flex-end"
 									>
-										{t("update")}
-									</Button>
+										{/* Reset Password Button */}
+										<Button
+											onClick={() =>
+												setOpenResetPassword(true)
+											}
+											variant="outlined"
+											size="medium"
+											color="warning"
+											disabled={loading}
+											startIcon={<LockResetIcon />}
+											sx={{
+												textTransform: "capitalize"
+											}}
+										>
+											Reset {t("password")}
+										</Button>
+
+										{/* Change Status Button */}
+										{enabled ? (
+											<Button
+												onClick={() =>
+													setOpenChangeStatus(true)
+												}
+												variant="outlined"
+												size="medium"
+												color="error"
+												disabled={loading}
+												startIcon={<Block />}
+												sx={{
+													textTransform: "capitalize"
+												}}
+											>
+												{t("disabled")}
+											</Button>
+										) : (
+											<Button
+												onClick={() =>
+													setOpenChangeStatus(true)
+												}
+												variant="outlined"
+												size="medium"
+												color="success"
+												disabled={loading}
+												startIcon={<Check />}
+												sx={{
+													textTransform: "capitalize"
+												}}
+											>
+												{t("enabled-employee")}
+											</Button>
+										)}
+
+										{/* Create Button */}
+										<Button
+											type="submit"
+											variant="contained"
+											size="medium"
+											disabled={loading}
+											startIcon={<SaveIcon />}
+											sx={{
+												textTransform: "capitalize"
+											}}
+										>
+											{t("update")}
+										</Button>
+									</Stack>
 								</Stack>
 							</Grid>
 						</Grid>

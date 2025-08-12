@@ -21,14 +21,13 @@ public class Document {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false, length = 32)
+    @Column(name = "code", unique = true, nullable = false, length = 50)
     private String code;
 
     private String title;
 
     private String content;
-    @Column(name = "code", length = 50, unique = true, nullable = false)
-    private String code;
+
     private String fileUrl;
 
     @Column(name = "project_name")

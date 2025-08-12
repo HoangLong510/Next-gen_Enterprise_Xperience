@@ -53,11 +53,12 @@
 	"department-description-is-required": "Department description is required",
 	"hod-is-required": "Head of department is required",
 	"phase-name-is-required": "Phase name is required",
-  "phase-name-must-be-at-least-3-characters": "Phase name must be at least 3 characters",
-  "phase-name-must-be-at-most-100-characters": "Phase name must be at most 100 characters",
-  "deadline-is-required": "Deadline is required",
-  "invalid-date-format": "Invalid date format",
-  "deadline-before-today": "Deadline cannot be before today",
-  "deadline-before-previous-phase": "Deadline cannot be before the previous phase",
-  "deadline-after-project-deadline": "Deadline cannot be after the project's deadline"
+	"phase-name-must-be-at-least-3-characters": "Phase name must be at least 3 characters",
+	"phase-name-must-be-at-most-100-characters": "Phase name must be at most 100 characters",
+	"deadline-is-required": "Deadline is required",
+	"invalid-date-format": "Invalid date format",
+	"deadline-before-today": "Deadline cannot be before today",
+	"deadline-before-previous-phase": "Deadline cannot be before the previous phase",
+	"deadline-after-project-deadline": "Deadline cannot be after the project's deadline",
+	"invalid-role": "Role is invalid"
 }
