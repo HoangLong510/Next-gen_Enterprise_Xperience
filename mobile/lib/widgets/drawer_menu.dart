@@ -26,10 +26,7 @@ Widget buildDrawerMenu(String userRole, BuildContext context) {
                 leading: Icon(item.icon),
                 title: Text(item.label),
                 onTap: () {
-<<<<<<< Updated upstream
-=======
-                  print("🔍 Navigating to: ${item.route}");
->>>>>>> Stashed changes
+
                   Navigator.of(context).pushReplacementNamed(item.route);
                 },
               ),

@@ -1,123 +1,26 @@
-<<<<<<< Updated upstream
-import DefaultLayout from "~/layouts/default_layout"
-import DocumentDetail from "~/pages/management/document/DocumentDetail"
-import AccountsManagement from "~/pages/management/accounts/index.jsx"
-import DocumentList from "~/pages/management/document/DocumentList"
-import AddDepartmentPage from "~/pages/departments/add"
-import AddEmployeeDepartmentPage from "~/pages/departments/add-employees"
-import EditDepartmentPage from "~/pages/departments/edit"
-import CreateAccountManagementPage from "~/pages/management/accounts/create"
-import FundList from "~/pages/accountant/fund-list"
-import FundDetails from "~/pages/accountant/fund-detail"
-import TransactionList from "~/pages/accountant/fund-transaction-list"
-import CreateSalaryPage from "~/pages/accountant/salary"
-import ProjectManagement from "~/pages/management/project/list-project"
-import ProjectDetailPage from "~/pages/management/project/ProjectDetailPage"
-import SalaryDetail from "~/pages/accountant/salary-detail"
-const roleRoutes = [
-	{
-		path: "/management/accounts",
-		component: AccountsManagement,
-		layout: DefaultLayout,
-		roles: ["ADMIN"]
-	},
-	{
-		path: "/management/accounts/create",
-		component: CreateAccountManagementPage,
-		layout: DefaultLayout,
-		roles: ["ADMIN"]
-	},
-	{
-		path: "/management/documents",
-		component: DocumentList,
-		layout: DefaultLayout,
-		roles: ["ADMIN", "MANAGER", "PM","ACCOUNTANT"]
-	},
-	{
-		path: "/management/projects",
-		component: ProjectManagement,
-		layout: DefaultLayout,
-		roles: ["ADMIN", "MANAGER", "PM"]
-	},
-	{
-		path: "/management/projects/:id",
-		component: ProjectDetailPage,
-		layout: DefaultLayout,
-		roles: ["ADMIN", "MANAGER", "PM"]
-	},
-
-	{
-		path: "/management/documents/:id",
-		component: DocumentDetail,
-		layout: DefaultLayout,
-		roles: ["ADMIN", "MANAGER", "PM","ACCOUNTANT"]
-	},
-	{
-		path: "/departments/add",
-		component: AddDepartmentPage,
-		layout: DefaultLayout,
-		roles: ["ADMIN"]
-	},
-	{
-		path: "/departments/add-employees/:id",
-		component: AddEmployeeDepartmentPage,
-		layout: DefaultLayout,
-		roles: ["ADMIN"]
-	},
-	{
-		path: "/departments/edit/:id",
-		component: EditDepartmentPage,
-		layout: DefaultLayout,
-		roles: ["ADMIN"]
-	},
-	//Account
-	{
-		path: "/finance/fund",
-		component: FundList,
-		layout: DefaultLayout,
-		roles:["ADMIN","MANAGER","HOD","ACCOUNTANT"]
-	},
-	{
-		path: "/finance/fund/:fundID",
-		component: FundDetails,
-		layout: DefaultLayout,
-		roles: ["ADMIN","HOD","ACCOUNTANT"]
-	},
-	{
-		path: "/finance/fund/transactions",
-		component: TransactionList,
-		layout: DefaultLayout,
-		roles:["ADMIN","HOD","ACCOUNTANT"]
-	},
-	{
-		path: "/finance/salary",
-		component: CreateSalaryPage,
-		layout: DefaultLayout,
-		roles: ["ADMIN","MANAGER","HOD","ACCOUNTANT"]
-	},
-	{
-		path: "/finance/salary/detail/:id",
-		component: SalaryDetail,
-		layout: DefaultLayout,
-		roles: ["ADMIN","HOD","ACCOUNTANT"]
-	},
-	/* */
-]
-=======
 import DefaultLayout from "~/layouts/default_layout";
-import DocumentDetail from "~/pages/management/document/DocumentDetail";
 import AccountsManagement from "~/pages/management/accounts/index.jsx";
-import DocumentList from "~/pages/management/document/DocumentList";
-import AddDepartmentPage from "~/pages/departments/add";
-import AddEmployeeDepartmentPage from "~/pages/departments/add-employees";
-import EditDepartmentPage from "~/pages/departments/edit";
 import CreateAccountManagementPage from "~/pages/management/accounts/create";
+
+import DocumentList from "~/pages/management/document/DocumentList";
+import DocumentDetail from "~/pages/management/document/DocumentDetail";
+
 import ProjectManagement from "~/pages/management/project/list-project";
 import ProjectDetailPage from "~/pages/management/project/ProjectDetailPage";
 import ProjectKanbanBoard from "~/components/project/KanbanForm";
 
+import AddDepartmentPage from "~/pages/departments/add";
+import AddEmployeeDepartmentPage from "~/pages/departments/add-employees";
+import EditDepartmentPage from "~/pages/departments/edit";
+
+import FundList from "~/pages/accountant/fund-list";
+import FundDetails from "~/pages/accountant/fund-detail";
+import TransactionList from "~/pages/accountant/fund-transaction-list";
+import CreateSalaryPage from "~/pages/accountant/salary";
+import SalaryDetail from "~/pages/accountant/salary-detail";
+
 const roleRoutes = [
-  // Accounts
+  // Accounts — ADMIN
   {
     path: "/management/accounts",
     component: AccountsManagement,
@@ -131,22 +34,21 @@ const roleRoutes = [
     roles: ["ADMIN"],
   },
 
-  // Documents
+  // Documents — có ACCOUNTANT
   {
     path: "/management/documents",
     component: DocumentList,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM"],
+    roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
   },
   {
     path: "/management/documents/:id",
     component: DocumentDetail,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM"],
+    roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
   },
->>>>>>> Stashed changes
 
-  // Projects (PM/Admin/Manager)
+  // Projects — ADMIN/MANAGER/PM
   {
     path: "/management/projects",
     component: ProjectManagement,
@@ -160,14 +62,13 @@ const roleRoutes = [
     roles: ["ADMIN", "MANAGER", "PM"],
   },
 
-  // Kanban theo Project (chỉ PM/Admin/Manager). ❗ BỎ EMPLOYEE ở đây
+  // Kanban (Project & Phase) — ADMIN/MANAGER/PM
   {
     path: "/projects/:id/kanban",
     component: ProjectKanbanBoard,
     layout: DefaultLayout,
     roles: ["ADMIN", "MANAGER", "PM"],
   },
-  // Kanban theo Phase (giữ nguyên)
   {
     path: "/projects/:projectId/phase/:phaseId/kanban",
     component: ProjectKanbanBoard,
@@ -175,7 +76,7 @@ const roleRoutes = [
     roles: ["ADMIN", "MANAGER", "PM"],
   },
 
-  // Departments
+  // Departments — ADMIN
   {
     path: "/departments/add",
     component: AddDepartmentPage,
@@ -195,7 +96,39 @@ const roleRoutes = [
     roles: ["ADMIN"],
   },
 
-  // ✅ Tasks (HOD & EMPLOYEE) — dùng cùng KanbanForm, có filter Project
+  // Finance/Accounting
+  {
+    path: "/finance/fund",
+    component: FundList,
+    layout: DefaultLayout,
+    roles: ["ADMIN", "MANAGER", "HOD", "ACCOUNTANT"],
+  },
+  {
+    path: "/finance/fund/:fundID",
+    component: FundDetails,
+    layout: DefaultLayout,
+    roles: ["ADMIN", "HOD", "ACCOUNTANT"],
+  },
+  {
+    path: "/finance/fund/transactions",
+    component: TransactionList,
+    layout: DefaultLayout,
+    roles: ["ADMIN", "HOD", "ACCOUNTANT"],
+  },
+  {
+    path: "/finance/salary",
+    component: CreateSalaryPage,
+    layout: DefaultLayout,
+    roles: ["ADMIN", "MANAGER", "HOD", "ACCOUNTANT"],
+  },
+  {
+    path: "/finance/salary/detail/:id",
+    component: SalaryDetail,
+    layout: DefaultLayout,
+    roles: ["ADMIN", "HOD", "ACCOUNTANT"],
+  },
+
+  // Tasks — HOD & EMPLOYEE (Kanban có filter Project)
   {
     path: "/utilities/tasks",
     component: ProjectKanbanBoard,

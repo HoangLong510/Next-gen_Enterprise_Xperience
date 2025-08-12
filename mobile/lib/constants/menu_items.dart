@@ -63,32 +63,6 @@ const List<MenuSection> menuItems = [
     ],
   ),
   MenuSection(
-<<<<<<< Updated upstream
-    title: "Finances",
-    items: [
-      MenuItemData(
-        label: "Fund",
-        icon: Icons.account_balance_wallet,
-        route: "/accountant/funds",
-        roles: ["ADMIN", "MANAGER"],
-      ),
-      MenuItemData(
-        label: "Salaries",
-        icon: Icons.payments,
-        route: "/accountant/salaries",
-        roles: ["ADMIN", "MANAGER"],
-      ),
-      MenuItemData(
-        label: "Approve Transaction",
-        icon: Icons.payments,
-        route: "/accountant/transaction/approve",
-        roles: ["ADMIN", "MANAGER"],
-      ),
-    ],
-  ),
-  MenuSection(
-=======
->>>>>>> Stashed changes
     title: "Utilities",
     items: [
       MenuItemData(
@@ -109,11 +83,12 @@ const List<MenuSection> menuItems = [
         route: "/management/documents",
         roles: ["ADMIN", "MANAGER", "PM"],
       ),
+      // Tasks chỉ dành cho HOD & EMPLOYEE
       MenuItemData(
         label: "Tasks",
         icon: Icons.task_alt,
         route: "/utilities/tasks",
-        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+        roles: ["HOD", "EMPLOYEE"],
       ),
       MenuItemData(
         label: "Leave Request",

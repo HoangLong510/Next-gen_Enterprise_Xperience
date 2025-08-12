@@ -38,6 +38,10 @@ const schema = yup.object({
       const localToday = `${year}-${month}-${day}`;
       return value >= localToday;
     }),
+
+  // Cho phép có priority nhưng không bắt buộc (để không vướng validate)
+  priority: yup.string().nullable().notRequired(),
+
 });
 
 const defaultValues = {
@@ -51,11 +55,45 @@ export default function ProjectFormCreate({
   onClose,
   onSubmit,
   initialData = null,
-  documentId,
   document,
+  documentId,
   pmName,
 }) {
   const {
+
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues,
+  });
+
+  useEffect(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    const localToday = `${year}-${month}-${day}`;
+
+    if (document) {
+      let data = {
+        name: document.projectName || "",
+        description: document.projectDescription || "",
+        priority: document.projectPriority ?? "MEDIUM",
+        deadline: document.projectDeadline
+          ? dayjs(document.projectDeadline).format("YYYY-MM-DD")
+          : dayjs().add(7, "day").format("YYYY-MM-DD"),
+      };
+      if (data.deadline && data.deadline < localToday) {
+        data = { ...data, deadline: localToday };
+      }
+      reset(data);
+    } else if (initialData) {
+      let deadline =
+        initialData.deadline ?? dayjs().add(7, "day").format("YYYY-MM-DD");
+
   control,
   handleSubmit,
   reset,
@@ -65,7 +103,7 @@ export default function ProjectFormCreate({
   defaultValues, // dùng defaultValues, nhưng luôn reset lại bên dưới
 });
 
-<<<<<<< Updated upstream
+
 useEffect(() => {
   if (document) {
     reset({
@@ -87,7 +125,7 @@ useEffect(() => {
   const deadlineValue = document?.projectDeadline
     ? dayjs(document.projectDeadline).format("YYYY-MM-DD")
     : "";
-=======
+
   useEffect(() => {
     const today = new Date();
     const year = today.getFullYear();
@@ -97,6 +135,7 @@ useEffect(() => {
 
     if (initialData) {
       let deadline = initialData.deadline ?? "";
+
       if (deadline && deadline < localToday) {
         deadline = localToday;
       }
@@ -104,8 +143,36 @@ useEffect(() => {
     } else {
       reset(defaultValues);
     }
+
+  }, [document, initialData, open, reset]);
+
+  const dispatch = useDispatch();
+  const { t } = useTranslation("messages");
+
+  const handleFormSubmit = async (data) => {
+    const payload = { ...data, documentId };
+    const res = await createProjectFromDocument(payload);
+
+    if (res?.status === 200 || res?.status === 201) {
+      dispatch(
+        setPopup({
+          type: "success",
+          message: res.message || "project-created-successfully",
+        })
+      );
+      onSubmit?.();
+      onClose();
+    } else {
+      dispatch(
+        setPopup({
+          type: "error",
+          message: res?.message || "create-project-failed",
+        })
+      );
+    }
+
   }, [initialData, reset]);
->>>>>>> Stashed changes
+
 
 const dispatch = useDispatch();
 const { t } = useTranslation("messages");
@@ -114,6 +181,7 @@ const handleFormSubmit = async (data) => {
   const payload = {
     ...data,
     documentId,
+
   };
   const res = await createProjectFromDocument(payload);
 
@@ -135,6 +203,12 @@ const handleFormSubmit = async (data) => {
     );
   }
 };
+
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  const localToday = `${year}-${month}-${day}`;
 
   const today = new Date();
   const year = today.getFullYear();
@@ -199,9 +273,10 @@ const handleFormSubmit = async (data) => {
                 size="small"
                 disabled
                 InputLabelProps={{ shrink: true }}
+                inputProps={{ min: localToday }}
                 error={!!errors.deadline}
                 helperText={errors.deadline?.message}
-<<<<<<< Updated upstream
+
               />
             )}
           />
@@ -220,13 +295,13 @@ const handleFormSubmit = async (data) => {
               />
             )}
           />
-=======
+
                 InputLabelProps={{ shrink: true }}
                 inputProps={{ min: localToday }}
               />
             )}
           />
->>>>>>> Stashed changes
+
         </Stack>
       </DialogContent>
 
@@ -234,11 +309,7 @@ const handleFormSubmit = async (data) => {
         <Button onClick={onClose} variant="outlined" color="inherit">
           Cancel
         </Button>
-        <Button
-          onClick={handleSubmit(handleFormSubmit)}
-          variant="contained"
-          sx={{ bgcolor: "#118D57" }}
-        >
+        <Button onClick={handleSubmit(handleFormSubmit)} variant="contained" sx={{ bgcolor: "#118D57" }}>
           Create
         </Button>
       </DialogActions>
