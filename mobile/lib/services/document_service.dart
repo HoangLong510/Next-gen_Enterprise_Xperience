@@ -63,11 +63,12 @@ class DocumentService {
 
   // Ký công văn (chỉ MANAGER)
   static Future<ApiResponse> signDocument(int id, String signature) async {
-  final res = await ApiService.client.post('/documents/$id/sign', data: {
-    'signature': signature,
-  });
-  return ApiResponse.fromJson(res.data);
-}
+    final res = await ApiService.client.post(
+      '/documents/$id/sign',
+      data: {'signature': signature},
+    );
+    return ApiResponse.fromJson(res.data);
+  }
 
   // Tạo công văn
   static Future<DocumentModel> createDocument(Map<String, dynamic> body) async {
@@ -94,5 +95,13 @@ class DocumentService {
     final res = await ApiService.client.get('/accounts/roles/PM');
     final List list = res.data['data'];
     return list.map((e) => Account.fromJson(e)).toList();
+  }
+
+  static Future<ApiResponse> addManagerNote(int id, String note) async {
+    final res = await ApiService.client.put(
+      '/documents/$id/note',
+      data: {'note': note},
+    );
+    return ApiResponse.fromJson(res.data);
   }
 }

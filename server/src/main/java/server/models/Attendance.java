@@ -46,13 +46,29 @@ public class Attendance {
     private String checkOutImagePath;
 
     // Ghi nhận trạng thái
+    @Builder.Default
     @Column(nullable = false)
-    private Boolean checkedOut = false;
+    private boolean checkedOut = false;
 
-    // Ghi chú hoặc giải trình nếu thiếu checkout
-    private String checkOutNote;
+    @Column(columnDefinition = "TEXT")
+    private String checkOutEmployeeNote;
+
+    // HR phản hồi khi duyệt/từ chối
+    @Column(columnDefinition = "TEXT")
+    private String checkOutHrNote;
+
+    // APPROVED / REJECTED (hoặc bạn có thể tạo enum riêng)
+    private String hrDecision;
+
+    private LocalDateTime hrResolvedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hr_resolved_by")
+    private Account hrResolvedBy;
+
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     @Column(nullable = false)
     private AttendanceStatus status = AttendanceStatus.CHECKED_IN;
 }

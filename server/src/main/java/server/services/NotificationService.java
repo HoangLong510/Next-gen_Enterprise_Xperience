@@ -10,7 +10,6 @@ import server.repositories.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -20,10 +19,6 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final AccountRepository accountRepository;
     private final DocumentRepository documentRepository;
-    // TODO: enable khi có project
-    // private final ProjectRepository projectRepository;
-    // TODO: enable khi có task
-    // private final TaskRepository taskRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final LeaveRequestRepository leaveRequestRepository;
     private final AttendanceRepository attendanceRepository;
@@ -50,49 +45,47 @@ public class NotificationService {
                 if (project == null) return null;
 
                 if (!isResult) {
-                    // Dự án vừa được tạo
                     List<Account> recipients = List.of(doc.getCreatedBy(), doc.getReceiver());
                     sender = doc.getPm();
-                    title = "Dự án mới đã được khởi tạo";
-                    content = "Công văn '" + doc.getTitle() + "' đã được PM tạo dự án thành công.";
-
+                    String kebabDocTitle = doc.getTitle() != null ? doc.getTitle().replaceAll("\\s+", "-") : "";
+                    title = "new-project-created";
+                    content = "the-document-'" + kebabDocTitle + "'-has-been-successfully-turned-into-a-project-by-the-pm";
                     notifyMany(recipients, sender, title, content, NotificationType.PROJECT, project.getId());
                 }
-
                 return null;
             }
+
             case DOCUMENT -> {
                 Document doc = documentRepository.findById(referenceId)
                         .orElseThrow(() -> new IllegalArgumentException("Document not found"));
+
+                String kebabDocTitle = doc.getTitle() != null ? doc.getTitle().replaceAll("\\s+", "-") : "";
+
                 if (isResult && doc.getType() == DocumentType.ADMINISTRATIVE && doc.getStatus() == DocumentStatus.IN_PROGRESS) {
                     recipient = doc.getAccountant();
                     sender = doc.getReceiver();
-                    title = "Công văn tài chính đã được ký";
-                    content = "Bạn nhận được công văn tài chính đã được giám đốc ký hãy bắt đầu dự án: '" + doc.getTitle() + "'.";
+                    title = "financial-document-signed";
+                    content = "you-have-received-a-financial-document-signed-by-the-director-please-start-the-related-project-'" + kebabDocTitle + "'";
                 }
-                // Nếu document đã ký nhưng chưa hoàn thành => gửi cho PM
                 else if (isResult && doc.getStatus() == DocumentStatus.SIGNED) {
-                    recipient = doc.getPm(); // PM nhận xử lý
+                    recipient = doc.getPm();
                     sender = doc.getReceiver();
-                    title = "Công văn đã được ký";
-                    content = "Công văn '" + doc.getTitle() + "' đã được giám đốc ký, bạn cần xử lý.";
+                    title = "document-signed";
+                    content = "the-document-'" + kebabDocTitle + "'-has-been-signed-by-the-director-please-proceed-with-processing";
                 }
-
-                // Nếu PM xử lý hoàn thành (COMPLETED)
                 else if (isResult && doc.getStatus() == DocumentStatus.COMPLETED) {
-                    recipient = doc.getCreatedBy(); // Thư ký/người tạo nhận kết quả
-                    sender = doc.getPm(); // PM gửi kết quả
-                    title = "Kết quả xử lý công văn";
-                    content = "Công văn '" + doc.getTitle() + "' đã được xử lý.";
+                    recipient = doc.getCreatedBy();
+                    sender = doc.getPm();
+                    title = "document-processing-result";
+                    content = "the-document-'" + kebabDocTitle + "'-has-been-processed";
                 }
-                // Khi vừa tạo công văn PROJECT
                 else if (!isResult && doc.getType() == DocumentType.PROJECT) {
-                    // Giám đốc
+                    // Director
                     saveAndSendNotification(
                             doc.getReceiver(),
                             doc.getCreatedBy(),
-                            "Công văn dự án mới cần ký",
-                            "Bạn có công văn dự án mới cần ký duyệt.",
+                            "new-project-document-requires-signature",
+                            "you-have-a-new-project-document-that-requires-your-signature",
                             type, referenceId
                     );
                     // PM
@@ -100,45 +93,39 @@ public class NotificationService {
                         saveAndSendNotification(
                                 doc.getPm(),
                                 doc.getCreatedBy(),
-                                "Bạn được giao công văn dự án mới",
-                                "Bạn được chỉ định làm Project Manager cho công văn: '" + doc.getTitle() + "'.",
+                                "assigned-as-project-manager",
+                                "you-have-been-assigned-as-project-manager-for-the-document-'" + kebabDocTitle + "'",
                                 type, referenceId
                         );
                     }
                     return null;
                 }
-
                 else if (!isResult && doc.getType() == DocumentType.ADMINISTRATIVE) {
-                    // Gửi cho giám đốc (người ký)
                     if (doc.getReceiver() == null) throw new IllegalArgumentException("Document has no receiver assigned");
                     saveAndSendNotification(
                             doc.getReceiver(),
                             doc.getCreatedBy(),
-                            "Công văn tài chính mới cần ký",
-                            "Bạn có công văn tài chính mới cần ký duyệt.",
+                            "new-financial-document-requires-signature",
+                            "you-have-a-new-financial-document-that-requires-your-signature",
                             type, referenceId
                     );
 
-                    // Gửi cho kế toán (người xử lý)
                     if (doc.getAccountant() == null) throw new IllegalArgumentException("Document has no accountant assigned");
                     saveAndSendNotification(
                             doc.getAccountant(),
                             doc.getCreatedBy(),
-                            "Công văn tài chính mới cần xử lý",
-                            "Bạn được giao xử lý công văn tài chính: '" + doc.getTitle() + "'.",
+                            "new-financial-document-to-process",
+                            "you-have-been-assigned-to-process-the-financial-document-'" + kebabDocTitle + "'",
                             type, referenceId
                     );
-
                     return null;
                 }
-
-                // Các loại công văn còn lại
                 else if (!isResult) {
                     recipient = doc.getReceiver();
                     if (recipient == null) throw new IllegalArgumentException("Document has no receiver assigned");
                     sender = doc.getCreatedBy();
-                    title = "Công văn mới cần xử lý";
-                    content = "Công văn: " + doc.getTitle();
+                    title = "new-document-requires-processing";
+                    content = "document-" + kebabDocTitle;
                 }
             }
             case LEAVE_REQUEST -> {
@@ -150,72 +137,90 @@ public class NotificationService {
                     sender = leaveRequest.getReceiver();
                     String action;
                     if (leaveRequest.getStatus() == LeaveStatus.APPROVED) {
-                        action = "đã được duyệt";
+                        action = "has-been-approved";
                     } else if (leaveRequest.getStatus() == LeaveStatus.REJECTED) {
-                        action = "đã bị từ chối";
+                        action = "has-been-rejected";
                     } else if (leaveRequest.getStatus() == LeaveStatus.CANCELLED) {
-                        action = "đã bị hủy";
-                    } else { // PENDING hoặc các trạng thái khác
-                        action = "đang chờ duyệt";
+                        action = "has-been-cancelled";
+                    } else {
+                        action = "is-pending-approval";
                     }
-                    title = "Kết quả duyệt đơn nghỉ phép";
-                    content = "Đơn nghỉ phép của bạn " + action + " bởi " +
-                            sender.getEmployee().getFirstName() + " " + sender.getEmployee().getLastName();
+                    String approver = (sender != null)
+                            ? (sender.getEmployee() != null
+                            ? (sender.getEmployee().getFirstName() + "-" + sender.getEmployee().getLastName()).toLowerCase()
+                            : sender.getUsername().replaceAll("\\s+", "-"))
+                            : "unknown";
+                    title = "leave-request-result";
+                    content = "your-leave-request-" + action + "-by-" + approver;
                 } else {
                     recipient = leaveRequest.getReceiver();
                     sender = leaveRequest.getSender();
-                    title = "Đơn nghỉ phép mới cần duyệt";
-                    content = "Đơn nghỉ phép của: " + sender.getEmployee().getFirstName() + " " + sender.getEmployee().getLastName();
+                    String requester = (sender != null)
+                            ? (sender.getEmployee() != null
+                            ? (sender.getEmployee().getFirstName() + "-" + sender.getEmployee().getLastName()).toLowerCase()
+                            : sender.getUsername().replaceAll("\\s+", "-"))
+                            : "unknown";
+                    title = "new-leave-request-for-approval";
+                    content = "leave-request-from-" + requester;
                 }
             }
+
             case ATTENDANCE -> {
+                // Lấy bản ghi 1 lần
+                Attendance att = attendanceRepository.findById(referenceId)
+                        .orElse(null);
+                if (att == null) return null;
+
                 if (!isResult) {
-                    // Trường hợp nhắc nhở
-                    // Phân biệt nhắc nhở hàng ngày và nhắc nhở ngày 8 theo ngày chấm công của bản ghi
-                    LocalDate checkInDate = attendanceRepository.findById(referenceId)
-                            .map(Attendance::getCheckInTime)
-                            .map(LocalDateTime::toLocalDate)
-                            .orElse(LocalDate.now());
+                    LocalDate checkInDate = att.getCheckInTime() != null
+                            ? att.getCheckInTime().toLocalDate()
+                            : LocalDate.now();
 
                     LocalDate today = LocalDate.now();
+                    LocalDate yesterday = today.minusDays(1);
                     LocalDate firstDayPrevMonth = today.minusMonths(1).withDayOfMonth(1);
-                    LocalDate lastDayPrevMonth = today.minusMonths(1).withDayOfMonth(today.minusMonths(1).lengthOfMonth());
+                    LocalDate lastDayPrevMonth = today.minusMonths(1)
+                            .withDayOfMonth(today.minusMonths(1).lengthOfMonth());
+
+                    recipient = att.getAccount();
 
                     if (!checkInDate.isBefore(firstDayPrevMonth) && !checkInDate.isAfter(lastDayPrevMonth)) {
-                        // Nếu checkInDate nằm trong tháng trước → thông báo ngày 8 hàng tháng
-                        recipient = attendanceRepository.findById(referenceId)
-                                .map(Attendance::getAccount)
-                                .orElse(null);
-                        sender = null; // hệ thống
-                        title = "Nhắc nhở thiếu check-out tháng trước";
-                        content = "Bạn chưa check-out cho ngày " + checkInDate + " thuộc tháng trước. Vui lòng kiểm tra và bổ sung thông tin trước ngày nhận lương.";
+                        // Tháng trước
+                        title = "reminder-missing-check-out-last-month";
+                        content = "you-have-not-checked-out-for-" + checkInDate
+                                + "-from-last-month-please-update-before-salary-processing";
+                    } else if (checkInDate.isEqual(yesterday)) {
+                        // ✅ HÔM QUA (dành cho job 00:05)
+                        title = "reminder-missing-check-out-yesterday";
+                        content = "you-did-not-check-out-on-" + checkInDate
+                                + "-please-submit-justification-or-contact-hr";
+                    } else if (checkInDate.isEqual(today)) {
+                        // Hôm nay (nhắc lúc 17:00)
+                        title = "reminder-missing-check-out-today";
+                        content = "you-have-not-checked-out-for-" + checkInDate + "-please-update";
                     } else {
-                        // Nhắc nhở hàng ngày
-                        recipient = attendanceRepository.findById(referenceId)
-                                .map(Attendance::getAccount)
-                                .orElse(null);
-                        sender = null; // hệ thống
-                        title = "Nhắc nhở chưa check-out hôm nay";
-                        content = "Bạn chưa thực hiện check-out cho ngày " + checkInDate + ". Vui lòng kiểm tra và cập nhật.";
+                        // Các ngày khác (fallback)
+                        title = "reminder-missing-check-out";
+                        content = "you-did-not-check-out-on-" + checkInDate + "-please-update";
                     }
-                    if (recipient == null) return null; // nếu không có người nhận thì bỏ qua
+
                     saveAndSendNotification(recipient, sender, title, content, type, referenceId);
                     return null;
                 } else {
-                    // Kết quả HR giải trình
-                    Attendance att = attendanceRepository.findById(referenceId)
-                            .orElseThrow(() -> new IllegalArgumentException("Attendance record not found"));
+                    // Kết quả duyệt giải trình
                     recipient = att.getAccount();
-                    Account hr = findHRAccount();
-                    sender = hr; // HR hoặc hệ thống
+                    sender = findHRAccount();
+
+                    String hrNote = att.getCheckOutHrNote() != null ? att.getCheckOutHrNote() : "";
 
                     if (att.getStatus() == AttendanceStatus.RESOLVED) {
-                        title = "Kết quả giải trình thiếu check-out";
-                        content = "Giải trình thiếu check-out của bạn đã được phê duyệt. Vui lòng kiểm tra lại.";
+                        title = "attendance-justification-approved";
+                        content = "your-missing-check-out-justification-has-been-approved"
+                                + (hrNote.isBlank() ? "" : "-" + hrNote.replaceAll("\\s+", "-").toLowerCase());
                     } else if (att.getStatus() == AttendanceStatus.REJECTED) {
-                        title = "Giải trình thiếu check-out không được duyệt";
-                        content = "Giải trình thiếu check-out của bạn không được phê duyệt: "
-                                + (att.getCheckOutNote() != null ? att.getCheckOutNote() : "");
+                        title = "attendance-justification-rejected";
+                        content = "your-missing-check-out-justification-was-rejected"
+                                + (hrNote.isBlank() ? "" : "-" + hrNote.replaceAll("\\s+", "-").toLowerCase());
                     }
                 }
             }
@@ -225,21 +230,22 @@ public class NotificationService {
                         .orElseThrow(() -> new IllegalArgumentException("Admin account not found"));
                 sender = null;
                 if (isResult) {
-                    title = "Kết quả xử lý đơn hàng";
-                    content = "Đơn hàng của bạn đã được xử lý.";
+                    title = "order-processing-result";
+                    content = "your-order-has-been-processed";
                 } else {
-                    title = "Đơn hàng mới";
-                    content = "Bạn có một đơn hàng mới cần xử lý";
+                    title = "new-order";
+                    content = "you-have-a-new-order-to-process";
                 }
             }
+
             case GENERAL -> {
                 recipient = accountRepository.findByUsername("admin")
                         .orElseThrow(() -> new IllegalArgumentException("Admin account not found"));
                 sender = null;
-                title = "Thông báo hệ thống";
-                content = "Hệ thống có thông báo mới.";
+                title = "system-notification";
+                content = "the-system-has-a-new-notification";
             }
-            // thêm các case khác nếu có
+
             default -> throw new IllegalArgumentException("Unsupported notification type");
         }
 
@@ -250,17 +256,81 @@ public class NotificationService {
         return saveAndSendNotification(recipient, sender, title, content, type, referenceId);
     }
 
+    public void notifyManagerNoteAdded(Document doc, Account manager) {
+        String kebabDocTitle = doc.getTitle() != null ? doc.getTitle().replaceAll("\\s+", "-") : "";
+        String kebabManager = getAccountDisplayName(manager).replaceAll("\\s+", "-").toLowerCase();
+
+        // Gửi cho người tạo (thường là SECRETARY hoặc ADMIN)
+        Account creator = doc.getCreatedBy();
+        if (creator != null) {
+            saveAndSendNotification(
+                    creator, manager,
+                    "manager-added-revision-note",
+                    "document-'" + kebabDocTitle + "'-has-a-new-manager-note-by-" + kebabManager,
+                    NotificationType.DOCUMENT, doc.getId()
+            );
+        }
+    }
+
+    public void notifyPmReassignment(Document doc, Account oldPm, Account newPm, Account actor) {
+        String kebabDocTitle = doc.getTitle() != null ? doc.getTitle().replaceAll("\\s+", "-") : "";
+        String kebabActorName = getAccountDisplayName(actor).replaceAll("\\s+", "-").toLowerCase();
+
+        if (oldPm != null && (newPm == null || !oldPm.getId().equals(newPm.getId()))) {
+            saveAndSendNotification(
+                    oldPm, actor,
+                    "project-manager-changed",
+                    "you-are-no-longer-the-pm-for-document-'" + kebabDocTitle + "'",
+                    NotificationType.DOCUMENT, doc.getId()
+            );
+        }
+        if (newPm != null && (oldPm == null || !newPm.getId().equals(oldPm.getId()))) {
+            saveAndSendNotification(
+                    newPm, actor,
+                    "assigned-as-project-manager",
+                    "you-are-now-the-pm-for-document-'" + kebabDocTitle + "'",
+                    NotificationType.DOCUMENT, doc.getId()
+            );
+        }
+        if (doc.getReceiver() != null) {
+            saveAndSendNotification(
+                    doc.getReceiver(), actor,
+                    "document-revised",
+                    "document-'" + kebabDocTitle + "'-was-revised-by-" + kebabActorName + "-pm-changed",
+                    NotificationType.DOCUMENT, doc.getId()
+            );
+        }
+    }
+
+    public void notifyDocumentRevised(Document doc, Account actor) {
+        if (doc.getReceiver() == null) return;
+        String kebabDocTitle = doc.getTitle() != null ? doc.getTitle().replaceAll("\\s+", "-") : "";
+        String kebabActorName = getAccountDisplayName(actor).replaceAll("\\s+", "-").toLowerCase();
+
+        saveAndSendNotification(
+                doc.getReceiver(), actor,
+                "document-revised",
+                "document-'" + kebabDocTitle + "'-was-revised-by-" + kebabActorName,
+                NotificationType.DOCUMENT, doc.getId()
+        );
+    }
+
+
+
     public void notifyHROnNoteSubmission(Long attendanceId) {
         Attendance att = attendanceRepository.findById(attendanceId)
                 .orElseThrow(() -> new RuntimeException("Attendance record not found"));
 
-        Account hr = findHRAccount(); // hàm lấy HR (vd: theo role hoặc username)
+        Account hr = findHRAccount();
         if (hr == null) return;
 
         Account employee = att.getAccount();
+        String kebabEmp = (employee != null)
+                ? (employee.getUsername() != null ? employee.getUsername().replaceAll("\\s+", "-").toLowerCase() : "unknown")
+                : "unknown";
 
-        String title = "Nhân viên gửi ghi chú giải trình thiếu check-out";
-        String content = "Nhân viên " + employee.getUsername() + " đã gửi ghi chú giải trình cho ngày " + att.getCheckInTime().toLocalDate() + ". Vui lòng kiểm tra.";
+        String title = "employee-submitted-attendance-note";
+        String content = "employee-" + kebabEmp + "-submitted-a-justification-note-for-" + att.getCheckInTime().toLocalDate() + "-please-review";
 
         saveAndSendNotification(hr, employee, title, content, NotificationType.ATTENDANCE, attendanceId);
     }
@@ -272,9 +342,8 @@ public class NotificationService {
                 .orElse(null);
     }
 
-
     public List<NotificationResponse> getByRecipient(String username) {
-        var list = notificationRepository.findByRecipient_UsernameOrderByCreatedAtDesc(username);
+        var list = notificationRepository.findByRecipientUsernameWithJoinFetch(username);
         return list.stream().map(this::mapToResponse).toList();
     }
 
@@ -284,7 +353,6 @@ public class NotificationService {
             notificationRepository.save(n);
         });
     }
-
 
     private NotificationResponse mapToResponse(Notification n) {
         var dto = new NotificationResponse();
@@ -308,7 +376,7 @@ public class NotificationService {
             }
         } else {
             dto.setSenderUsername("System");
-            dto.setSenderFullName("Hệ thống");
+            dto.setSenderFullName("System");
             dto.setSenderAvatar(null);
         }
 
@@ -340,5 +408,13 @@ public class NotificationService {
                 mapToResponse(saved)
         );
         return mapToResponse(saved);
+    }
+
+    private String getAccountDisplayName(Account acc) {
+        if (acc == null) return "Unknown";
+        if (acc.getEmployee() != null) {
+            return acc.getEmployee().getFirstName() + " " + acc.getEmployee().getLastName();
+        }
+        return acc.getUsername();
     }
 }

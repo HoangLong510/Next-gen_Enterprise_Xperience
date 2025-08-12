@@ -61,6 +61,17 @@ class CustomDrawer extends StatelessWidget {
             },
           ),
           ListTile(
+            leading: const Icon(
+              Icons.fingerprint,
+            ), // hoặc dùng Icons.calendar_today
+            title: const Text("Timekeeping"),
+            onTap: () {
+              Navigator.of(
+                context,
+              ).pushNamed('/attendance');
+            },
+          ),
+          ListTile(
             leading: Icon(
               Icons.logout,
               color: Theme.of(context).colorScheme.error,

@@ -65,8 +65,8 @@ public class AttendanceService {
         return attendanceRepository.save(attendance);
     }
 
-    // --- 2. Check-out ---
-    public Attendance checkOut(Long accountId, MultipartFile checkoutImage) throws IOException {
+    public Attendance checkOut(Long accountId, MultipartFile checkoutImage,
+                               double latitude, double longitude) throws IOException {
         Account acc = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
@@ -80,11 +80,32 @@ public class AttendanceService {
         if (att == null)
             throw new RuntimeException("Bạn chưa check-in hôm nay hoặc đã check-out");
 
+        // Lưu ảnh checkout
+        String checkoutPath = checkoutImage != null ? uploadFileService.storeFile("attendance", checkoutImage) : null;
+
+        // Lấy ảnh avatar/known image (TUỲ hệ thống của bạn: field avatar đang là path hay URL)
+        if (acc.getEmployee() == null || acc.getEmployee().getAvatar() == null || acc.getEmployee().getAvatar().isEmpty()) {
+            throw new RuntimeException("Employee avatar not found");
+        }
+        String knownImagePath = acc.getEmployee().getAvatar();
+
+        // VERIFY vị trí + khuôn mặt với Python (giống check-in)
+        FaceVerifyResponse verify = callPythonFaceVerifyAPI(checkoutImage, knownImagePath, latitude, longitude);
+        if (!verify.isLocation_ok()) {
+            throw new RuntimeException("Bạn đang ở ngoài phạm vi cho phép (~" + verify.getDistance_km() + " km)");
+        }
+        if (!verify.isMatch()) {
+            throw new RuntimeException("Khuôn mặt không khớp");
+        }
+
+        // Update bản ghi
         att.setCheckOutTime(LocalDateTime.now());
-        att.setCheckOutImagePath(
-                checkoutImage != null ? uploadFileService.storeFile("attendance", checkoutImage) : null
-        );
+        att.setCheckOutImagePath(checkoutPath);
+        att.setFaceMatch(verify.isMatch());
+        att.setLocationValid(verify.isLocation_ok());
+        att.setDistanceKm(verify.getDistance_km());
         att.setStatus(AttendanceStatus.CHECKED_OUT);
+
         return attendanceRepository.save(att);
     }
 
@@ -200,14 +221,30 @@ public class AttendanceService {
         LocalDateTime startOfDay = today.atStartOfDay();
         LocalDateTime endOfDay = today.atTime(LocalTime.MAX);
 
-        List<Attendance> list = attendanceRepository.findAllByCheckInTimeBetweenAndStatus(startOfDay, endOfDay, AttendanceStatus.CHECKED_IN);
+        List<Attendance> list = attendanceRepository
+                .findAllByCheckInTimeBetweenAndStatus(startOfDay, endOfDay, AttendanceStatus.CHECKED_IN);
 
         for (Attendance att : list) {
-            // Gửi thông báo nhắc nhở
             notificationService.createNotification(NotificationType.ATTENDANCE, att.getId(), false);
-            // Cập nhật trạng thái thành MISSING_CHECKOUT
+        }
+    }
+
+    @Scheduled(cron = "0 5 0 * * *", zone = "Asia/Ho_Chi_Minh") // 00:05 mỗi ngày
+    public void finalizeMissingCheckOuts() {
+        // xử lý NGÀY HÔM QUA
+        LocalDate target = LocalDate.now().minusDays(1);
+        LocalDateTime startOfDay = target.atStartOfDay();
+        LocalDateTime endOfDay = target.atTime(LocalTime.MAX);
+
+        List<Attendance> list = attendanceRepository
+                .findAllByCheckInTimeBetweenAndStatus(startOfDay, endOfDay, AttendanceStatus.CHECKED_IN);
+
+        for (Attendance att : list) {
             att.setStatus(AttendanceStatus.MISSING_CHECKOUT);
             attendanceRepository.save(att);
+
+            // gửi thông báo cho nhân viên/HR tuỳ nhu cầu
+            notificationService.createNotification(NotificationType.ATTENDANCE, att.getId(), false);
         }
     }
 
@@ -232,7 +269,7 @@ public class AttendanceService {
     }
 
     // --- 7. HR giải trình nếu thiếu check-out ---
-    public Attendance resolveMissingCheckOut(Long attendanceId, String note, boolean approved) {
+    public Attendance resolveMissingCheckOut(Long attendanceId, String note, boolean approved, Account hr) {
         Attendance att = attendanceRepository.findById(attendanceId)
                 .orElseThrow(() -> new RuntimeException("Attendance record not found"));
 
@@ -240,17 +277,26 @@ public class AttendanceService {
             throw new RuntimeException("This attendance record is not in MISSING_CHECKOUT status");
         }
 
+        // Ghi chú & quyết định của HR
+        att.setCheckOutHrNote(note);
+        att.setHrDecision(approved ? "APPROVED" : "REJECTED");
+        att.setHrResolvedAt(LocalDateTime.now());
+        att.setHrResolvedBy(hr);
+
+        // Cập nhật trạng thái
+        att.setStatus(approved ? AttendanceStatus.RESOLVED : AttendanceStatus.REJECTED);
+
+        // Nếu approve thì coi như checkout xong
         if (approved) {
-            att.setStatus(AttendanceStatus.RESOLVED);
-            att.setCheckOutNote(note);
-            att.setCheckOutTime(LocalDateTime.now());
-        } else {
-            att.setStatus(AttendanceStatus.REJECTED);
-            att.setCheckOutNote(note + " (not approved)");
+            if (att.getCheckOutTime() == null) {
+                att.setCheckOutTime(LocalDateTime.now());
+            }
+            att.setCheckedOut(true);
         }
+
         Attendance saved = attendanceRepository.save(att);
 
-        // Gửi notification kết quả HR giải trình
+        // Gửi thông báo kết quả HR giải trình
         notificationService.createNotification(NotificationType.ATTENDANCE, attendanceId, true);
 
         return saved;
@@ -265,7 +311,7 @@ public class AttendanceService {
             throw new RuntimeException("This attendance record is not in MISSING_CHECKOUT status");
         }
 
-        att.setCheckOutNote(note);
+        att.setCheckOutEmployeeNote(note);
         Attendance saved = attendanceRepository.save(att);
 
         // Gửi thông báo cho HR

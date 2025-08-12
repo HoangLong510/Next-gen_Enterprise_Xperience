@@ -20,5 +20,6 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('accessToken');
     await prefs.remove('refreshToken');
     notifyListeners();
+    
   }
 }
