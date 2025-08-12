@@ -1,3 +1,4 @@
+// server.controllers.TaskBranchController.java
 package server.controllers;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,9 +9,9 @@ import server.dtos.BranchRequestDto;
 import server.services.GitHubBranchService;
 
 @RestController
-@RequestMapping("/subtasks")
+@RequestMapping("/tasks")
 @RequiredArgsConstructor
-public class SubTaskBranchController {
+public class TaskBranchController {
 
     private final GitHubBranchService gitHubBranchService;
 
@@ -18,7 +19,7 @@ public class SubTaskBranchController {
     public ResponseEntity<?> createBranch(@PathVariable Long id,
                                           @RequestBody BranchRequestDto dto,
                                           HttpServletRequest request) {
-        dto.setSubTaskId(id); // Gán ID từ URL vào DTO
+        dto.setTaskId(id);
         return ResponseEntity.ok(gitHubBranchService.createBranch(dto, request));
     }
 }

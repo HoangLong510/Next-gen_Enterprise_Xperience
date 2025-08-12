@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
@@ -11,7 +11,6 @@ import {
 	FormControl,
 	Select,
 	Box,
-	Avatar,
 	useTheme,
 	Grid,
 	Paper,
@@ -23,36 +22,25 @@ import {
 import {
 	Business as BusinessIcon,
 	Save as SaveIcon,
-	ArrowBack as ArrowBackIcon
+	ArrowBack as ArrowBackIcon,
+	LockReset as LockResetIcon,
+	Block,
+	Check
 } from "@mui/icons-material"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import { useDispatch } from "react-redux"
 import { setPopup } from "~/libs/features/popup/popupSlice"
 import { useTranslation } from "react-i18next"
 import { ROLE_CONFIGS } from "~/constants/account.constants"
 import RoleChip from "~/components/role-chip"
-import { createEmployeeApi } from "~/services/employee.service"
+import {
+	editEmployeeApi,
+	getEmployeeDetailsByAccountIdApi
+} from "~/services/employee.service"
 import { formatDateToYYYYMMDD } from "~/utils/function"
+import { changeStatusApi, resetPasswordApi } from "~/services/account.service"
 
 const schema = yup.object({
-	username: yup
-		.string()
-		.required("username-is-required")
-		.min(6, "username-must-be-between-5-and-30-characters")
-		.max(30, "username-must-be-between-5-and-30-characters")
-		.matches(
-			/^[a-z][a-z0-9]*$/,
-			"username-must-start-with-a-lowercase-letter-and-contain-only-lowercase-letters-and-numbers"
-		),
-	password: yup
-		.string()
-		.required("password-is-required")
-		.min(6, "password-must-be-between-6-and-30-characters")
-		.max(30, "password-must-be-between-6-and-30-characters"),
-	confirmPassword: yup
-		.string()
-		.required("confirm-password-is-required")
-		.oneOf([yup.ref("password")], "confirm-password-does-not-match"),
 	firstName: yup
 		.string()
 		.required("first-name-is-required")
@@ -95,31 +83,33 @@ const schema = yup.object({
 		.string()
 		.required("role-is-required")
 		.oneOf(
-			["ADMIN", "MANAGER", "PM", "HR", "ACCOUNTANT", "HOD", "EMPLOYEE","SECRETARY"],
+			["MANAGER", "PM", "HR", "ACCOUNTANT", "HOD", "EMPLOYEE"],
 			"invalid-role"
 		)
 })
 
-export default function CreateAccountManagementPage() {
+export default function EmployeeDetailsPage() {
+	const { id } = useParams()
 	const theme = useTheme()
 	const dispatch = useDispatch()
 	const navigate = useNavigate()
-	const { t } = useTranslation("accounts_management_page")
+	const { t } = useTranslation("employees_list_page")
 	const { t: tError } = useTranslation("errors")
 
 	const [loading, setLoading] = useState(false)
+	const [openResetPassword, setOpenResetPassword] = useState(false)
+	const [openChangeStatus, setOpenChangeStatus] = useState(false)
+	const [enabled, setEnabled] = useState(false)
 
 	const {
 		control,
 		handleSubmit,
 		setError,
+		reset,
 		formState: { errors }
 	} = useForm({
 		resolver: yupResolver(schema),
 		defaultValues: {
-			username: "",
-			password: "",
-			confirmPassword: "",
 			firstName: "",
 			lastName: "",
 			email: "",
@@ -133,20 +123,21 @@ export default function CreateAccountManagementPage() {
 
 	const onSubmit = async (data) => {
 		setLoading(true)
-		const res = await createEmployeeApi({
+		const res = await editEmployeeApi({
 			...data,
+			id,
 			dateBirth: formatDateToYYYYMMDD(data.dateBirth)
 		})
 		setLoading(false)
 
-		if (res.status === 201) {
+		if (res.status === 200) {
 			dispatch(
 				setPopup({
 					type: "success",
 					message: res.message
 				})
 			)
-			navigate("/management/accounts")
+			navigate("/employees")
 		} else {
 			if (res.errors) {
 				Object.entries(res.errors).forEach(([field, message]) => {
@@ -165,40 +156,80 @@ export default function CreateAccountManagementPage() {
 		}
 	}
 
+	const handleFetchData = async () => {
+		setLoading(true)
+		const res = await getEmployeeDetailsByAccountIdApi(id)
+		setLoading(false)
+		if (res.status === 200) {
+			setEnabled(res.data.enabled)
+			reset({
+				firstName: res.data.firstName,
+				lastName: res.data.lastName,
+				email: res.data.email,
+				phone: res.data.phone,
+				address: res.data.address,
+				gender: res.data.gender,
+				dateBirth: res.data.dateBirth,
+				role: res.data.role
+			})
+		} else {
+			dispatch(
+				setPopup({
+					type: "error",
+					message: res.message
+				})
+			)
+		}
+	}
+
+	const handleResetPasswordAccount = async () => {
+		setOpenResetPassword(false)
+		const res = await resetPasswordApi(id)
+		if (res.status === 200) {
+			dispatch(
+				setPopup({
+					type: "success",
+					message: res.message
+				})
+			)
+		} else {
+			dispatch(
+				setPopup({
+					type: "error",
+					message: res.message
+				})
+			)
+		}
+	}
+
+	const handleChangeStatusAccount = async () => {
+		setOpenChangeStatus(false)
+		const res = await changeStatusApi(id)
+		if (res.status === 200) {
+			dispatch(
+				setPopup({
+					type: "success",
+					message: res.message
+				})
+			)
+			setEnabled(!enabled)
+		} else {
+			dispatch(
+				setPopup({
+					type: "error",
+					message: res.message
+				})
+			)
+		}
+	}
+
+	useEffect(() => {
+		handleFetchData()
+	}, [])
+
 	return (
 		<>
-			<title>{t("create-account")}</title>
-
-			<style>
-				{`
-                    @keyframes pulse-success {
-                        0%, 100% { opacity: 1; }
-                        50% { opacity: 0.6; }
-                    }
-                    @keyframes pulse-error {
-                        0%, 100% { opacity: 1; }
-                        50% { opacity: 0.6; }
-                    }
-                    @keyframes ripple-success {
-                        0% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
-                        100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
-                    }
-                    @keyframes ripple-error {
-                        0% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
-                        100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
-                    }
-                    @keyframes shimmer {
-                        0% { left: -100%; }
-                        100% { left: 100%; }
-                    }
-                    @keyframes bounce {
-                        0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
-                        40%, 43% { transform: translate3d(0,-8px,0); }
-                        70% { transform: translate3d(0,-4px,0); }
-                        90% { transform: translate3d(0,-2px,0); }
-                    }
-                `}
-			</style>
+			<title>{t("edit-employee")}</title>
 
 			<Paper
 				sx={{
@@ -251,10 +282,10 @@ export default function CreateAccountManagementPage() {
 								backgroundClip: "text"
 							}}
 						>
-							{t("create-account")}
+							{t("edit-employee")}
 						</Typography>
 						<Typography variant="body2">
-							{t("create-an-account-for-employee")}
+							{t("edit-employee-in-organization")}
 						</Typography>
 					</Box>
 					<Box
@@ -565,26 +596,6 @@ export default function CreateAccountManagementPage() {
 								/>
 							</Grid>
 
-							{/* Account */}
-							<Grid size={12}>
-								<Stack spacing={1}>
-									<Stack
-										direction="row"
-										alignItems="center"
-										spacing={1}
-									>
-										<BusinessIcon color="primary" />
-										<Typography
-											variant="h6"
-											color="primary"
-										>
-											{t("account")}
-										</Typography>
-									</Stack>
-									<Divider />
-								</Stack>
-							</Grid>
-
 							<Grid size={{ xs: 12, md: 6 }}>
 								<Controller
 									name="role"
@@ -621,16 +632,23 @@ export default function CreateAccountManagementPage() {
 														---
 													</Typography>
 												</MenuItem>
-												{ROLE_CONFIGS.map((role) => (
-													<MenuItem
-														key={role.value}
-														value={role.value}
-													>
-														<RoleChip
-															role={role.value}
-														/>
-													</MenuItem>
-												))}
+												{ROLE_CONFIGS.map((role) => {
+													if (role.value !== "ADMIN")
+														return (
+															<MenuItem
+																key={role.value}
+																value={
+																	role.value
+																}
+															>
+																<RoleChip
+																	role={
+																		role.value
+																	}
+																/>
+															</MenuItem>
+														)
+												})}
 											</Select>
 											{errors.role && (
 												<FormHelperText>
@@ -638,104 +656,6 @@ export default function CreateAccountManagementPage() {
 												</FormHelperText>
 											)}
 										</FormControl>
-									)}
-								/>
-							</Grid>
-
-							<Grid size={{ xs: 12, md: 6 }}>
-								<Controller
-									name="username"
-									control={control}
-									render={({ field }) => (
-										<TextField
-											{...field}
-											size="small"
-											label={t("username")}
-											variant="outlined"
-											fullWidth
-											error={!!errors.username}
-											helperText={tError(
-												errors.username?.message
-											)}
-											slotProps={{
-												inputLabel: { shrink: true }
-											}}
-											disabled={loading}
-											sx={{
-												"& .MuiOutlinedInput-root": {
-													borderRadius: 2,
-													backgroundColor:
-														theme.palette.background
-															.default
-												}
-											}}
-										/>
-									)}
-								/>
-							</Grid>
-
-							<Grid size={{ xs: 12, md: 6 }}>
-								<Controller
-									name="password"
-									control={control}
-									render={({ field }) => (
-										<TextField
-											{...field}
-											size="small"
-											type="password"
-											label={t("password")}
-											variant="outlined"
-											fullWidth
-											error={!!errors.password}
-											helperText={tError(
-												errors.password?.message
-											)}
-											slotProps={{
-												inputLabel: { shrink: true }
-											}}
-											disabled={loading}
-											sx={{
-												"& .MuiOutlinedInput-root": {
-													borderRadius: 2,
-													backgroundColor:
-														theme.palette.background
-															.default
-												}
-											}}
-										/>
-									)}
-								/>
-							</Grid>
-
-							<Grid size={{ xs: 12, md: 6 }}>
-								<Controller
-									name="confirmPassword"
-									control={control}
-									render={({ field }) => (
-										<TextField
-											{...field}
-											size="small"
-											type="password"
-											label={t("confirm-password")}
-											variant="outlined"
-											fullWidth
-											error={!!errors.confirmPassword}
-											helperText={tError(
-												errors.confirmPassword?.message
-											)}
-											slotProps={{
-												inputLabel: { shrink: true }
-											}}
-											disabled={loading}
-											sx={{
-												"& .MuiOutlinedInput-root": {
-													borderRadius: 2,
-													backgroundColor:
-														theme.palette.background
-															.default
-												}
-											}}
-										/>
 									)}
 								/>
 							</Grid>
@@ -760,24 +680,82 @@ export default function CreateAccountManagementPage() {
 										}}
 										disabled={loading}
 										LinkComponent={Link}
-										to="/management/accounts"
+										to="/employees"
 									>
 										{t("back")}
 									</Button>
 
-									{/* Create Button */}
-									<Button
-										type="submit"
-										variant="contained"
-										size="medium"
-										disabled={loading}
-										startIcon={<SaveIcon />}
-										sx={{
-											textTransform: "capitalize"
-										}}
+									<Stack
+										direction={{ xs: "column", sm: "row" }}
+										spacing={2}
+										justifyContent="flex-end"
 									>
-										{t("create")}
-									</Button>
+										{/* Reset Password Button */}
+										<Button
+											onClick={() =>
+												setOpenResetPassword(true)
+											}
+											variant="outlined"
+											size="medium"
+											color="warning"
+											disabled={loading}
+											startIcon={<LockResetIcon />}
+											sx={{
+												textTransform: "capitalize"
+											}}
+										>
+											Reset {t("password")}
+										</Button>
+
+										{/* Change Status Button */}
+										{enabled ? (
+											<Button
+												onClick={() =>
+													setOpenChangeStatus(true)
+												}
+												variant="outlined"
+												size="medium"
+												color="error"
+												disabled={loading}
+												startIcon={<Block />}
+												sx={{
+													textTransform: "capitalize"
+												}}
+											>
+												{t("disabled")}
+											</Button>
+										) : (
+											<Button
+												onClick={() =>
+													setOpenChangeStatus(true)
+												}
+												variant="outlined"
+												size="medium"
+												color="success"
+												disabled={loading}
+												startIcon={<Check />}
+												sx={{
+													textTransform: "capitalize"
+												}}
+											>
+												{t("enabled-employee")}
+											</Button>
+										)}
+
+										{/* Create Button */}
+										<Button
+											type="submit"
+											variant="contained"
+											size="medium"
+											disabled={loading}
+											startIcon={<SaveIcon />}
+											sx={{
+												textTransform: "capitalize"
+											}}
+										>
+											{t("update")}
+										</Button>
+									</Stack>
 								</Stack>
 							</Grid>
 						</Grid>

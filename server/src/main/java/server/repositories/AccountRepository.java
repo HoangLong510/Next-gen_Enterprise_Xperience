@@ -24,4 +24,6 @@ public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpec
 
     // Lấy danh sách account theo 1 role
     List<Account> findByRole(Role role);
+
+    boolean existsByRole(Role role);
 }

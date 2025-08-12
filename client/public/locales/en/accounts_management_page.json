@@ -40,5 +40,17 @@
 	"confirm-password": "Confirm password",
 	"select-role": "Select role",
 	"back": "Back",
-	"create": "Create"
+	"create": "Create",
+	"enabled-account": "Enabled account",
+	"AccountManagementDetails": "Account management details",
+	"ManageAccountInformationAndLoginSessions": "Manage account information and login sessions",
+	"SessionLogin": "Session login",
+	"LoggedIn": "Logged in",
+	"NoLoginSessions": "No login sessions",
+	"NoLoginSessionsLong": "There are currently no active sessions recorded for this account",
+	"AreYouSureYouWantToResetThisAccountPassword": "Are you sure you want to reset this account password?",
+	"Cancel": "Cancel",
+	"Agree": "Agree",
+	"ChangeStatus": "Change status",
+	"update-account-status-confirm": "Are you sure you want to update this account status?"
 }

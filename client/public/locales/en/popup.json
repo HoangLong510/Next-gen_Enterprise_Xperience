@@ -4,5 +4,6 @@
 	"close": "Close",
 	"agree": "Agree",
 	"logout": "Logout",
+	"confirm": "Confirm",
 	"are-you-sure-you-want-to-log-out-of-the-application": "Are you sure you want to log out of the application?"
 }

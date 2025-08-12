@@ -26,6 +26,7 @@ Widget buildDrawerMenu(String userRole, BuildContext context) {
                 leading: Icon(item.icon),
                 title: Text(item.label),
                 onTap: () {
+
                   Navigator.of(context).pushReplacementNamed(item.route);
                 },
               ),

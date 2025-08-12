@@ -6,18 +6,22 @@ import lombok.RequiredArgsConstructor;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import server.dtos.leave_requests.LeaveRequestCreateRequest;
 import server.dtos.leave_requests.LeaveRequestResponse;
+import server.models.Account;
 import server.models.LeaveRequest;
+import server.models.SignatureSample;
 import server.repositories.LeaveRequestRepository;
+import server.repositories.SignatureSampleRepository;
+import server.services.AuthService;
 import server.services.LeaveRequestService;
 import server.utils.ApiResponse;
 import server.dtos.leave_requests.LeaveRequestApproveRequest;
 
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -27,8 +31,9 @@ import java.util.Optional;
 public class LeaveRequestController {
 
     private final LeaveRequestService leaveRequestService;
+    private final AuthService authService;
     private final LeaveRequestRepository leaveRequestRepository;
-
+    private final SignatureSampleRepository signatureSampleRepository;
     // Tạo đơn nghỉ phép
     @PostMapping
     public ApiResponse<LeaveRequestResponse> createLeaveRequest(
@@ -64,10 +69,13 @@ public class LeaveRequestController {
     @PostMapping("/{id}/reject")
     public ApiResponse<LeaveRequestResponse> rejectLeaveRequest(
             HttpServletRequest request,
-            @PathVariable Long id
+            @PathVariable Long id,
+            @RequestBody(required = false) LeaveRequestApproveRequest dto // nhận body từ FE
     ) {
-        return leaveRequestService.approveOrReject(request, id, false, null);
+        return leaveRequestService.approveOrReject(request, id, false, dto);
     }
+
+
 
     // EXPORT WORD: Xuất đơn nghỉ phép ra file Word
     @GetMapping("/{id}/export-word")
@@ -82,16 +90,24 @@ public class LeaveRequestController {
             return;
         }
         LeaveRequest leave = leaveOpt.get();
-        Map<String, String> data = leaveRequestService.prepareLeaveRequestDataForWord(leave);
+
+        // --- TÌM CÁC ĐƠN NGẮT QUÃNG NẾU CÓ ---
+        List<LeaveRequest> splitLeaves = null;
+        if (leave.getBatchId() != null) {
+            splitLeaves = leaveRequestRepository.findByBatchIdOrderByStartDateAsc(leave.getBatchId());
+        }
+
+        // Nếu không phải nghỉ ngắt quãng, truyền null hoặc Collections.emptyList()
+        Map<String, String> data = leaveRequestService.prepareLeaveRequestDataForWord(leave, splitLeaves);
         String signature = leave.getSignature(); // nếu chưa có thì truyền ""
         byte[] docxBytes = leaveRequestService.exportDocumentToWord(data, signature);
-
 
         response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=leaveRequest.docx");
         response.getOutputStream().write(docxBytes);
         response.getOutputStream().flush();
     }
+
 
     @GetMapping("/pending-to-approve")
     public ApiResponse<?> getPendingToApprove(HttpServletRequest request) {
@@ -102,5 +118,51 @@ public class LeaveRequestController {
     public ApiResponse<?> getMyPendingSent(HttpServletRequest request) {
         return leaveRequestService.listMyPendingSent(request);
     }
+
+    @GetMapping("/{id}")
+    public ApiResponse<?> getLeaveRequestDetail(@PathVariable Long id, HttpServletRequest request) {
+        return leaveRequestService.getDetail(id, request);
+    }
+
+    @GetMapping("/busy-days")
+    public ApiResponse<?> getBusyLeaveDays(
+            @RequestParam Long departmentId,
+            @RequestParam String month // format: "2024-07"
+    ) {
+        return leaveRequestService.getBusyDays(departmentId, month);
+    }
+
+    @GetMapping("/leave-balance")
+    public ApiResponse<?> getLeaveBalance(
+            HttpServletRequest request,
+            @RequestParam String month // format: yyyy-MM
+    ) {
+        return leaveRequestService.getLeaveBalance(request, month);
+    }
+
+    @GetMapping("/my-signature-sample")
+    public ApiResponse<String> getMySignatureSample(HttpServletRequest request) {
+        Account current = authService.getCurrentAccount(request);
+        Optional<SignatureSample> sampleOpt = signatureSampleRepository.findByAccount(current);
+        return sampleOpt
+                .map(sample -> ApiResponse.success(sample.getSignatureBase64(), "Lấy chữ ký mẫu thành công"))
+                .orElseGet(() -> ApiResponse.success(null, "Bạn chưa có chữ ký mẫu"));
+    }
+
+    @PostMapping("/my-signature-sample")
+    public ApiResponse<?> saveOrUpdateSignatureSample(
+            HttpServletRequest request,
+            @RequestBody String signatureBase64
+    ) {
+        Account current = authService.getCurrentAccount(request);
+        Optional<SignatureSample> sampleOpt = signatureSampleRepository.findByAccount(current);
+        SignatureSample sample = sampleOpt.orElseGet(SignatureSample::new);
+        sample.setAccount(current);
+        sample.setSignatureBase64(signatureBase64);
+        signatureSampleRepository.save(sample);
+        return ApiResponse.success(null, "Lưu chữ ký mẫu thành công");
+    }
+
+
 
 }

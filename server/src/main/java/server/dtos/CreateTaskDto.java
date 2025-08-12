@@ -1,10 +1,8 @@
 package server.dtos;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
-import server.models.enums.TaskStatus;
 
 import java.time.LocalDate;
 
@@ -13,14 +11,21 @@ import java.time.LocalDate;
 public class CreateTaskDto {
 
     @NotBlank(message = "Tên task không được để trống")
+    @Size(max = 255, message = "Tên task tối đa 255 ký tự")
     private String name;
 
     @NotBlank(message = "Mô tả task không được để trống")
-    private String description; // 🆕 Mô tả task
+    @Size(max = 2000, message = "Mô tả tối đa 2000 ký tự")
+    private String description;
+
+    @NotBlank(message = "Size là bắt buộc")
+    @Pattern(regexp = "(?i)S|M|L", message = "Size phải là S, M hoặc L")
+    private String size;
 
     @NotNull(message = "Deadline không được để trống")
+    @FutureOrPresent(message = "Deadline phải là hôm nay hoặc tương lai")
     private LocalDate deadline;
-
-    @NotNull(message = "Project ID là bắt buộc")
-    private Long projectId;
+    private Long assigneeId;
+    @NotNull(message = "Phase ID là bắt buộc")
+    private Long phaseId;
 }

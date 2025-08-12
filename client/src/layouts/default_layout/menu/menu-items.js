@@ -9,6 +9,7 @@ import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import DescriptionIcon from "@mui/icons-material/Description";
 import WorkIcon from "@mui/icons-material/Work";
 import PunchClockIcon from "@mui/icons-material/PunchClock";
+
 export const menuItems = [
   {
     title: "Management",
@@ -37,10 +38,10 @@ export const menuItems = [
     title: "Employees",
     items: [
       {
-        label: "Profiles",
+        label: "Employees List",
         icon: AssignmentIndIcon,
-        href: "/employees/profiles",
-        roles: ["ADMIN", "MANAGER"],
+        href: "/employees",
+        roles: ["ADMIN", "MANAGER", "HR"],
       },
       {
         label: "Contracts",
@@ -69,7 +70,7 @@ export const menuItems = [
         label: "Salary",
         icon: FilePresentIcon,
         href: "/finance/salary",
-        roles: ["ADMIN", "MANAGER"],
+        roles: ["ADMIN", "MANAGER", "ACCOUNTANT"],
       },
     ],
   },

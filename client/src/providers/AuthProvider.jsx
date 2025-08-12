@@ -25,7 +25,7 @@ export default function AuthProvider({ children }) {
 
 	useEffect(() => {
 		handleFetchData()
-		setTimeout(() => setReady(true), 1000)
+		setTimeout(() => setReady(true), 500)
 	}, [location.pathname])
 
 	if (!ready || loading) {

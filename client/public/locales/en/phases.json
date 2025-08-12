@@ -1,0 +1,10 @@
+{
+  "create-phase": "Create Phase",
+  "update-phase": "Update Phase",
+  "phase-name": "Phase Name",
+  "phase-deadline": "Phase Deadline",
+  "cancel": "Cancel",
+  "create": "Create",
+  "update": "Update",
+  "confirm": "Confirm"
+}
