@@ -93,3 +93,88 @@ export const createEmployeeApi = async (data) => {
     };
   }
 };
+
+// Chỉnh sửa nhân viên
+export const editEmployeeApi = async (data) => {
+  try {
+    const res = await api.post("/employees/edit", data, {
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response) {
+      return error.response.data;
+    }
+    return {
+      status: 500,
+      message: "server-is-busy"
+    };
+  }
+};
+
+// Lấy chi tiết nhân viên theo accountId
+export const getEmployeeDetailsByAccountIdApi = async (id) => {
+  try {
+    const res = await api.get(
+      `/employees/get-employee-details-by-account-id/${id}`,
+      {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    return res.data;
+  } catch (error) {
+    if (error.response) {
+      return error.response.data;
+    }
+    return {
+      status: 500,
+      message: "server-is-busy"
+    };
+  }
+};
+
+// Download template import nhân viên
+export const downloadEmployeesImportTemplateApi = async () => {
+  try {
+    const res = await api.get("/employees/import/template", {
+      responseType: "blob"
+    });
+    return res; // trả full response để lấy headers nếu cần
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Preview file import nhân viên
+export const previewEmployeesImportApi = async (fileOrBlob) => {
+  const form = new FormData();
+  form.append("file", fileOrBlob, "employees.xlsx");
+  try {
+    const res = await api.post("/employees/import/preview", form, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};
+
+// Import thật nhân viên
+export const importEmployeesApi = async (fileOrBlob) => {
+  const form = new FormData();
+  form.append("file", fileOrBlob, "employees.xlsx");
+  try {
+    const res = await api.post("/employees/import/", form, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};

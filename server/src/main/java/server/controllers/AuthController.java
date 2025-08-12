@@ -18,8 +18,12 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginDto request, BindingResult result) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginDto request, BindingResult result, HttpServletRequest httpServletRequest) {
         try {
+            if(request.getDeviceName() == null || request.getDeviceName().isEmpty()) {
+                String userAgent = httpServletRequest.getHeader("User-Agent");
+                request.setDeviceName(userAgent);
+            }
             ApiResponse<?> response = authService.login(request, result);
             return ResponseEntity.status(response.getStatus()).body(response);
         } catch (Exception e) {

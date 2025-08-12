@@ -11,42 +11,43 @@ export const ROLE_CONFIGS = [
   {
     value: "ADMIN",
     color: "error",
-    icon: AdminPanelSettingsIcon,
+    icon: AdminPanelSettingsIcon
   },
   {
     value: "MANAGER",
     color: "warning",
-    icon: EmojiEventsIcon,
+    icon: EmojiEventsIcon
   },
   {
     value: "PM",
     color: "info",
-    icon: AccountTreeIcon,
+    icon: AccountTreeIcon
   },
-  { value: "CHIEFACCOUNTANT",
-	color: "success",
-	icon: WorkspacePremiumIcon 
+  {
+    value: "CHIEFACCOUNTANT",
+    color: "success",
+    icon: WorkspacePremiumIcon
   },
   {
     value: "ACCOUNTANT",
     color: "success",
-    icon: TrendingUpIcon,
+    icon: TrendingUpIcon
   },
   {
     value: "HOD",
     color: "secondary",
-    icon: SupervisorAccountIcon,
-  },
-  {
-    value: "EMPLOYEE",
-    color: "primary",
-    icon: PersonIcon,
+    icon: SupervisorAccountIcon
   },
   {
     value: "HR",
     color: "primary",
-    icon: GroupIcon,
+    icon: GroupIcon
   },
+  {
+    value: "EMPLOYEE",
+    color: "primary",
+    icon: PersonIcon
+  }
 ];
 
 export function getRoleConfig(roleValue) {

@@ -18,6 +18,8 @@ public class AccountSpecifications {
                     builder.like(builder.lower(root.get("username")), like),
                     builder.like(builder.lower(empJoin.get("firstName")), like),
                     builder.like(builder.lower(empJoin.get("lastName")), like),
+                    builder.like(builder.lower(empJoin.get("email")), like),
+                    builder.like(builder.lower(empJoin.get("phone")), like),
                     builder.like(
                             builder.lower(
                                     builder.concat(

@@ -29,11 +29,71 @@ public class AccountController {
     }
 
     // API phân trang lấy accounts, chỉ ADMIN được dùng
-    @PreAuthorize("hasAnyAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'HR', 'MANAGER')")
     @PostMapping("/get-accounts-page")
     public ResponseEntity<?> getAccountsPage(@RequestBody GetAccountsPageDto req) {
         try {
             ApiResponse<?> response = accountService.getAccountsPage(req);
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } catch (Exception e) {
+            ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
+    @GetMapping("/get-account-management-details/{id}")
+    public ResponseEntity<?> getAccountManagementDetails(@PathVariable("id") Long id) {
+        try {
+            ApiResponse<?> response = accountService.getAccountManagementDetails(id);
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } catch (Exception e) {
+            ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'HR', 'MANAGER')")
+    @GetMapping("/update-role/{id}/{role}")
+    public ResponseEntity<?> updateRole(@PathVariable("id") Long id, @PathVariable("role") Role role) {
+        try {
+            ApiResponse<?> response = accountService.updateRole(id, role);
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } catch (Exception e) {
+            ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'HR', 'MANAGER')")
+    @GetMapping("/reset-password/{id}")
+    public ResponseEntity<?> resetPassword(@PathVariable("id") Long id) {
+        try {
+            ApiResponse<?> response = accountService.resetPassword(id);
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } catch (Exception e) {
+            ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'HR', 'MANAGER')")
+    @GetMapping("/change-status/{id}")
+    public ResponseEntity<?> changeStatus(@PathVariable("id") Long id) {
+        try {
+            ApiResponse<?> response = accountService.changeStatus(id);
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } catch (Exception e) {
+            ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+    }
+
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
+    @GetMapping("/logout-session/{id}/{sessionId}")
+    public ResponseEntity<?> changeStatus(@PathVariable("id") Long id, @PathVariable("sessionId") Long sessionId) {
+        try {
+            ApiResponse<?> response = accountService.logoutSession(id, sessionId);
             return ResponseEntity.status(response.getStatus()).body(response);
         } catch (Exception e) {
             ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());

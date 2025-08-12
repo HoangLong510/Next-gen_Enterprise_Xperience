@@ -70,9 +70,6 @@ public class DepartmentService {
                     dto.setImage(department.getImage());
 
                     int employeeCount = department.getEmployees().size();
-                    if (department.getHod() != null) {
-                        employeeCount++;
-                    }
                     dto.setEmployeeCount(employeeCount);
 
                     Map<String, Object> hod = new HashMap<>();

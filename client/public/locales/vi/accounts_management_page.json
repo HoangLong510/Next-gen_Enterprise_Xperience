@@ -40,5 +40,19 @@
 	"confirm-password": "Xác nhận mật khẩu",
 	"select-role": "Chọn vai trò",
 	"back": "Quay lại",
-	"create": "Tạo"
+	"create": "Tạo",
+	"enabled-account": "Kích hoạt tài khoản",
+	"AccountManagementDetails": "Chi tiết quản lý tài khoản",
+	"ManageAccountInformationAndLoginSessions": "Quản lý thông tin tài khoản và phiên đăng nhập",
+	"SessionLogin": "Phiên đăng nhập",
+	"LoggedIn": "Đăng nhập lúc",
+	"NoLoginSessions": "Không có phiên đăng nhập nào",
+	"NoLoginSessionsLong": "Hiện tại không có phiên hoạt động nào được ghi nhận cho tài khoản này",
+	"AreYouSureYouWantToResetThisAccountPassword": "Bạn có chắc chắn muốn reset mật khẩu tài khoản này?",
+	"Cancel": "Hủy",
+	"Agree": "Xác nhận",
+	"ChangeStatus": "Thay đổi trạng thái",
+	"update-account-status-confirm": "Bạn có chắc chắn muốn cập nhật trang thái tài khoản này?",
+	"logout-session-confirm": "Bạn có chắc chắn muốn đăng xuất khỏi phiên này?",
+	"logout-session": "Đăng xuất khỏi phiên"
 }

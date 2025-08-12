@@ -1,26 +1,39 @@
 import DefaultLayout from "~/layouts/default_layout";
+
+// Accounts
 import AccountsManagement from "~/pages/management/accounts/index.jsx";
 import CreateAccountManagementPage from "~/pages/management/accounts/create";
+import AccountManagementDetails from "~/pages/management/accounts/details";
 
+// Documents (Dispatches)
 import DocumentList from "~/pages/management/document/DocumentList";
 import DocumentDetail from "~/pages/management/document/DocumentDetail";
 
+// Projects
 import ProjectManagement from "~/pages/management/project/list-project";
 import ProjectDetailPage from "~/pages/management/project/ProjectDetailPage";
 import ProjectKanbanBoard from "~/components/project/KanbanForm";
 
+// Departments
 import AddDepartmentPage from "~/pages/departments/add";
 import AddEmployeeDepartmentPage from "~/pages/departments/add-employees";
 import EditDepartmentPage from "~/pages/departments/edit";
 
+// Finance/Accounting
 import FundList from "~/pages/accountant/fund-list";
 import FundDetails from "~/pages/accountant/fund-detail";
 import TransactionList from "~/pages/accountant/fund-transaction-list";
 import CreateSalaryPage from "~/pages/accountant/salary";
 import SalaryDetail from "~/pages/accountant/salary-detail";
 
+// Employees
+import EmployeesListPage from "~/pages/employees";
+import CreateEmployeePage from "~/pages/employees/create";
+import EmployeeDetailsPage from "~/pages/employees/details";
+import EmployeeExcelImport from "~/pages/employees/excel_import";
+
 const roleRoutes = [
-  // Accounts — ADMIN
+  // Accounts
   {
     path: "/management/accounts",
     component: AccountsManagement,
@@ -33,8 +46,14 @@ const roleRoutes = [
     layout: DefaultLayout,
     roles: ["ADMIN"],
   },
+  {
+    path: "/management/accounts/details/:id",
+    component: AccountManagementDetails,
+    layout: DefaultLayout,
+    roles: ["ADMIN"],
+  },
 
-  // Documents — có ACCOUNTANT
+  // Documents
   {
     path: "/management/documents",
     component: DocumentList,
@@ -48,7 +67,7 @@ const roleRoutes = [
     roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
   },
 
-  // Projects — ADMIN/MANAGER/PM
+  // Projects
   {
     path: "/management/projects",
     component: ProjectManagement,
@@ -62,7 +81,7 @@ const roleRoutes = [
     roles: ["ADMIN", "MANAGER", "PM"],
   },
 
-  // Kanban (Project & Phase) — ADMIN/MANAGER/PM
+  // Kanban (Project & Phase)
   {
     path: "/projects/:id/kanban",
     component: ProjectKanbanBoard,
@@ -76,7 +95,7 @@ const roleRoutes = [
     roles: ["ADMIN", "MANAGER", "PM"],
   },
 
-  // Departments — ADMIN
+  // Departments
   {
     path: "/departments/add",
     component: AddDepartmentPage,
@@ -96,7 +115,7 @@ const roleRoutes = [
     roles: ["ADMIN"],
   },
 
-  // Finance/Accounting
+  // Finance
   {
     path: "/finance/fund",
     component: FundList,
@@ -127,8 +146,40 @@ const roleRoutes = [
     layout: DefaultLayout,
     roles: ["ADMIN", "HOD", "ACCOUNTANT"],
   },
+  {
+    path: "/finance/salary/create",
+    component: CreateSalaryPage,
+    layout: DefaultLayout,
+    roles: ["ADMIN"],
+  },
 
-  // Tasks — HOD & EMPLOYEE (Kanban có filter Project)
+  // Employees
+  {
+    path: "/employees",
+    component: EmployeesListPage,
+    layout: DefaultLayout,
+    roles: ["ADMIN", "MANAGER", "HR"],
+  },
+  {
+    path: "/employees/create",
+    component: CreateEmployeePage,
+    layout: DefaultLayout,
+    roles: ["ADMIN", "MANAGER", "HR"],
+  },
+  {
+    path: "/employees/edit/:id",
+    component: EmployeeDetailsPage,
+    layout: DefaultLayout,
+    roles: ["ADMIN", "MANAGER", "HR"],
+  },
+  {
+    path: "/employees/excel-import",
+    component: EmployeeExcelImport,
+    layout: DefaultLayout,
+    roles: ["ADMIN", "MANAGER", "HR"],
+  },
+
+  // Tasks
   {
     path: "/utilities/tasks",
     component: ProjectKanbanBoard,
