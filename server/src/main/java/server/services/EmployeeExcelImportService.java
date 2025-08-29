@@ -109,10 +109,10 @@ public class EmployeeExcelImportService {
             e.setAccount(acc);
 
             toSave.add(e);
+            employeeRepository.saveAndFlush(e);
             mails.add(new MailRow(req.getEmail(), username, rawPass));
         }
 
-        employeeRepository.saveAllAndFlush(toSave);
         for (MailRow m : mails) {
             emailService.sendAccountCreatedEmail(m.email(), m.username(), m.rawPassword());
         }

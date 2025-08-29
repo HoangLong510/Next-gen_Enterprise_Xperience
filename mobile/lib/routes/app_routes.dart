@@ -5,6 +5,7 @@ import 'package:mobile/guards/role_guard.dart';
 import 'package:mobile/screens/attendance/attendance_list_page.dart';
 import 'package:mobile/screens/attendance/attendance_details_page.dart';
 import 'package:mobile/screens/attendance/face_attendance_page.dart';
+import 'package:mobile/screens/change_password.dart';
 
 // Core
 import 'package:mobile/screens/home_page.dart';
@@ -42,7 +43,14 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       final id = int.tryParse(name.split("/").last);
       if (id != null) {
         return _buildPage(
-          allowRoles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HOD", "SECRETARY"],
+          allowRoles: [
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "ACCOUNTANT",
+            "HOD",
+            "SECRETARY",
+          ],
           child: DispatchDetailPage(id: id),
         );
       } else {
@@ -55,7 +63,14 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       final id = int.tryParse(name.split("/").last);
       if (id != null) {
         return _buildPage(
-          allowRoles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HOD", "SECRETARY"],
+          allowRoles: [
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "ACCOUNTANT",
+            "HOD",
+            "SECRETARY",
+          ],
           child: DispatchDetailPage(id: id),
         );
       } else {
@@ -69,7 +84,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       final id = int.tryParse(idStr);
       if (id != null) {
         return _buildPage(
-          allowRoles: ["EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD"],
+          allowRoles: [
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
+          ],
           child: AttendanceDetailPage(attendanceId: id),
         );
       } else {
@@ -113,7 +136,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case "/":
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
-          allowRoles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HR", "HOD", "EMPLOYEE"],
+          allowRoles: [
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "ACCOUNTANT",
+            "HR",
+            "HOD",
+            "EMPLOYEE",
+          ],
           child: CustomLayout(child: HomePage()),
         ),
       );
@@ -122,7 +153,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case "/attendance/list":
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
-          allowRoles: ["EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD"],
+          allowRoles: [
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
+          ],
           child: CustomLayout(child: AttendanceListPage()),
         ),
       );
@@ -132,7 +171,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       if (id == null) return _errorPage("Thiếu attendanceId");
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
-          allowRoles: ["EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD"],
+          allowRoles: [
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
+          ],
           child: CustomLayout(child: AttendanceDetailPage(attendanceId: id)),
         ),
       );
@@ -140,7 +187,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case "/attendance":
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
-          allowRoles: ["EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD"],
+          allowRoles: [
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
+          ],
           child: CustomLayout(child: CheckInCheckOutPage()),
         ),
       );
@@ -149,7 +204,14 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case "/management/documents":
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
-          allowRoles: ["ADMIN", "MANAGER", "PM", "SECRETARY", "ACCOUNTANT", "HOD"],
+          allowRoles: [
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "SECRETARY",
+            "ACCOUNTANT",
+            "HOD",
+          ],
           child: CustomLayout(child: DispatchesListPage()),
         ),
       );
@@ -166,7 +228,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case "/notifications":
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
-          allowRoles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HR", "HOD", "EMPLOYEE"],
+          allowRoles: [
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "ACCOUNTANT",
+            "HR",
+            "HOD",
+            "EMPLOYEE",
+          ],
           child: CustomLayout(child: NotificationListPage()),
         ),
       );
@@ -188,17 +258,31 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case "/login":
       return MaterialPageRoute(builder: (_) => const LoginPage());
 
+    case "/change-password":
+      return MaterialPageRoute(
+        builder: (_) => const CustomLayout(child: ChangePasswordPage()),
+      );
+
     case "/logout":
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
-          allowRoles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HR", "HOD", "EMPLOYEE"],
+          allowRoles: [
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "ACCOUNTANT",
+            "HR",
+            "HOD",
+            "EMPLOYEE",
+          ],
           child: CustomLayout(child: LogoutPage()),
         ),
       );
 
     default:
       return MaterialPageRoute(
-        builder: (_) => const Scaffold(body: Center(child: Text("404 - Not found"))),
+        builder: (_) =>
+            const Scaffold(body: Center(child: Text("404 - Not found"))),
       );
   }
 }

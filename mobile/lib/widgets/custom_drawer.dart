@@ -57,7 +57,7 @@ class CustomDrawer extends StatelessWidget {
             leading: const Icon(Icons.lock_outline),
             title: Text("ChangePassword".tr()),
             onTap: () {
-              // Xử lý đổi mật khẩu
+              Navigator.of(context).pushNamed('/change-password');
             },
           ),
           ListTile(
@@ -66,9 +66,7 @@ class CustomDrawer extends StatelessWidget {
             ), // hoặc dùng Icons.calendar_today
             title: const Text("Timekeeping"),
             onTap: () {
-              Navigator.of(
-                context,
-              ).pushNamed('/attendance');
+              Navigator.of(context).pushNamed('/attendance');
             },
           ),
           ListTile(

@@ -182,7 +182,7 @@ public class AuthService {
         }
 
         if(!request.getNewPassword().equals(request.getConfirmNewPassword())) {
-            result.rejectValue("newConfirmPassword", "", "confirm-password-does-not-match");
+            result.rejectValue("confirmNewPassword", "", "confirm-password-does-not-match");
             return ApiResponse.badRequest(result);
         }
 
