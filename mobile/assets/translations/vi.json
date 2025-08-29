@@ -85,5 +85,8 @@
 	"Logout": "Đăng xuất",
 	"AreYouSureLogout": "Bạn có chắc chắn muốn đăng xuất?",
 	"Cancel": "Hủy",
-	"Confirm": "Xác nhận"
+	"Confirm": "Xác nhận",
+
+	"NewPassword": "Mật khẩu mới",
+	"ConfirmNewPassword": "Xác nhận mật khẩu mới"
 }

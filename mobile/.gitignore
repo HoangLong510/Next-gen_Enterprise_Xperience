@@ -1,47 +1,72 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
+# Các tệp và thư mục được tạo tự động bởi môi trường phát triển (IDE) và công cụ
+
+## Môi trường chung
+# Các tệp tạm thời và tệp sao lưu
+*~
+*.bak
 *.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+*.log
+.DS_Store # Tệp hệ thống của macOS
+.env # File môi trường, không nên đưa lên Git
 
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
+## IDE và Editor
+# Tệp và thư mục của Visual Studio Code
+# .vscode/
+# Mặc định không bỏ qua để đồng bộ cấu hình dự án giữa các thành viên, nhưng nếu bạn muốn, có thể bỏ dấu #
+.history/
+
+# Tệp và thư mục của IntelliJ / Android Studio
 .idea/
+*.iml
+*.iws
+*.ipr
+/out/
+.gradle/
+.external_build_id
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+## Flutter/Dart/Pub
+# Các tệp được tạo bởi Pub và Flutter
 .dart_tool/
+.packages
 .flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
+
+# Các tệp được tạo trong quá trình build
 /build/
+**/doc/api/
+/ios/.last_build_id
+/android/.idea/
+/ios/.symlinks/
 
-# Symbolication related
+# Các tệp build cụ thể cho từng nền tảng
+# Android
+/android/app/build/
+/android/app/debug/
+/android/app/profile/
+/android/app/release/
+/android/.gradle/
+/android/key.properties
+/android/local.properties # Chứa các thông tin cục bộ của bạn, không nên đưa lên Git
+/android/gradle/wrapper/gradle-wrapper.jar
+/android/app/.cxx/
+
+# iOS
+/ios/.generated_pod_contents.json
+/ios/Flutter/.last_build_id
+/ios/Pods/
+/ios/Runner.xcworkspace/
+/ios/Runner.xcodeproj/project.xcworkspace/
+/ios/Runner.xcodeproj/xcuserdata/
+/ios/Flutter/Generated.xcconfig
+/ios/Flutter/Flutter.podspec
+
+# Các tệp liên quan đến symbolication và obfuscation
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Tệp của CocoaPods (đối với iOS)
+/ios/Podfile.lock
 
 .env
