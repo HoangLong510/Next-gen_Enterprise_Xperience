@@ -50,7 +50,7 @@ class CustomDrawer extends StatelessWidget {
             leading: const Icon(Icons.person_outline),
             title: Text("ViewProfile".tr()),
             onTap: () {
-              // Xử lý xem hồ sơ
+              Navigator.of(context).pushNamed('/profile');
             },
           ),
           ListTile(

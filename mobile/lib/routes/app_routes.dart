@@ -11,6 +11,7 @@ import 'package:mobile/screens/change_password.dart';
 import 'package:mobile/screens/home_page.dart';
 import 'package:mobile/screens/login_page.dart';
 import 'package:mobile/screens/logout_page.dart';
+import 'package:mobile/screens/profile_page.dart';
 import 'package:mobile/widgets/custom_layout.dart';
 
 // Documents (Dispatches)
@@ -261,6 +262,11 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case "/change-password":
       return MaterialPageRoute(
         builder: (_) => const CustomLayout(child: ChangePasswordPage()),
+      );
+
+    case "/profile":
+      return MaterialPageRoute(
+        builder: (_) => const CustomLayout(child: ProfilePage()),
       );
 
     case "/logout":
