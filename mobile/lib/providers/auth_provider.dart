@@ -14,12 +14,36 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+ void updateAccount({
+    String? firstName,
+    String? lastName,
+    String? email,
+    String? phone,
+    String? address,
+    String? gender,
+    String? avatar,
+    String? department,
+  }) {
+    if (_account != null) {
+      _account = _account!.copyWith(
+        firstName: firstName,
+        lastName: lastName,
+        email: email,
+        phone: phone,
+        address: address,
+        gender: gender,
+        avatar: avatar,
+        department: department,
+      );
+      notifyListeners();
+    }
+  }
+
   void logout() async {
     _account = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('accessToken');
     await prefs.remove('refreshToken');
     notifyListeners();
-    
   }
 }

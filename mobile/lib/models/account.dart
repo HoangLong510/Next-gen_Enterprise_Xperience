@@ -59,4 +59,32 @@ class Account {
       createdAt: parseDate(json['createdAt']?.toString()),
     );
   }
+
+  Account copyWith({
+    String? firstName,
+    String? lastName,
+    String? email,
+    String? phone,
+    String? address,
+    String? gender,
+    String? avatar,
+    String? department,
+    String? username,
+    String? role,
+    DateTime? dateBirth,
+  }) {
+    return Account(
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      address: address ?? this.address,
+      gender: gender ?? this.gender,
+      avatar: avatar ?? this.avatar,
+      department: department ?? this.department,
+      username: username ?? this.username,
+      role: role ?? this.role,
+      dateBirth: dateBirth ?? this.dateBirth,
+    );
+  }
 }
