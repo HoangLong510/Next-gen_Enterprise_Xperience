@@ -28,4 +28,7 @@ public interface PhaseRepository extends JpaRepository<Phase, Long> {
 
     // Tìm phase theo projectId và sequence (dùng để kiểm tra status của phase trước)
     Optional<Phase> findByProjectIdAndSequence(Long projectId, Integer sequence);
+
+    List<Phase> findByProjectIdOrderBySequenceAsc(Long projectId);
+    boolean existsByProjectId(Long projectId);
 }

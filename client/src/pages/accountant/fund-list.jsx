@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "@mui/material/styles";
 import { useDispatch } from "react-redux";
@@ -61,6 +61,7 @@ import {
   getAllTransactionsApi,
   getFundSummaryApi,
 } from "~/services/accountant/fund.service";
+import { getBankSnapshotApi,refreshBankApi } from "~/services/bank.service";
 import CustomAvatar from "~/components/custom-avatar";
 import { formatCurrency } from "~/utils/function";
 import i18n from "~/i18n";
@@ -101,6 +102,8 @@ export default function FundList({ accessToken }) {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(0);
 
+  const didAutoRefreshRef = useRef(false);
+
   const [newFund, setNewFund] = useState({
     name: "",
     balance: "",
@@ -124,6 +127,9 @@ export default function FundList({ accessToken }) {
     balanceMin: "",
     balanceMax: "",
   });
+
+  const [refreshing, setRefreshing] = useState(false);
+  const [bankSnapshot, setBankSnapshot] = useState(null);
 
   function parseApiError(res, defaultKey = "unexpected-error-occurred") {
     if (res?.status === 400 && res.errors) {
@@ -292,7 +298,52 @@ export default function FundList({ accessToken }) {
       balanceMax: "",
     });
   };
+  const fetchBankSnapshot = async () => {
+    const res = await getBankSnapshotApi();
+    if (res?.status === 200) {
+      setBankSnapshot(res.data);
+    } else {
+      setBankSnapshot(null);
+    }
+  };
 
+  useEffect(() => {
+    fetchBankSnapshot();
+  }, []);
+
+  const handleRefresh = async (showToast = true) => {
+    try {
+      setRefreshing(true);
+      await refreshBankApi();
+      await Promise.all([
+        fetchSummary(),
+        fetchFunds(false),
+        fetchBankSnapshot(),
+      ]);
+      if (showToast) {
+        dispatch(
+          setPopup({
+            type: "success",
+            message: tMessages("refreshed-successfully"),
+          })
+        );
+      }
+    } catch (e) {
+      if (showToast) {
+        dispatch(
+          setPopup({ type: "error", message: tMessages("refresh-failed") })
+        );
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (didAutoRefreshRef.current) return;
+    didAutoRefreshRef.current = true;
+    handleRefresh(false);
+  }, []);
   return (
     <Box
       sx={{
@@ -329,17 +380,15 @@ export default function FundList({ accessToken }) {
               <Button
                 variant="contained"
                 startIcon={<Refresh />}
-                onClick={async () => {
-                  await fetchSummary();
-                  await fetchFunds();
-                }}
+                onClick={handleRefresh}
+                disabled={refreshing}
                 sx={{
                   bgcolor: "rgba(255,255,255,0.2)",
                   "&:hover": { bgcolor: "rgba(255,255,255,0.3)" },
                   backdropFilter: "blur(10px)",
                 }}
               >
-                {t("refresh")}
+                {refreshing ? t("refreshing") : t("refresh")}
               </Button>
             </Box>
           </Box>

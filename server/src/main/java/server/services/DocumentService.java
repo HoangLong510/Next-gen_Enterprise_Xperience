@@ -85,7 +85,7 @@ public class DocumentService {
                     .orElseThrow(() -> new IllegalArgumentException("Manager not found"));
 
             // Lấy kế toán để hiển thị sau
-            accountant = accountRepository.findByRole(Role.ACCOUNTANT)
+            accountant = accountRepository.findByRole(Role.CHIEFACCOUNTANT)
                     .stream()
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Accountant not found"));
@@ -283,7 +283,6 @@ public class DocumentService {
         return mapToResponse(doc, false);
     }
 
-
     private ApiResponse<?> getDocumentsPageInternal(GetDocumentsPageDto req, Specification<Document> extraSpec) {
         int pageSize = req.getPageSize() > 0 ? req.getPageSize() : 10;
         int pageNumber = Math.max(1, req.getPageNumber()) - 1;
@@ -429,7 +428,6 @@ public class DocumentService {
         return dto;
     }
 
-
     public ApiResponse<?> getDocumentsPage(GetDocumentsPageDto req) {
         return getDocumentsPageInternal(req, null);
     }
@@ -449,7 +447,6 @@ public class DocumentService {
         return getDocumentsPageInternal(req, filterByMe);
     }
 
-
     public String convertDocxToHtml(String fileUrl) throws IOException {
         // fileUrl là đường dẫn tới file Word đã lưu, ví dụ "/uploads/documents/abc.docx"
         // Xử lý đường dẫn thực tế trên ổ đĩa (nối với uploadFolder nếu cần)
@@ -465,7 +462,6 @@ public class DocumentService {
             return result.getValue();
         }
     }
-
 
     private void replacePlaceholdersInParagraph(XWPFParagraph paragraph, Map<String, String> data) throws IOException, InvalidFormatException {
         for (XWPFRun run : paragraph.getRuns()) {
@@ -505,7 +501,6 @@ public class DocumentService {
             }
         }
     }
-
 
     public byte[] exportWordFromTemplate(String templateName, Map<String, String> data) throws IOException {
         try (InputStream template = new ClassPathResource("templates/" + templateName).getInputStream();
@@ -764,7 +759,6 @@ public class DocumentService {
             return mapToResponse(saved);
         }
     }
-
 
     public ApiResponse<?> getDocumentHistoriesPage(Long documentId, GetDocumentHistoryPageDto req) {
         int pageSize = req.getPageSize() > 0 ? req.getPageSize() : 10;

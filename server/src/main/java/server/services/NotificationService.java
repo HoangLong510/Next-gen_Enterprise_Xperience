@@ -3,6 +3,8 @@ package server.services;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import server.dtos.NotificationResponse;
 import server.models.*;
 import server.models.enums.*;
@@ -10,9 +12,7 @@ import server.repositories.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -132,7 +132,6 @@ public class NotificationService {
             }
 
             case ATTENDANCE -> {
-                // Lấy bản ghi 1 lần
                 Attendance att = attendanceRepository.findById(referenceId).orElse(null);
                 if (att == null) return null;
 
@@ -147,19 +146,15 @@ public class NotificationService {
                     recipient = att.getAccount();
 
                     if (!checkInDate.isBefore(firstDayPrevMonth) && !checkInDate.isAfter(lastDayPrevMonth)) {
-                        // Tháng trước
                         title = "reminder-missing-check-out-last-month";
                         content = "you-have-not-checked-out-for-" + checkInDate + "-from-last-month-please-update-before-salary-processing";
                     } else if (checkInDate.isEqual(yesterday)) {
-                        // ✅ HÔM QUA (dành cho job 00:05)
                         title = "reminder-missing-check-out-yesterday";
                         content = "you-did-not-check-out-on-" + checkInDate + "-please-submit-justification-or-contact-hr";
                     } else if (checkInDate.isEqual(today)) {
-                        // Hôm nay (nhắc lúc 17:00)
                         title = "reminder-missing-check-out-today";
                         content = "you-have-not-checked-out-for-" + checkInDate + "-please-update";
                     } else {
-                        // Các ngày khác (fallback)
                         title = "reminder-missing-check-out";
                         content = "you-did-not-check-out-on-" + checkInDate + "-please-update";
                     }
@@ -167,7 +162,6 @@ public class NotificationService {
                     saveAndSendNotification(recipient, sender, title, content, type, referenceId);
                     return null;
                 } else {
-                    // Kết quả duyệt giải trình
                     recipient = att.getAccount();
                     sender = findHRAccount();
 
@@ -196,7 +190,6 @@ public class NotificationService {
         String kebabDocTitle = doc.getTitle() != null ? doc.getTitle().replaceAll("\\s+", "-") : "";
         String kebabManager = getAccountDisplayName(manager).replaceAll("\\s+", "-").toLowerCase();
 
-        // Gửi cho người tạo (thường là SECRETARY hoặc ADMIN)
         Account creator = doc.getCreatedBy();
         if (creator != null) {
             saveAndSendNotification(creator, manager, "manager-added-revision-note", "document-'" + kebabDocTitle + "'-has-a-new-manager-note-by-" + kebabManager, NotificationType.DOCUMENT, doc.getId());
@@ -225,7 +218,6 @@ public class NotificationService {
 
         saveAndSendNotification(doc.getReceiver(), actor, "document-revised", "document-'" + kebabDocTitle + "'-was-revised-by-" + kebabActorName, NotificationType.DOCUMENT, doc.getId());
     }
-
 
     public void notifyHROnNoteSubmission(Long attendanceId) {
         Attendance att = attendanceRepository.findById(attendanceId).orElseThrow(() -> new RuntimeException("Attendance record not found"));
@@ -287,11 +279,35 @@ public class NotificationService {
         return dto;
     }
 
-    private NotificationResponse saveAndSendNotification(Account recipient, Account sender, String title, String content, NotificationType type, Long referenceId) {
-        Notification noti = Notification.builder().title(title).content(content).recipient(recipient).createdBy(sender).read(false).createdAt(LocalDateTime.now()).type(type).referenceId(referenceId).build();
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    protected NotificationResponse saveAndSendNotification(
+            Account recipient,
+            Account sender,
+            String title,
+            String content,
+            NotificationType type,
+            Long referenceId
+    ) {
+        Notification noti = Notification.builder()
+                .title(title)
+                .content(content)
+                .recipient(recipient)
+                .createdBy(sender)
+                .read(false)
+                .createdAt(LocalDateTime.now())
+                .type(type)
+                .referenceId(referenceId)
+                .build();
 
         Notification saved = notificationRepository.save(noti);
-        messagingTemplate.convertAndSend("/topic/notifications/" + recipient.getUsername(), mapToResponse(saved));
+
+        try {
+            messagingTemplate.convertAndSend(
+                    "/topic/notifications/" + recipient.getUsername(),
+                    mapToResponse(saved)
+            );
+        } catch (Exception ignore) {}
+
         return mapToResponse(saved);
     }
 
@@ -303,6 +319,66 @@ public class NotificationService {
         return acc.getUsername();
     }
 
+    /* ===================== CASH ADVANCE NOTIFICATIONS ===================== */
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void notifyCashAdvanceSentToChief(Account chief, int count) {
+        if (chief == null || count <= 0) return;
+        String title = "cash-advance-awaiting-chief-review";
+        String content = "you-have-" + count + "-cash-advance-request(s)-awaiting-review";
+        saveAndSendNotification(chief, null, title, content, NotificationType.CASH_ADVANCE, null);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void notifyCashAdvanceSentToDirector(Account director, int count) {
+        if (director == null || count <= 0) return;
+        String title = "cash-advance-awaiting-final-approval";
+        String content = "you-have-" + count + "-cash-advance-request(s)-awaiting-final-approval";
+        saveAndSendNotification(director, null, title, content, NotificationType.CASH_ADVANCE, null);
+    }
+
+    // Chief phê duyệt: báo cho người tạo
+    public void notifyCashAdvanceChiefApproved(CashAdvanceRequest r, Account chief) {
+        if (r == null || r.getCreatedBy() == null) return;
+        Account requester = r.getCreatedBy();
+        String title = "cash-advance-approved-by-chief";
+        String content = "your-cash-advance-#" + r.getId() + "-was-approved-by-" + slug(getAccountDisplayName(chief));
+        saveAndSendNotification(requester, chief, title, content, NotificationType.CASH_ADVANCE, r.getId());
+    }
+
+    // Manager phê duyệt: báo cho người tạo
+    public void notifyCashAdvanceDirectorApproved(CashAdvanceRequest r, Account director) {
+        if (r == null || r.getCreatedBy() == null) return;
+        Account requester = r.getCreatedBy();
+        String title = "cash-advance-final-approved";
+        String content = "your-cash-advance-#" + r.getId() + "-was-finally-approved-by-" + slug(getAccountDisplayName(director));
+        saveAndSendNotification(requester, director, title, content, NotificationType.CASH_ADVANCE, r.getId());
+    }
+
+    // Bị từ chối: báo cho người tạo (kèm note nếu có)
+    public void notifyCashAdvanceRejected(CashAdvanceRequest r, Account actor) {
+        if (r == null || r.getCreatedBy() == null) return;
+        Account requester = r.getCreatedBy();
+        String note = (r.getRejectNote() == null || r.getRejectNote().isBlank()) ? "" : "-" + slug(r.getRejectNote());
+        String title = "cash-advance-rejected";
+        String content = "your-cash-advance-#" + r.getId() + "-was-rejected-by-" + slug(getAccountDisplayName(actor)) + note;
+        saveAndSendNotification(requester, actor, title, content, NotificationType.CASH_ADVANCE, r.getId());
+    }
+
+    // helper: slug
+    private String slug(String s) {
+        if (s == null) return "unknown";
+        return s.trim().replaceAll("\\s+", "-").toLowerCase();
+    }
+
+    // bắn noti cho user theo accountId (tiện dùng)
+    public void notifyUser(Long recipientAccountId, String title, String content, NotificationType type, Long referenceId) {
+        if (recipientAccountId == null) return;
+        accountRepository.findById(recipientAccountId).ifPresent(acc ->
+                saveAndSendNotification(acc, null, title, content, type, referenceId)
+        );
+    }
+
     public void notifyProjectMembersAdded(Project project, List<Employee> added, Account sender) {
         if (project == null || added == null || added.isEmpty()) return;
 
@@ -312,25 +388,17 @@ public class NotificationService {
 
         for (Employee emp : added) {
             Account acc = (emp != null) ? emp.getAccount() : null;
-            if (acc == null) continue; // tránh lỗi Recipient null
+            if (acc == null) continue;
 
             saveAndSendNotification(
                     acc,
-                    sender, // thường là PM của project
+                    sender, // thường là PM/ProjectManager
                     "added-to-project",
                     "you-have-been-added-to-project-" + kebabProject,
                     NotificationType.PROJECT,
                     project.getId()
             );
         }
-
-        // (tuỳ chọn) báo cho giám đốc/người tạo: đã thêm X người
-        // var doc = project.getDocument();
-        // if (doc != null && doc.getReceiver() != null) {
-        //     saveAndSendNotification(doc.getReceiver(), sender, "project-members-updated",
-        //             "pm-added-" + added.size() + "-members-to-" + kebabProject,
-        //             NotificationType.PROJECT, project.getId());
-        // }
     }
 
     public void notifyProjectMembersRemoved(Project project, List<Employee> removed, Account sender) {
@@ -346,20 +414,13 @@ public class NotificationService {
 
             saveAndSendNotification(
                     acc,
-                    sender, // PM
+                    sender, // PM/ProjectManager
                     "removed-from-project",
                     "you-have-been-removed-from-project-" + kebabProject,
                     NotificationType.PROJECT,
                     project.getId()
             );
         }
-
-        // (tuỳ chọn) báo cho giám đốc/người tạo: đã gỡ X người
-        // var doc = project.getDocument();
-        // if (doc != null && doc.getReceiver() != null) {
-        //     saveAndSendNotification(doc.getReceiver(), sender, "project-members-updated",
-        //             "pm-removed-" + removed.size() + "-members-from-" + kebabProject,
-        //             NotificationType.PROJECT, project.getId());
-        // }
     }
+
 }

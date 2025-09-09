@@ -8,6 +8,7 @@ import server.models.Task;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
@@ -20,4 +21,14 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
            """)
     List<Task> findTasksDeadlineAfter(@Param("projectId") Long projectId,
                                       @Param("date") LocalDate date);
+
+    boolean existsByPhaseIdAndNameIgnoreCaseAndHiddenFalse(Long phaseId, String name);
+
+    @Query("""
+        select t from Task t
+        left join fetch t.phase p
+        left join fetch p.project proj
+        where t.id = :id
+    """)
+    Optional<Task> findWithPhaseAndProjectById(@Param("id") Long id);
 }

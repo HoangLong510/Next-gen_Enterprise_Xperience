@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import server.dtos.AccountDto;
 import server.dtos.GetAccountsPageDto;
 import server.dtos.leave_requests.AccountResponse;
 import server.models.Account;
@@ -105,7 +106,8 @@ public class AccountController {
     @GetMapping("/roles/{role}")
     public ResponseEntity<?> getAccountsByRole(@PathVariable("role") String role) {
         Role roleEnum = Role.valueOf(role);
-        List<Account> accounts = accountService.getAccountsByRole(roleEnum);
+        List<AccountDto> accounts = accountService.getAccountsByRole(roleEnum);
         return ResponseEntity.ok(ApiResponse.success(accounts, "Fetched-accounts-by-role"));
     }
+
 }

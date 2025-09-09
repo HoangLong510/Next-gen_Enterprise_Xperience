@@ -26,4 +26,9 @@ public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpec
     List<Account> findByRole(Role role);
 
     boolean existsByRole(Role role);
+    Optional<Account> findFirstByRoleOrderByIdAsc(Role role);
+    Optional<Account> findByEmployee_Id(Long employeeId);
+    List<Account> findByRoleAndEnabledTrue(Role role);
+    Optional<Account> findFirstByRoleAndEnabledTrueOrderByIdAsc(Role role);
+    List<Account> findByRoleInAndEnabledTrue(List<Role> roles);
 }

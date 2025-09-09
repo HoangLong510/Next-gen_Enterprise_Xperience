@@ -5,5 +5,6 @@ public enum NotificationType {
     PROJECT,
     TASK,
     LEAVE_REQUEST,
-    ATTENDANCE
+    ATTENDANCE,
+    CASH_ADVANCE,
 }

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import server.models.Employee;
 import server.models.enums.Role;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,5 +57,23 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
     );
     Optional<Employee> findByCode(String code);
 
+    @Query("""
+    SELECT e FROM Employee e
+    LEFT JOIN e.department d
+    WHERE
+      (:q IS NULL OR :q = '' 
+        OR LOWER(CONCAT(e.firstName, ' ', e.lastName)) LIKE LOWER(CONCAT('%', :q, '%'))
+        OR LOWER(e.email) LIKE LOWER(CONCAT('%', :q, '%'))
+        OR e.phone LIKE CONCAT('%', :q, '%'))
+      AND (:departmentId IS NULL OR (d IS NOT NULL AND d.id = :departmentId))
+    ORDER BY e.lastName ASC, e.firstName ASC
+""")
+    List<Employee> searchEmployeesWithDepartment(
+            @Param("q") String q,
+            @Param("departmentId") Long departmentId
+    );
 
+    List<Employee> findByDepartment_IdIn(Collection<Long> departmentIds);
 }
+
+

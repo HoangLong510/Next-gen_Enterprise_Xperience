@@ -46,7 +46,7 @@ export const menuItems = [
       {
         label: "Contracts",
         icon: FilePresentIcon,
-        href: "/employees/contracts",
+        href: "/contracts",
         roles: ["ADMIN", "MANAGER"],
       },
       {
@@ -58,7 +58,7 @@ export const menuItems = [
     ],
   },
   {
-    title: "Finance",
+    title: "Accountant",
     items: [
       {
         label: "Fund",
@@ -71,6 +71,18 @@ export const menuItems = [
         icon: FilePresentIcon,
         href: "/finance/salary",
         roles: ["ADMIN", "MANAGER", "ACCOUNTANT"],
+      },
+      {
+        label: "Cash Advance",
+        icon: FilePresentIcon,
+        href: "/payment-request",
+        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR","ACCOUNTANT", "CHIEFACCOUNTANT"],
+      },
+      {
+        label: "Payment",
+        icon: FilePresentIcon,
+        href: "/payment",
+        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR","ACCOUNTANT", "CHIEFACCOUNTANT"],
       },
     ],
   },
@@ -99,7 +111,7 @@ export const menuItems = [
         label: "Tasks",
         icon: TaskAltIcon,
         href: "/utilities/tasks",
-        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+        roles: ["ADMIN", "MANAGER", "PM","CHIEFACCOUNTANT", "ACCOUNTANT" ,"HOD", "EMPLOYEE"],
       },
       {
         label: "Leave Request",

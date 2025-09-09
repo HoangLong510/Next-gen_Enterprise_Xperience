@@ -28,7 +28,7 @@ public class EmailService {
 
     @Value("${app.client.url}")
     private String client_url;
-    @Value("${app.app-name}")
+    @Value("${app.app-name:${spring.application.name:NEX}}")
     private String app_name;
 
     private final JavaMailSender mailSender;

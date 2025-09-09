@@ -5,7 +5,10 @@ import 'package:mobile/guards/role_guard.dart';
 import 'package:mobile/screens/attendance/attendance_list_page.dart';
 import 'package:mobile/screens/attendance/attendance_details_page.dart';
 import 'package:mobile/screens/attendance/face_attendance_page.dart';
+import 'package:mobile/screens/bank/bank_and_topup_page.dart';
+
 import 'package:mobile/screens/change_password.dart';
+
 
 // Core
 import 'package:mobile/screens/home_page.dart';
@@ -254,7 +257,17 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         allowRoles: ["ADMIN", "ACCOUNTANT"],
         child: FundCreatePage(),
       );
-
+    //bank
+    case "/accountant/bank-topup":
+      return _buildPage(
+        allowRoles: [
+          "ADMIN",
+          "ACCOUNTANT",
+          "CHIEFACCOUNTANT",
+          "CHIEF_ACCOUNTANT",
+        ],
+        child: const BankAndTopupPage(isAccountant: true),
+      );
     // Auth
     case "/login":
       return MaterialPageRoute(builder: (_) => const LoginPage());
