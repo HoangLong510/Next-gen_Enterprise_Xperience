@@ -1,23 +1,23 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Quyền mạng (tải ảnh QR) -->
+    <!-- Mạng (tải ảnh QR, gọi API) -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Quyền camera (bạn đang dùng sẵn) -->
+    <!-- Camera -->
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- Quyền vị trí (bạn đang dùng sẵn) -->
+    <!-- Vị trí -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- Lưu ảnh vào thư viện (tuỳ phiên bản Android) -->
-    <!-- Android 13+ (API 33): đọc ảnh trong MediaStore -->
+    <!-- Lưu/đọc ảnh theo phiên bản Android -->
+    <!-- Android 13+ (API 33+): đọc ảnh trong MediaStore -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <!-- Android 10–12 (API 29–32): đọc bộ nhớ ngoài -->
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
-    <!-- Android 9 trở xuống: quyền ghi (thư viện saver sẽ tự dùng MediaStore khi có thể) -->
+    <!-- Android 9 trở xuống (API 28-): ghi bộ nhớ ngoài -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
@@ -26,8 +26,6 @@
         android:label="NEX"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-
-        <!-- Cho phép HTTP cleartext (phục vụ dev với http://10.0.2.2) -->
         android:usesCleartextTraffic="true">
 
         <activity

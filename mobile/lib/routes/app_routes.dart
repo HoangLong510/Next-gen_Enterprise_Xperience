@@ -7,10 +7,14 @@ import 'package:mobile/screens/attendance/attendance_details_page.dart';
 import 'package:mobile/screens/attendance/face_attendance_page.dart';
 import 'package:mobile/screens/bank/bank_and_topup_page.dart';
 
+import 'package:mobile/screens/change_password.dart';
+
+
 // Core
 import 'package:mobile/screens/home_page.dart';
 import 'package:mobile/screens/login_page.dart';
 import 'package:mobile/screens/logout_page.dart';
+import 'package:mobile/screens/profile_page.dart';
 import 'package:mobile/widgets/custom_layout.dart';
 
 // Documents (Dispatches)
@@ -267,6 +271,16 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     // Auth
     case "/login":
       return MaterialPageRoute(builder: (_) => const LoginPage());
+
+    case "/change-password":
+      return MaterialPageRoute(
+        builder: (_) => const CustomLayout(child: ChangePasswordPage()),
+      );
+
+    case "/profile":
+      return MaterialPageRoute(
+        builder: (_) => const CustomLayout(child: ProfilePage()),
+      );
 
     case "/logout":
       return MaterialPageRoute(

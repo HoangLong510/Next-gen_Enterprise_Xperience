@@ -49,9 +49,9 @@ const List<MenuSection> menuItems = [
     title: "Employees",
     items: [
       MenuItemData(
-        label: "Profiles",
+        label: "List",
         icon: Icons.assignment_ind,
-        route: "/employees/profiles",
+        route: "/employees",
         roles: ["ADMIN", "MANAGER"],
       ),
       MenuItemData(
@@ -106,7 +106,15 @@ const List<MenuSection> menuItems = [
         label: "AttenDance",
         icon: Icons.access_time,
         route: "/attendance/list",
-        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE","ACCOUNTANT","HR"],
+        roles: [
+          "ADMIN",
+          "MANAGER",
+          "PM",
+          "HOD",
+          "EMPLOYEE",
+          "ACCOUNTANT",
+          "HR",
+        ],
       ),
     ],
   ),

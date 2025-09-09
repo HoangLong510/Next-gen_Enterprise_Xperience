@@ -685,67 +685,25 @@ export default function ProfilePage() {
 								>
 									<Button
 										variant="contained"
-										startIcon={<Edit />}
-										sx={{
-											flex: 1,
-											textTransform: "none",
-											fontWeight: 500,
-											backgroundColor:
-												theme.palette.primary.main,
-											"&:hover": {
-												backgroundColor:
-													theme.palette.primary.dark
-											}
-										}}
-									>
-										{t("EditProfile")}
-									</Button>
-									<Button
-										variant="outlined"
 										startIcon={<Key />}
 										onClick={handleChangePassword}
 										sx={{
 											flex: 1,
 											textTransform: "none",
 											fontWeight: 500,
-											borderColor: alpha(
-												theme.palette.primary.main,
-												0.5
-											),
-											color: theme.palette.primary.main,
-											"&:hover": {
-												borderColor:
-													theme.palette.primary.main,
-												backgroundColor: alpha(
-													theme.palette.primary.main,
-													0.05
-												)
-											}
 										}}
 									>
 										{t("ChangePassword")}
 									</Button>
 									<Button
 										variant="outlined"
+										color="error"
 										startIcon={<Logout />}
 										onClick={handleLogout}
 										sx={{
 											flex: 1,
 											textTransform: "none",
 											fontWeight: 500,
-											borderColor: alpha(
-												theme.palette.error.main,
-												0.5
-											),
-											color: theme.palette.error.main,
-											"&:hover": {
-												borderColor:
-													theme.palette.error.main,
-												backgroundColor: alpha(
-													theme.palette.error.main,
-													0.05
-												)
-											}
 										}}
 									>
 										{t("Logout")}
