@@ -9,7 +9,6 @@ export default function DefaultLayout({ children }) {
 	const [open, setOpen] = React.useState(false)
 	const theme = useTheme()
 const location = useLocation();
-  console.log("🔀 DefaultLayout: current path:", location.pathname);
 	return (
 		<SimplebarReact style={{ width: "100%", overflowX: "hidden" }}>
 			<Box sx={{ width: "100%", overflowX: "hidden" }}>

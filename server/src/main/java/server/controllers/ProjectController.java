@@ -5,14 +5,16 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import server.dtos.CreateProjectDto;
-import server.dtos.ProjectDto;
-import server.dtos.RepoRequestDto;
-import server.dtos.UpdateProjectDto;
+import org.springframework.web.multipart.MultipartFile;
+import server.dtos.*;
 import server.services.ProjectService;
+import server.services.QuickTaskService;
+import server.services.UploadFileService;
 import server.utils.ApiResponse;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/projects")
@@ -20,8 +22,10 @@ import java.util.List;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final QuickTaskService quickTaskService;
+    private final UploadFileService uploadFileService;
+
     @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM')")
-    // Lấy tất cả dự án đang hoạt động (không ẩn)
     @GetMapping
     public ApiResponse<List<ProjectDto>> getAllVisible(HttpServletRequest request) {
         return projectService.getAllVisible(request);
@@ -71,6 +75,46 @@ public class ProjectController {
         return projectService.createProject(dto, request);
     }
 
+    @PreAuthorize("""
+  hasAnyAuthority('ADMIN','MANAGER') or
+  (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))
+""")
+    @PostMapping("/{projectId}/quick-task")
+    public ApiResponse<TaskDto> createQuickTask(
+            @PathVariable Long projectId,
+            @RequestBody(required = false) QuickTaskRequest req
+    ) {
+        String overrideName = (req != null) ? req.getName() : null;
+        String overrideDescription = (req != null) ? req.getDescription() : null;
+        String overrideImageUrl = (req != null) ? req.getImageUrl() : null;
+        return quickTaskService.createFromProject(projectId, overrideName, overrideDescription, overrideImageUrl);
+    }
+
+    @PreAuthorize("""
+  hasAnyAuthority('ADMIN','MANAGER') or
+  (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))
+""")
+    @PostMapping("/{projectId}/quick-tasks")
+    public ApiResponse<List<TaskDto>> createQuickTasksBulk(
+            @PathVariable Long projectId,
+            @RequestBody(required = false) QuickTaskBulkRequest req
+    ) {
+        String overrideName = (req != null) ? req.getName() : null;
+        String overrideDescription = (req != null) ? req.getDescription() : null;
+        String overrideImageUrl = (req != null) ? req.getImageUrl() : null;
+        List<Long> assigneeIds = (req != null) ? req.getAssigneeEmployeeIds() : null;
+        List<Long> departmentIds = (req != null) ? req.getDepartmentIds() : null;
+
+        return quickTaskService.createManyFromProject(
+                projectId,
+                overrideName,
+                overrideDescription,
+                overrideImageUrl,
+                assigneeIds,
+                departmentIds
+        );
+    }
+
     // Cập nhật thông tin dự án
     @PutMapping("/{id}")
     public ApiResponse<?> updateProject(
@@ -110,5 +154,31 @@ public class ProjectController {
     @GetMapping("/kanban")
     public ApiResponse<List<ProjectDto>> getKanbanProjects(HttpServletRequest request) {
         return projectService.getKanbanProjects(request);
+    }
+
+    @GetMapping("/quick-tasks/departments")
+    public ApiResponse<List<DepartmentDto>> getDepartmentsForQuickTasks() {
+        return quickTaskService.getDepartments();
+    }
+
+
+    @GetMapping("/quick-tasks/employees/search")
+    public ApiResponse<List<AccountDto>> searchEmployeesForQuickTasks(
+            @RequestParam(value = "q", required = false) String q,
+            @RequestParam(value = "limit", required = false) Integer limit,
+            @RequestParam(value = "departmentId", required = false) Long departmentId
+    ) {
+        return quickTaskService.searchEmployees(q, limit, departmentId);
+    }
+    @PostMapping("/uploads")
+    public ApiResponse<?> uploadPublic(@RequestParam("file") MultipartFile file) {
+        try {
+            String url = uploadFileService.storeFileFromBytes(
+                    "public", file.getOriginalFilename(), file.getBytes()
+            );
+            return ApiResponse.success(Map.of("url", url), "file-uploaded");
+        } catch (IOException e) {
+            return ApiResponse.badRequest("upload-failed");
+        }
     }
 }

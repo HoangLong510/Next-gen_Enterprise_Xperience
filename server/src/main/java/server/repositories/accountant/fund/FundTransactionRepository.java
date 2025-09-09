@@ -7,6 +7,7 @@ import server.models.accountant.fund.FundTransaction;
 import server.models.enums.TransactionStatus;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface FundTransactionRepository extends JpaRepository<FundTransaction, Long>, JpaSpecificationExecutor<FundTransaction> {
     List<FundTransaction> findByFundIdOrderByCreatedAtDesc(Long fundId);
@@ -22,4 +23,7 @@ public interface FundTransactionRepository extends JpaRepository<FundTransaction
     long countByFundId(Long fundId);
 
     long countFundTransactionsByStatus(TransactionStatus status);
+
+    boolean existsByBankRefId(String bankRefId);
+    boolean existsByBankTx_Id(Long bankTxId);
 }

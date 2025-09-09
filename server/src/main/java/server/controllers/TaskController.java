@@ -77,8 +77,6 @@ public class TaskController {
         return taskService.filter(status);
     }
 
-    // ⬇️ Kanban Tasks: cho ADMIN, MANAGER, PM, HOD, EMPLOYEE
-    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
     @GetMapping("/kanban")
     public ApiResponse<List<TaskDto>> getKanbanTasks(
             @RequestParam Long projectId,

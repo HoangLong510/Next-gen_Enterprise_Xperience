@@ -50,12 +50,16 @@ import {
   GitHub,
   Link as LinkIcon,
   OpenInNew,
+  Bolt,
 } from "@mui/icons-material";
 import dayjs from "dayjs";
 import { useParams, Link as RouterLink } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 
-import { getProjectDetail, linkRepoToProject } from "~/services/project.service";
+import {
+  getProjectDetail,
+  linkRepoToProject,
+} from "~/services/project.service";
 import UpdateTaskDialog from "~/components/project/form/UpdateTaskDialog";
 import { getProjectEmployees } from "~/services/project-employee.service";
 import { getPhasesWithTasksByProject } from "~/services/phase.service";
@@ -75,8 +79,13 @@ import {
   isOverdue,
 } from "~/utils/project.utils";
 
+import { createQuickTask } from "~/services/project.service";
 import { setPopup } from "~/libs/features/popup/popupSlice";
-import { startGithubLogin, getGithubTokenStatus } from "~/services/github.service";
+import {
+  startGithubLogin,
+  getGithubTokenStatus,
+} from "~/services/github.service";
+import QuickTaskAssignDrawer from "./QuickTaskAssignDrawer";
 
 const TASK_CARD_HEIGHT = 72;
 
@@ -86,7 +95,7 @@ export default function ProjectDetail() {
 
   // 👤 Lấy user hiện tại từ Redux (đổi selector nếu app của bạn khác)
   const me = useSelector((state) => state.account?.value);
-  
+
   const [project, setProject] = useState(null);
   const [loadingProject, setLoadingProject] = useState(false);
 
@@ -105,7 +114,11 @@ export default function ProjectDetail() {
   const [openUpdateTask, setOpenUpdateTask] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
-  const [confirmDelete, setConfirmDelete] = useState({ open: false, phaseId: null, taskId: null });
+  const [confirmDelete, setConfirmDelete] = useState({
+    open: false,
+    phaseId: null,
+    taskId: null,
+  });
 
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -123,6 +136,9 @@ export default function ProjectDetail() {
 
   // 🔗 Repo URL input
   const [repoUrl, setRepoUrl] = useState("");
+
+  const [quicking, setQuicking] = useState(false);
+  const [openQuickAssign, setOpenQuickAssign] = useState(false);
 
   // ======= Fetch data =======
   useEffect(() => {
@@ -157,8 +173,12 @@ export default function ProjectDetail() {
       if (res?.status === 200 && Array.isArray(res.data)) {
         setPhases(res.data);
         if (res.data.length > 0) {
-          const last = res.data.reduce((a, b) => (a.sequence > b.sequence ? a : b));
-          setPreviousDeadline(dayjs(last.deadline).add(1, "day").format("YYYY-MM-DD"));
+          const last = res.data.reduce((a, b) =>
+            a.sequence > b.sequence ? a : b
+          );
+          setPreviousDeadline(
+            dayjs(last.deadline).add(1, "day").format("YYYY-MM-DD")
+          );
         } else {
           setPreviousDeadline(null);
         }
@@ -211,18 +231,30 @@ export default function ProjectDetail() {
         if (saved && savedPid && Number(savedPid) === Number(projectId)) {
           const resp = await linkRepoToProject(projectId, { repoUrl: saved });
           if (resp?.status === 200) {
-            dispatch(setPopup({ type: "success", message: resp.message || "Link repo thành công" }));
+            dispatch(
+              setPopup({
+                type: "success",
+                message: resp.message || "Link repo thành công",
+              })
+            );
             setRepoUrl(saved);
             // cập nhật local để ẩn nút Link Repo
             setProject((p) => (p ? { ...p, repoLink: saved } : p));
             await fetchProject();
           } else {
-            dispatch(setPopup({ type: "error", message: resp?.message || "Link repo thất bại" }));
+            dispatch(
+              setPopup({
+                type: "error",
+                message: resp?.message || "Link repo thất bại",
+              })
+            );
           }
           sessionStorage.removeItem("pendingRepoLink");
           sessionStorage.removeItem("pendingRepoProjectId");
         } else {
-          dispatch(setPopup({ type: "success", message: "Đã kết nối GitHub!" }));
+          dispatch(
+            setPopup({ type: "success", message: "Đã kết nối GitHub!" })
+          );
         }
       };
       tryLinkRepo();
@@ -230,7 +262,8 @@ export default function ProjectDetail() {
       // clean url
       url.searchParams.delete("github");
       const clean =
-        url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : "");
+        url.pathname +
+        (url.searchParams.toString() ? `?${url.searchParams.toString()}` : "");
       window.history.replaceState({}, "", clean);
     }
   }, [dispatch, projectId]);
@@ -254,7 +287,9 @@ export default function ProjectDetail() {
 
   const getFilteredTasks = (tasks) => {
     if (!searchTerm.trim()) return tasks;
-    return tasks.filter((task) => task.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    return tasks.filter((task) =>
+      task.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   };
 
   const getStatusIcon = (status) => {
@@ -325,7 +360,8 @@ export default function ProjectDetail() {
 
   const isProjectCanceled = project?.status === "CANCELED";
   const repoLinked = !!project?.repoLink;
-  const isPM = !!project?.pmId && !!me?.id && Number(me.id) === Number(project.pmId);
+  const isPM =
+    !!project?.pmId && !!me?.id && Number(me.id) === Number(project.pmId);
 
   const isPhaseLockedForTaskEditing = (phase, phases) => {
     if (!phase || !Array.isArray(phases)) return false;
@@ -357,24 +393,41 @@ export default function ProjectDetail() {
         redirect: window.location.href,
       });
     } catch (e) {
-      dispatch(setPopup({ type: "error", message: "Không khởi tạo được đăng nhập GitHub" }));
+      dispatch(
+        setPopup({
+          type: "error",
+          message: "Không khởi tạo được đăng nhập GitHub",
+        })
+      );
     }
   };
 
   // 🔗 Link repo (chỉ PM)
   const handleLinkRepo = async () => {
     if (!isPM) {
-      dispatch(setPopup({ type: "error", message: "Chỉ PM của dự án mới được phép link repo." }));
+      dispatch(
+        setPopup({
+          type: "error",
+          message: "Chỉ PM của dự án mới được phép link repo.",
+        })
+      );
       return;
     }
 
     const url = (repoUrl || "").trim();
     if (!url) {
-      dispatch(setPopup({ type: "error", message: "Vui lòng nhập URL repo (vd: https://github.com/owner/repo)" }));
+      dispatch(
+        setPopup({
+          type: "error",
+          message: "Vui lòng nhập URL repo (vd: https://github.com/owner/repo)",
+        })
+      );
       return;
     }
     if (!/^https:\/\/github\.com\/[^\/]+\/[^\/]+/i.test(url)) {
-      dispatch(setPopup({ type: "error", message: "Định dạng repo URL không hợp lệ" }));
+      dispatch(
+        setPopup({ type: "error", message: "Định dạng repo URL không hợp lệ" })
+      );
       return;
     }
 
@@ -387,21 +440,69 @@ export default function ProjectDetail() {
 
     const resp = await linkRepoToProject(projectId, { repoUrl: url });
     if (resp?.status === 200) {
-      dispatch(setPopup({ type: "success", message: resp.message || "Link repo thành công" }));
+      dispatch(
+        setPopup({
+          type: "success",
+          message: resp.message || "Link repo thành công",
+        })
+      );
       setProject((p) => (p ? { ...p, repoLink: url } : p));
       await fetchProject();
     } else {
-      dispatch(setPopup({ type: "error", message: resp?.message || "Link repo thất bại" }));
+      dispatch(
+        setPopup({
+          type: "error",
+          message: resp?.message || "Link repo thất bại",
+        })
+      );
     }
   };
 
   // Early returns
-  if (loadingProject) return <Typography>Loading project details...</Typography>;
+  if (loadingProject)
+    return <Typography>Loading project details...</Typography>;
   if (!project) return <Typography>Không tìm thấy dự án.</Typography>;
 
   const overdue = isOverdue(project.deadline);
   const daysLeft = calculateDaysRemaining(project.deadline);
   const daysLate = getDaysOverdue(project.deadline);
+
+  const handleQuickTask = async () => {
+    if (isProjectCanceled) {
+      dispatch(
+        setPopup({
+          type: "error",
+          message: "Project đã bị hủy. Không thể tạo task.",
+        })
+      );
+      return;
+    }
+    const name = window.prompt("Tên task (bỏ trống để dùng mặc định):", "");
+
+    try {
+      setQuicking(true);
+      const res = await createQuickTask(projectId, name?.trim() || undefined);
+      setQuicking(false);
+
+      if (res?.status === 201 && res?.data) {
+        dispatch(setPopup({ type: "success", message: "Đã tạo quick task!" }));
+        if (res.data.phaseId) setExpandedPhaseId(res.data.phaseId);
+        await fetchPhases();
+      } else {
+        dispatch(
+          setPopup({
+            type: "error",
+            message: res?.message || "Tạo quick task thất bại",
+          })
+        );
+      }
+    } catch (e) {
+      setQuicking(false);
+      dispatch(
+        setPopup({ type: "error", message: "Server lỗi khi tạo quick task" })
+      );
+    }
+  };
 
   return (
     <Box
@@ -539,7 +640,11 @@ export default function ProjectDetail() {
             </Box>
 
             {/* Menu */}
-            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleMenuClose}
+            >
               {/* Chỉ PM mới thấy Connect GitHub */}
               {isPM && !githubConnected ? (
                 <MenuItem
@@ -614,18 +719,48 @@ export default function ProjectDetail() {
                 </ListItemIcon>
                 <ListItemText primary="Create Phase" />
               </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  handleMenuClose();
+                  if (!isProjectCanceled) setOpenQuickAssign(true);
+                }}
+                disabled={isProjectCanceled}
+              >
+                <ListItemIcon>
+                  <Bolt fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary="Quick Task" />
+              </MenuItem>
             </Menu>
 
             {/* Chips */}
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" mb={2}>
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              flexWrap="wrap"
+              mb={2}
+            >
               <Chip
                 icon={<Schedule sx={{ fontSize: 16 }} />}
                 label={formatStatus(project.status)}
                 size="small"
                 color={getStatusColor(project.status)}
               />
-              {project.documentCode && <Chip label={project.documentCode} size="small" variant="outlined" />}
-              {project.pmName && <Chip label={`PM: ${project.pmName}`} size="small" variant="outlined" />}
+              {project.documentCode && (
+                <Chip
+                  label={project.documentCode}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
+              {project.pmName && (
+                <Chip
+                  label={`PM: ${project.pmName}`}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
               {githubConnected && isPM && (
                 <Chip
                   icon={<GitHub sx={{ fontSize: 16 }} />}
@@ -642,15 +777,29 @@ export default function ProjectDetail() {
               direction="row"
               justifyContent="space-between"
               alignItems="center"
-              sx={{ px: 1, py: 1.2, backgroundColor: "#F9FAFB", borderRadius: 2 }}
+              sx={{
+                px: 1,
+                py: 1.2,
+                backgroundColor: "#F9FAFB",
+                borderRadius: 2,
+              }}
             >
               <Stack direction="row" spacing={1} alignItems="center">
-                <Box sx={{ backgroundColor: "#3B82F6", color: "white", p: 1, borderRadius: 2 }}>
+                <Box
+                  sx={{
+                    backgroundColor: "#3B82F6",
+                    color: "white",
+                    p: 1,
+                    borderRadius: 2,
+                  }}
+                >
                   <CalendarToday sx={{ fontSize: 18 }} />
                 </Box>
                 <Box>
                   <Typography variant="subtitle2" fontWeight={600}>
-                    {`${formatDate(project.createdAt)} - ${formatDate(project.deadline)}`}
+                    {`${formatDate(project.createdAt)} - ${formatDate(
+                      project.deadline
+                    )}`}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Project Timeline
@@ -675,7 +824,9 @@ export default function ProjectDetail() {
                     fontWeight={600}
                     sx={{ color: overdue ? "error.main" : "success.main" }}
                   >
-                    {overdue ? `${daysLate} days overdue` : `${daysLeft} days left`}
+                    {overdue
+                      ? `${daysLate} days overdue`
+                      : `${daysLeft} days left`}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {overdue ? "Overdue" : "Remaining"}
@@ -698,12 +849,18 @@ export default function ProjectDetail() {
           }}
         >
           {/* Header + Search */}
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            sx={{ mb: 3 }}
+          >
             <Stack direction="row" alignItems="center" spacing={2}>
               <Paper
                 sx={{
                   p: 1.5,
-                  background: "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
+                  background:
+                    "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
                   borderRadius: 3,
                   boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
                 }}
@@ -713,7 +870,8 @@ export default function ProjectDetail() {
               <Typography
                 variant="h6"
                 sx={{
-                  background: "linear-gradient(135deg, #1F2937 0%, #4B5563 100%)",
+                  background:
+                    "linear-gradient(135deg, #1F2937 0%, #4B5563 100%)",
                   backgroundClip: "text",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
@@ -763,8 +921,16 @@ export default function ProjectDetail() {
                       "&.Mui-expanded": { margin: "8px 0" },
                     }}
                   >
-                    <AccordionSummary component="div" expandIcon={<ExpandMore />}>
-                      <Box display="flex" alignItems="center" justifyContent="space-between" width="100%">
+                    <AccordionSummary
+                      component="div"
+                      expandIcon={<ExpandMore />}
+                    >
+                      <Box
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        width="100%"
+                      >
                         <Box display="flex" alignItems="center" gap={2}>
                           <Typography
                             component={RouterLink}
@@ -777,7 +943,8 @@ export default function ProjectDetail() {
                               fontSize: 20,
                             }}
                           >
-                            {phase.displayName || `Phase ${phase.sequence}: ${phase.name}`}
+                            {phase.displayName ||
+                              `Phase ${phase.sequence}: ${phase.name}`}
                           </Typography>
                         </Box>
 
@@ -809,10 +976,26 @@ export default function ProjectDetail() {
                           direction="row"
                           justifyContent="space-between"
                           alignItems="center"
-                          sx={{ px: 1, py: 1.2, backgroundColor: "#F9FAFB", borderRadius: 2 }}
+                          sx={{
+                            px: 1,
+                            py: 1.2,
+                            backgroundColor: "#F9FAFB",
+                            borderRadius: 2,
+                          }}
                         >
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <Box sx={{ backgroundColor: "#3B82F6", color: "white", p: 1, borderRadius: 2 }}>
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
+                          >
+                            <Box
+                              sx={{
+                                backgroundColor: "#3B82F6",
+                                color: "white",
+                                p: 1,
+                                borderRadius: 2,
+                              }}
+                            >
                               <CalendarToday sx={{ fontSize: 18 }} />
                             </Box>
                             <Box>
@@ -824,7 +1007,9 @@ export default function ProjectDetail() {
                                 size="small"
                                 startIcon={<Add />}
                                 onClick={() => handleOpenAddTask(phase)}
-                                disabled={isProjectCanceled || !canCreateTask(phase)}
+                                disabled={
+                                  isProjectCanceled || !canCreateTask(phase)
+                                }
                                 sx={{ textTransform: "capitalize" }}
                               >
                                 Create Task
@@ -834,17 +1019,30 @@ export default function ProjectDetail() {
 
                           {phase.status !== "Chưa bắt đầu" && (
                             <Box sx={{ minWidth: 120 }}>
-                              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.5}>
+                              <Stack
+                                direction="row"
+                                justifyContent="space-between"
+                                alignItems="center"
+                                mb={0.5}
+                              >
                                 <Typography variant="body2" fontWeight={600}>
                                   Progress
                                 </Typography>
-                                <Typography variant="body2" color="primary.main" fontWeight={600}>
+                                <Typography
+                                  variant="body2"
+                                  color="primary.main"
+                                  fontWeight={600}
+                                >
                                   {phase.progress ?? 0}%
                                 </Typography>
                               </Stack>
                               <LinearProgress
                                 variant="determinate"
-                                value={typeof phase.progress === "number" ? phase.progress : 0}
+                                value={
+                                  typeof phase.progress === "number"
+                                    ? phase.progress
+                                    : 0
+                                }
                                 sx={{ height: 8, borderRadius: 5 }}
                               />
                             </Box>
@@ -853,30 +1051,46 @@ export default function ProjectDetail() {
 
                         {/* Tasks */}
                         <Box>
-                          <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={1}
+                            mb={2}
+                          >
                             <Typography variant="subtitle1" fontWeight={600}>
                               Tasks ({taskCounts.total})
                             </Typography>
 
                             {taskCounts.total > 0 && (
                               <>
-                                <Typography variant="body2" color="text.secondary">-</Typography>
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  -
+                                </Typography>
                                 <Chip
-                                  label={`${formatStatus("PLANNING")} (${taskCounts["PLANNING"]})`}
+                                  label={`${formatStatus("PLANNING")} (${
+                                    taskCounts["PLANNING"]
+                                  })`}
                                   size="small"
                                   color="warning"
                                   variant="outlined"
                                   sx={{ fontSize: "0.75rem" }}
                                 />
                                 <Chip
-                                  label={`${formatStatus("IN_PROGRESS")} (${taskCounts["IN_PROGRESS"]})`}
+                                  label={`${formatStatus("IN_PROGRESS")} (${
+                                    taskCounts["IN_PROGRESS"]
+                                  })`}
                                   size="small"
                                   color="info"
                                   variant="outlined"
                                   sx={{ fontSize: "0.75rem" }}
                                 />
                                 <Chip
-                                  label={`${formatStatus("COMPLETED")} (${taskCounts["COMPLETED"]})`}
+                                  label={`${formatStatus("COMPLETED")} (${
+                                    taskCounts["COMPLETED"]
+                                  })`}
                                   size="small"
                                   color="success"
                                   variant="outlined"
@@ -891,8 +1105,14 @@ export default function ProjectDetail() {
                               maxHeight: 300,
                               overflowY: "auto",
                               "&::-webkit-scrollbar": { width: 6 },
-                              "&::-webkit-scrollbar-track": { bgcolor: "#f1f1f1", borderRadius: 3 },
-                              "&::-webkit-scrollbar-thumb": { bgcolor: "#c1c1c1", borderRadius: 3 },
+                              "&::-webkit-scrollbar-track": {
+                                bgcolor: "#f1f1f1",
+                                borderRadius: 3,
+                              },
+                              "&::-webkit-scrollbar-thumb": {
+                                bgcolor: "#c1c1c1",
+                                borderRadius: 3,
+                              },
                             }}
                           >
                             {filteredTasks.length === 0 ? (
@@ -906,7 +1126,10 @@ export default function ProjectDetail() {
                                   borderRadius: 2,
                                 }}
                               >
-                                <Typography variant="body2" color="text.secondary">
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
                                   {searchTerm.trim()
                                     ? "Không tìm thấy task nào phù hợp."
                                     : "Chưa có task nào. Hãy thêm task đầu tiên!"}
@@ -924,15 +1147,25 @@ export default function ProjectDetail() {
                                       display: "flex",
                                       alignItems: "center",
                                       cursor: "pointer",
-                                      "&:hover": { boxShadow: "0 4px 12px rgba(0,0,0,0.1)" },
-                                      ...(isPhaseLockedForTaskEditing(phase, phases) && {
+                                      "&:hover": {
+                                        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                                      },
+                                      ...(isPhaseLockedForTaskEditing(
+                                        phase,
+                                        phases
+                                      ) && {
                                         opacity: 0.6,
                                         cursor: "not-allowed",
                                         "&:hover": { boxShadow: "none" },
                                       }),
                                     }}
                                     onClick={() => {
-                                      if (isPhaseLockedForTaskEditing(phase, phases)) {
+                                      if (
+                                        isPhaseLockedForTaskEditing(
+                                          phase,
+                                          phases
+                                        )
+                                      ) {
                                         alert(
                                           "❌ Phase sau đang In progress và đã có task. Không thể chỉnh sửa task trong phase đã Completed."
                                         );
@@ -951,14 +1184,28 @@ export default function ProjectDetail() {
                                         "&:last-child": { pb: 1 },
                                       }}
                                     >
-                                      <Stack direction="row" spacing={2} alignItems="center">
+                                      <Stack
+                                        direction="row"
+                                        spacing={2}
+                                        alignItems="center"
+                                      >
                                         {/* Task name (ellipsis) */}
-                                        <Box display="flex" alignItems="center" gap={1.25} flex={1} minWidth={0}>
+                                        <Box
+                                          display="flex"
+                                          alignItems="center"
+                                          gap={1.25}
+                                          flex={1}
+                                          minWidth={0}
+                                        >
                                           {getStatusIcon(task.status)}
                                           <Typography
                                             fontWeight={600}
                                             noWrap
-                                            sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                                            sx={{
+                                              overflow: "hidden",
+                                              textOverflow: "ellipsis",
+                                              whiteSpace: "nowrap",
+                                            }}
                                             title={task.name}
                                           >
                                             {task.name}
@@ -969,11 +1216,22 @@ export default function ProjectDetail() {
                                         {task.assigneeId && (
                                           <Box sx={{ minWidth: 140 }}>
                                             <Stack sx={{ minWidth: 0 }}>
-                                              <Typography variant="caption" noWrap fontWeight={600}>
-                                                {task.assigneeName || "(No name)"}
+                                              <Typography
+                                                variant="caption"
+                                                noWrap
+                                                fontWeight={600}
+                                              >
+                                                {task.assigneeName ||
+                                                  "(No name)"}
                                               </Typography>
-                                              <Typography variant="caption" color="text.secondary" noWrap>
-                                                {task.assigneeUsername ? `@${task.assigneeUsername}` : ""}
+                                              <Typography
+                                                variant="caption"
+                                                color="text.secondary"
+                                                noWrap
+                                              >
+                                                {task.assigneeUsername
+                                                  ? `@${task.assigneeUsername}`
+                                                  : ""}
                                               </Typography>
                                             </Stack>
                                           </Box>
@@ -984,7 +1242,13 @@ export default function ProjectDetail() {
                                           label={formatStatus(task.status)}
                                           size="small"
                                           color={getStatusColor(task.status)}
-                                          sx={{ minWidth: 80, "& .MuiChip-label": { fontWeight: 500 }, whiteSpace: "nowrap" }}
+                                          sx={{
+                                            minWidth: 80,
+                                            "& .MuiChip-label": {
+                                              fontWeight: 500,
+                                            },
+                                            whiteSpace: "nowrap",
+                                          }}
                                         />
 
                                         {/* Size */}
@@ -993,7 +1257,11 @@ export default function ProjectDetail() {
                                             label={`Size: ${task.size}`}
                                             size="small"
                                             variant="outlined"
-                                            sx={{ minWidth: 70, fontWeight: 600, whiteSpace: "nowrap" }}
+                                            sx={{
+                                              minWidth: 70,
+                                              fontWeight: 600,
+                                              whiteSpace: "nowrap",
+                                            }}
                                           />
                                         )}
 
@@ -1003,7 +1271,11 @@ export default function ProjectDetail() {
                                             variant="caption"
                                             color="text.secondary"
                                             noWrap
-                                            sx={{ minWidth: 88, textAlign: "center", whiteSpace: "nowrap" }}
+                                            sx={{
+                                              minWidth: 88,
+                                              textAlign: "center",
+                                              whiteSpace: "nowrap",
+                                            }}
                                             title={task.deadline}
                                           >
                                             {task.deadline}
@@ -1054,18 +1326,31 @@ export default function ProjectDetail() {
         {/* Confirm delete (tạm thời khóa xóa) */}
         <Dialog
           open={confirmDelete.open}
-          onClose={() => setConfirmDelete({ open: false, phaseId: null, taskId: null })}
+          onClose={() =>
+            setConfirmDelete({ open: false, phaseId: null, taskId: null })
+          }
           PaperProps={{ sx: { borderRadius: 3 } }}
         >
           <DialogTitle sx={{ fontWeight: 600 }}>Xác nhận xóa</DialogTitle>
           <DialogContent>
-            <Typography>Bạn có chắc chắn muốn xóa task này không? Hành động này không thể hoàn tác.</Typography>
+            <Typography>
+              Bạn có chắc chắn muốn xóa task này không? Hành động này không thể
+              hoàn tác.
+            </Typography>
           </DialogContent>
           <DialogActions sx={{ p: 3, pt: 2 }}>
-            <Button onClick={() => setConfirmDelete({ open: false, phaseId: null, taskId: null })}>
+            <Button
+              onClick={() =>
+                setConfirmDelete({ open: false, phaseId: null, taskId: null })
+              }
+            >
               Hủy
             </Button>
-            <Button variant="contained" color="error" onClick={() => alert("Chức năng xóa task tạm khóa.")}>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => alert("Chức năng xóa task tạm khóa.")}
+            >
               Xóa Task
             </Button>
           </DialogActions>
@@ -1113,7 +1398,9 @@ export default function ProjectDetail() {
           hasTasks={(editingPhase?.tasks?.length || 0) > 0}
           projectDeadline={project?.deadline}
           previousDeadline={editingPhase ? getPrevDeadline(editingPhase) : null}
-          nextPhaseStatus={editingPhase ? getNextPhaseStatus(editingPhase) : null}
+          nextPhaseStatus={
+            editingPhase ? getNextPhaseStatus(editingPhase) : null
+          }
           onUpdated={async () => {
             await fetchPhases();
           }}
@@ -1129,6 +1416,19 @@ export default function ProjectDetail() {
           projectDeadline={project?.deadline}
           onUpdated={async () => {
             await fetchPhases();
+          }}
+        />
+
+        <QuickTaskAssignDrawer
+          open={openQuickAssign}
+          onClose={() => setOpenQuickAssign(false)}
+          project={{ id: Number(projectId), ...project }}
+          onDone={async (createdList) => {
+            if (Array.isArray(createdList) && createdList[0]?.phaseId) {
+              setExpandedPhaseId(createdList[0].phaseId);
+            }
+            await fetchPhases();
+            await fetchProject();
           }}
         />
       </Container>

@@ -5,10 +5,13 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import server.models.accountant.fund.Fund;
 
+import java.util.Optional;
+
 public interface FundRepository extends JpaRepository<Fund, Long>, JpaSpecificationExecutor<Fund> {
 
     @Query("SELECT SUM(f.balance) FROM Fund f")
     Double getTotalBalance();
 
 
+    Optional<Fund> findByName(String name);
 }

@@ -65,6 +65,12 @@ const List<MenuSection> menuItems = [
   MenuSection(
     title: "Utilities",
     items: [
+       MenuItemData(
+        label: "Bank & Top-up",
+        icon: Icons.account_balance_wallet,
+        route: "/accountant/bank-topup",
+        roles: ["ADMIN", "ACCOUNTANT", "CHIEFACCOUNTANT", "CHIEF_ACCOUNTANT"],
+      ),
       MenuItemData(
         label: "Departments",
         icon: Icons.diversity_1,

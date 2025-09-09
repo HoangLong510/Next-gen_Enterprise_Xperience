@@ -1,6 +1,7 @@
 // src/components/project/form/TaskReviewDialog.jsx
 "use client";
-
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import React, { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
@@ -24,32 +25,35 @@ import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
 
-import { listEvidence, deleteEvidence } from "~/services/task-evidence.service.js";
+import {
+  listEvidence,
+  deleteEvidence,
+} from "~/services/task-evidence.service.js";
 import { createBranchForTask } from "~/services/task.service.js";
 import api from "~/utils/axios";
 
 export default function TaskReviewDialog({
   open,
-  task,                  // { ... , githubBranch?, pullRequestUrl?, merged?, mergedAt? }
+  task, // { ... , githubBranch?, pullRequestUrl?, merged?, mergedAt? }
   canUpload = false,
   onClose,
-  onCancel,              // (giữ để tương thích – không dùng ở đây)
-  onUploaded,            // async (files) => upload + (tuỳ) update status
-  onUploading,           // optional: set loading ở parent
+  onCancel, // (giữ để tương thích – không dùng ở đây)
+  onUploaded, // async (files) => upload + (tuỳ) update status
+  onUploading, // optional: set loading ở parent
 
   // khoá xoá evidence
   canClearEvidence = true,
 
   // PM accountId để xác định quyền tạo branch
-  projectPmId,            // number|string
+  projectPmId, // number|string
 
   // repo đã link hay chưa (có thể là boolean hoặc string URL từ parent)
-  repoLinked,             // boolean | string | undefined
+  repoLinked, // boolean | string | undefined
   // repoLink để tạo link mở branch (vd: https://github.com/owner/repo)
-  repoLink,               // string | undefined
+  repoLink, // string | undefined
 
   // callback cho parent cập nhật UI ngay sau khi tạo branch
-  onBranchCreated,        // (taskId: number, fullBranchName: string) => void
+  onBranchCreated, // (taskId: number, fullBranchName: string) => void
 }) {
   const { t: tMsg } = useTranslation("messages");
   const { t: tPhases } = useTranslation("phases");
@@ -79,7 +83,29 @@ export default function TaskReviewDialog({
 
   // Build URL tuyệt đối từ baseURL (đã include context-path nếu có)
   const API_BASE = (api?.defaults?.baseURL || "").replace(/\/$/, "");
-  const toUrl = (u) => (u?.startsWith("http") ? u : API_BASE + u);
+  const ORIGIN = (() => {
+  try {
+    const u = new URL(API_BASE);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return API_BASE.replace(/\/api(?:\/|$).*/, "");
+  }
+})();
+
+const normalizeUrl = (u = "") => {
+  if (!u) return "";
+  if (/^https?:\/\//i.test(u)) return encodeURI(u);
+  // Server serve /uploads nằm dưới context-path (/api) -> ghép API_BASE
+  if (u.startsWith("/uploads")) return encodeURI(`${API_BASE}${u}`);
+  const right = u.startsWith("/") ? u : `/${u}`;
+  return encodeURI(`${API_BASE}${right}`);
+};
+  const toUrl = (u = "") => {
+  if (!u) return "";
+  if (/^https?:\/\//i.test(u)) return u;
+  if (u.startsWith("/uploads")) return `${ORIGIN}${u}`;
+  return `${API_BASE}${u.startsWith("/") ? "" : "/"}${u}`;
+};
 
   // Load danh sách evidence khi mở dialog hoặc đổi task
   useEffect(() => {
@@ -130,13 +156,13 @@ export default function TaskReviewDialog({
 
   // Hỏi xác nhận xoá 1 file
   const askDelete = (id) => {
-    if (!canClearEvidence) return; // ⛔ bị khoá
+    if (!canClearEvidence) return;
     setConfirmDeleteId(id);
   };
 
   // Thực thi xoá 1 file sau khi confirm
   const confirmDeleteOne = async () => {
-    if (!canClearEvidence) return; // ⛔ bị khoá
+    if (!canClearEvidence) return;
     if (!confirmDeleteId) return;
     try {
       setDeletingId(confirmDeleteId);
@@ -152,7 +178,7 @@ export default function TaskReviewDialog({
 
   // Hỏi xác nhận clear all
   const askClearAll = () => {
-    if (!canClearEvidence) return; // ⛔ bị khoá
+    if (!canClearEvidence) return;
     setConfirmClearOpen(true);
   };
 
@@ -179,7 +205,10 @@ export default function TaskReviewDialog({
   };
 
   const prettyStatus = (s) =>
-    s?.toLowerCase().replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+    s
+      ?.toLowerCase()
+      .replace(/_/g, " ")
+      .replace(/^\w/, (c) => c.toUpperCase());
 
   // ====== Quyền/điều kiện tạo branch ======
   const isPM = useMemo(
@@ -188,7 +217,10 @@ export default function TaskReviewDialog({
   );
 
   const isAssignee = useMemo(
-    () => !!task?.assigneeUsername && !!me?.username && task.assigneeUsername === me.username,
+    () =>
+      !!task?.assigneeUsername &&
+      !!me?.username &&
+      task.assigneeUsername === me.username,
     [task?.assigneeUsername, me?.username]
   );
 
@@ -198,17 +230,19 @@ export default function TaskReviewDialog({
     [repoLink, repoLinked]
   );
 
-  // ⛔ Block khi task đã Completed/Canceled
+  // Block khi task đã Completed/Canceled
   const isBlockedByStatus = useMemo(
     () => ["COMPLETED", "CANCELED"].includes(task?.status),
     [task?.status]
   );
 
-  // ✅ Chỉ hiện khu Create Branch khi: PM/Assignee + chưa có branch + ĐÃ LINK REPO
-  const showCreateBranchSection = (isPM || isAssignee) && !localBranch && isRepoLinked;
+  //Chỉ hiện khu Create Branch khi: PM/Assignee + chưa có branch + ĐÃ LINK REPO
+  const showCreateBranchSection =
+    (isPM || isAssignee) && !localBranch && isRepoLinked;
 
   // Có thể nhấn "Create Branch" hay không
-  const canCreateBranch = (isPM || isAssignee) && !localBranch && isRepoLinked && !isBlockedByStatus;
+  const canCreateBranch =
+    (isPM || isAssignee) && !localBranch && isRepoLinked && !isBlockedByStatus;
 
   // Build link mở branch trên GitHub nếu có repoLink + branch
   const branchUrl = useMemo(() => {
@@ -279,22 +313,83 @@ export default function TaskReviewDialog({
             fullWidth
             InputProps={{ readOnly: true }}
           />
-          <TextField
-            label="Description"
-            value={task?.description || ""}
-            size="small"
-            fullWidth
-            multiline
-            minRows={2}
-            InputProps={{ readOnly: true }}
-          />
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 600, display: "block", mb: 0.5 }}
+            >
+              Description
+            </Typography>
 
+            <Box
+              sx={{
+                p: 1.25,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 1,
+                maxHeight: 280,
+                overflowY: "auto",
+                backgroundColor: "background.paper",
+              }}
+            >
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                // chặn hoàn toàn thẻ <img> trong markdown
+                components={{
+                  img: () => null,
+                  a: ({ node, ...props }) => (
+                    <Link
+                      href={normalizeUrl(props.href || "")}
+                      target="_blank"
+                      rel="noreferrer"
+                      underline="hover"
+                    >
+                      {props.children}
+                    </Link>
+                  ),
+                }}
+              >
+                {(task?.description ?? "").replace(/\r\n/g, "\n")}
+              </ReactMarkdown>
+            </Box>
+          </Box>
+
+          {/* Ảnh riêng bên dưới mô tả nếu có imageUrl */}
+          {task?.imageUrl && (
+            <Box sx={{ mt: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{ fontWeight: 600, display: "block", mb: 0.5 }}
+              >
+                Image
+              </Typography>
+              <img
+                src={normalizeUrl(task.imageUrl)}
+                alt="task attachment"
+                style={{
+                  maxWidth: "100%",
+                  borderRadius: 8,
+                  border: "1px solid",
+                  borderColor: "rgba(0,0,0,0.12)",
+                }}
+                loading="lazy"
+              />
+            </Box>
+          )}
           <Stack direction="row" spacing={1} alignItems="center">
             {task?.size && (
-              <Chip label={`Size: ${task.size}`} size="small" variant="outlined" />
+              <Chip
+                label={`Size: ${task.size}`}
+                size="small"
+                variant="outlined"
+              />
             )}
             {task?.status && (
-              <Chip label={prettyStatus(task.status)} size="small" color="info" />
+              <Chip
+                label={prettyStatus(task.status)}
+                size="small"
+                color="info"
+              />
             )}
             {task?.deadline && (
               <Typography variant="caption" color="text.secondary">
@@ -322,7 +417,12 @@ export default function TaskReviewDialog({
               {branchUrl && (
                 <>
                   {" • "}
-                  <Link href={branchUrl} target="_blank" rel="noreferrer" underline="hover">
+                  <Link
+                    href={branchUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    underline="hover"
+                  >
                     Mở trên GitHub
                   </Link>
                 </>
@@ -330,13 +430,21 @@ export default function TaskReviewDialog({
               {task?.pullRequestUrl && (
                 <>
                   {" • PR: "}
-                  <Link href={task.pullRequestUrl} target="_blank" rel="noreferrer" underline="hover">
+                  <Link
+                    href={task.pullRequestUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    underline="hover"
+                  >
                     {task.pullRequestUrl}
                   </Link>
                 </>
               )}
               {task?.merged && task?.mergedAt && (
-                <> • Merged at: {dayjs(task.mergedAt).format("YYYY-MM-DD HH:mm")}</>
+                <>
+                  {" "}
+                  • Merged at: {dayjs(task.mergedAt).format("YYYY-MM-DD HH:mm")}
+                </>
               )}
             </Alert>
           )}
@@ -366,7 +474,9 @@ export default function TaskReviewDialog({
                 <Button
                   variant="contained"
                   onClick={handleCreateBranch}
-                  disabled={creatingBranch || !branchName.trim() || !canCreateBranch}
+                  disabled={
+                    creatingBranch || !branchName.trim() || !canCreateBranch
+                  }
                 >
                   {creatingBranch ? "Đang tạo..." : "Create Branch"}
                 </Button>
@@ -414,14 +524,22 @@ export default function TaskReviewDialog({
                 {evidences.map((ev) => {
                   const isImage = ev.contentType?.startsWith?.("image/");
                   const isVideo = ev.contentType?.startsWith?.("video/");
-                  const url = toUrl(ev.url);
+                  const url = normalizeUrl(ev.url);
                   return (
-                    <Box key={ev.id} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box
+                      key={ev.id}
+                      sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                    >
                       {isImage && url && (
                         <img
                           src={url}
                           alt={ev.fileName}
-                          style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 4 }}
+                          style={{
+                            width: 44,
+                            height: 44,
+                            objectFit: "cover",
+                            borderRadius: 4,
+                          }}
                         />
                       )}
 
@@ -439,13 +557,22 @@ export default function TaskReviewDialog({
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {ev.size ? `${Math.round(ev.size / 1024)} KB` : ""}
-                          {ev.uploadedAt ? ` • ${dayjs(ev.uploadedAt).format("YYYY-MM-DD HH:mm")}` : ""}
+                          {ev.uploadedAt
+                            ? ` • ${dayjs(ev.uploadedAt).format(
+                                "YYYY-MM-DD HH:mm"
+                              )}`
+                            : ""}
                           {ev.uploadedBy ? ` • by ${ev.uploadedBy}` : ""}
                         </Typography>
                       </Box>
 
                       {url && (
-                        <Link href={url} target="_blank" rel="noreferrer" underline="hover">
+                        <Link
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          underline="hover"
+                        >
                           Xem
                         </Link>
                       )}
@@ -483,7 +610,12 @@ export default function TaskReviewDialog({
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
               Thêm evidence
             </Typography>
-            <Button variant="outlined" component="label" size="small" disabled={!canUpload}>
+            <Button
+              variant="outlined"
+              component="label"
+              size="small"
+              disabled={!canUpload}
+            >
               Chọn files
               <input
                 hidden
@@ -494,7 +626,10 @@ export default function TaskReviewDialog({
               />
             </Button>
 
-            <Stack spacing={0.5} sx={{ mt: 1, maxHeight: 160, overflowY: "auto" }}>
+            <Stack
+              spacing={0.5}
+              sx={{ mt: 1, maxHeight: 160, overflowY: "auto" }}
+            >
               {files.length ? (
                 files.map((f, i) => (
                   <Typography key={i} variant="caption">
@@ -514,7 +649,11 @@ export default function TaskReviewDialog({
       <DialogActions sx={{ p: 2 }}>
         <Button onClick={onClose}>{tPhases("close")}</Button>
         {canUpload && (
-          <Button variant="contained" onClick={handleSubmit} disabled={!canSubmit}>
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+          >
             Gửi evidence
           </Button>
         )}
@@ -532,7 +671,11 @@ export default function TaskReviewDialog({
           <Typography>{tMsg("confirm-delete-evidence-message")}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmDeleteId(null)} variant="outlined" color="inherit">
+          <Button
+            onClick={() => setConfirmDeleteId(null)}
+            variant="outlined"
+            color="inherit"
+          >
             {tPhases("cancel")}
           </Button>
           <Button
@@ -558,7 +701,11 @@ export default function TaskReviewDialog({
           <Typography>{tMsg("confirm-clear-evidence-message")}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmClearOpen(false)} variant="outlined" color="inherit">
+          <Button
+            onClick={() => setConfirmClearOpen(false)}
+            variant="outlined"
+            color="inherit"
+          >
             {tPhases("cancel")}
           </Button>
           <Button

@@ -1,7 +1,15 @@
 // src/components/project/KanbanForm.jsx
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
+import { useDispatch } from "react-redux";
+import { setPopup } from "~/libs/features/popup/popupSlice";
 import {
   Box,
   Container,
@@ -20,16 +28,31 @@ import {
   Select,
   MenuItem,
   InputLabel,
+  Autocomplete,
+  Alert,
+  Tabs,
+  Tab,
+  Grid,
 } from "@mui/material";
 import { useSelector } from "react-redux";
-import { Search, TrendingUp, CalendarToday, ArrowBack } from "@mui/icons-material";
+import {
+  Search,
+  TrendingUp,
+  CalendarToday,
+  ArrowBack,
+  RequestQuote,
+  CloudDownload,
+  PictureAsPdf,
+} from "@mui/icons-material";
+import SignatureCanvas from "react-signature-canvas";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import KanbanColumn from "~/components/project/form/KanbanColumn";
 import TaskCard from "~/components/project/form/TaskCard";
 import TaskReviewDialog from "~/components/project/form/TaskReviewDialog";
-
+import { createCashAdvanceApi } from "~/services/cash-advance.service";
 import { uploadEvidence, listEvidence } from "~/services/task-evidence.service";
 import { formatStatus, getStatusColor } from "~/utils/project.utils";
 
@@ -55,12 +78,68 @@ import {
   updateTaskStatus,
   getTaskStatuses,
 } from "~/services/task.service.js";
-import { getKanbanProjects, getProjectDetail } from "~/services/project.service.js";
-import { getPhaseDetail, getPhasesWithTasksByProject } from "~/services/phase.service.js";
+import {
+  getKanbanProjects,
+  getProjectDetail,
+} from "~/services/project.service.js";
+import {
+  getPhaseDetail,
+  getPhasesWithTasksByProject,
+} from "~/services/phase.service.js";
+import {
+  getAccountFullNameAndTitle,
+  formatNumber,
+  numToVietnameseWords,
+} from "~/utils/money";
+
+function trimCanvasSafe(src) {
+  if (!src) return null;
+  const ctx = src.getContext("2d");
+  const { width: w, height: h } = src;
+  const data = ctx.getImageData(0, 0, w, h).data;
+
+  let top = h,
+    left = w,
+    right = 0,
+    bottom = 0,
+    hasInk = false;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const a = data[(y * w + x) * 4 + 3]; // kênh alpha
+      if (a !== 0) {
+        hasInk = true;
+        if (x < left) left = x;
+        if (x > right) right = x;
+        if (y < top) top = y;
+        if (y > bottom) bottom = y;
+      }
+    }
+  }
+  if (!hasInk) return null;
+
+  const tw = right - left + 1;
+  const th = bottom - top + 1;
+
+  const out = document.createElement("canvas");
+  out.width = tw;
+  out.height = th;
+  const octx = out.getContext("2d");
+  octx.putImageData(ctx.getImageData(left, top, tw, th), 0, 0);
+  return out;
+}
+
+function getSignatureDataUrl(sigRef) {
+  const base = sigRef?.current?.getCanvas?.();
+  if (!base) return null;
+  const trimmed = trimCanvasSafe(base);
+  return (trimmed || base).toDataURL("image/png");
+}
 
 export default function KanbanForm() {
   const { t: tMsg } = useTranslation("messages");
   const { t: tPhases } = useTranslation("phases");
+  const dispatch = useDispatch();
 
   const [statusOptions, setStatusOptions] = useState([]);
   const [grouped, setGrouped] = useState({});
@@ -87,6 +166,21 @@ export default function KanbanForm() {
   const [allowedDropSet, setAllowedDropSet] = useState(new Set());
 
   const { projectId, phaseId } = useParams();
+
+  // ===== Cash Advance dialog =====
+  const [advanceOpen, setAdvanceOpen] = useState(false);
+  const [advanceTask, setAdvanceTask] = useState(null);
+  const [recipient, setRecipient] = useState(
+    "Ban lãnh đạo Công ty Next-Gen Enterprise Experience"
+  );
+  const [advanceDeadline, setAdvanceDeadline] = useState(null);
+  const sigRef = useRef(null);
+
+  const [advanceAmount, setAdvanceAmount] = useState("");
+  const [advanceReason, setAdvanceReason] = useState("");
+  const [advanceBusy, setAdvanceBusy] = useState(false);
+  const [advanceError, setAdvanceError] = useState("");
+
   const account = useSelector((s) => s.account?.value);
   const navigate = useNavigate();
 
@@ -103,16 +197,27 @@ export default function KanbanForm() {
     const s = new Set([from]);
     switch (from) {
       case "PLANNING":
-        s.add("IN_PROGRESS"); s.add("CANCELED"); break;
+        s.add("IN_PROGRESS");
+        s.add("CANCELED");
+        break;
       case "IN_PROGRESS":
-        s.add("CANCELED"); s.add("IN_REVIEW"); break;
+        s.add("CANCELED");
+        s.add("IN_REVIEW");
+        break;
       case "IN_REVIEW":
-        s.add("COMPLETED"); s.add("CANCELED"); s.add("IN_PROGRESS"); break;
+        s.add("COMPLETED");
+        s.add("CANCELED");
+        s.add("IN_PROGRESS");
+        break;
       case "COMPLETED":
-        s.add("IN_PROGRESS"); break; // UI không cho IN_REVIEW
+        s.add("IN_PROGRESS");
+        break; // UI không cho IN_REVIEW
       case "CANCELED":
-        s.add("PLANNING"); s.add("IN_PROGRESS"); break; // UI không cho IN_REVIEW
-      default: break;
+        s.add("PLANNING");
+        s.add("IN_PROGRESS");
+        break; // UI không cho IN_REVIEW
+      default:
+        break;
     }
     if (from === "COMPLETED" || from === "CANCELED") s.delete("IN_REVIEW");
 
@@ -129,7 +234,10 @@ export default function KanbanForm() {
     getTaskStatuses().then((list) => {
       const opts = list.map((s) => ({
         value: s,
-        label: s.toLowerCase().replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase()),
+        label: s
+          .toLowerCase()
+          .replace(/_/g, " ")
+          .replace(/^\w/, (c) => c.toUpperCase()),
       }));
       setStatusOptions(opts);
       setGrouped(opts.reduce((acc, o) => ({ ...acc, [o.value]: [] }), {}));
@@ -178,33 +286,44 @@ export default function KanbanForm() {
   }, [loadPhasesMeta]);
 
   // Fetch + group tasks
-  const fetchAndGroup = useCallback(
-    async () => {
-      if (!statusOptions.length) return;
-      const pid = isStaffTasksPage ? selectedProject : projectId;
-      if (!pid) return;
+  const fetchAndGroup = useCallback(async () => {
+    if (!statusOptions.length) return;
+    const pid = isStaffTasksPage ? selectedProject : projectId;
+    if (!pid) return;
 
-      const res = await getKanbanTasks(pid);
-      let tasks = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+    const res = await getKanbanTasks(pid);
+    let tasks = Array.isArray(res)
+      ? res
+      : Array.isArray(res?.data)
+      ? res.data
+      : [];
 
-      if (phaseId) tasks = tasks.filter((t) => String(t.phaseId) === phaseId);
-      if (searchTerm) {
-        const term = searchTerm.toLowerCase();
-        tasks = tasks.filter(
-          (t) =>
-            t.name.toLowerCase().includes(term) ||
-            (t.description || "").toLowerCase().includes(term)
-        );
-      }
-      const next = statusOptions.reduce((acc, o) => ({ ...acc, [o.value]: [] }), {});
-      tasks.forEach((t) => {
-        if (!next[t.status]) next[statusOptions[0].value].push(t);
-        else next[t.status].push(t);
-      });
-      setGrouped(next);
-    },
-    [projectId, selectedProject, searchTerm, statusOptions, phaseId, isStaffTasksPage]
-  );
+    if (phaseId) tasks = tasks.filter((t) => String(t.phaseId) === phaseId);
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      tasks = tasks.filter(
+        (t) =>
+          t.name.toLowerCase().includes(term) ||
+          (t.description || "").toLowerCase().includes(term)
+      );
+    }
+    const next = statusOptions.reduce(
+      (acc, o) => ({ ...acc, [o.value]: [] }),
+      {}
+    );
+    tasks.forEach((t) => {
+      if (!next[t.status]) next[statusOptions[0].value].push(t);
+      else next[t.status].push(t);
+    });
+    setGrouped(next);
+  }, [
+    projectId,
+    selectedProject,
+    searchTerm,
+    statusOptions,
+    phaseId,
+    isStaffTasksPage,
+  ]);
 
   useEffect(() => {
     if (statusOptions.length && (!isStaffTasksPage || selectedProject)) {
@@ -238,33 +357,46 @@ export default function KanbanForm() {
   }, [isStaffTasksPage]);
 
   // ===== Helpers: phase sau của 1 phase =====
-  const nextPhaseInfo = useCallback((curPhaseId) => {
-    if (!Array.isArray(phasesMeta) || !curPhaseId) return null;
-    const cur = phasesMeta.find((p) => String(p.id) === String(curPhaseId));
-    if (!cur) return null;
-    const next = phasesMeta.find((p) => p.sequence === cur.sequence + 1);
-    if (!next) return { exists: false };
-    return {
-      exists: true,
-      status: next.status,
-      taskCount: Array.isArray(next.tasks) ? next.tasks.length : 0,
-      curStatus: cur.status,
-    };
-  }, [phasesMeta]);
+  const nextPhaseInfo = useCallback(
+    (curPhaseId) => {
+      if (!Array.isArray(phasesMeta) || !curPhaseId) return null;
+      const cur = phasesMeta.find((p) => String(p.id) === String(curPhaseId));
+      if (!cur) return null;
+      const next = phasesMeta.find((p) => p.sequence === cur.sequence + 1);
+      if (!next) return { exists: false };
+      return {
+        exists: true,
+        status: next.status,
+        taskCount: Array.isArray(next.tasks) ? next.tasks.length : 0,
+        curStatus: cur.status,
+      };
+    },
+    [phasesMeta]
+  );
 
-  const blockToInProgress = useCallback((fromTaskStatus, phaseId) => {
-    if (!["COMPLETED", "CANCELED"].includes(fromTaskStatus)) return false;
-    const info = nextPhaseInfo(phaseId);
-    if (!info || !info.exists) return false;
-    const ok = info.status === "PLANNING" && info.taskCount === 0;
-    return !ok;
-  }, [nextPhaseInfo]);
+  const blockToInProgress = useCallback(
+    (fromTaskStatus, phaseId) => {
+      if (!["COMPLETED", "CANCELED"].includes(fromTaskStatus)) return false;
+      const info = nextPhaseInfo(phaseId);
+      if (!info || !info.exists) return false;
+      const ok = info.status === "PLANNING" && info.taskCount === 0;
+      return !ok;
+    },
+    [nextPhaseInfo]
+  );
 
-  const blockAllChange = useCallback((phaseId) => {
-    const info = nextPhaseInfo(phaseId);
-    if (!info || !info.exists) return false;
-    return info.curStatus === "COMPLETED" && info.status === "IN_PROGRESS" && info.taskCount > 0;
-  }, [nextPhaseInfo]);
+  const blockAllChange = useCallback(
+    (phaseId) => {
+      const info = nextPhaseInfo(phaseId);
+      if (!info || !info.exists) return false;
+      return (
+        info.curStatus === "COMPLETED" &&
+        info.status === "IN_PROGRESS" &&
+        info.taskCount > 0
+      );
+    },
+    [nextPhaseInfo]
+  );
 
   // Evidence dialog open
   const handleCardClick = (task) => {
@@ -296,7 +428,10 @@ export default function KanbanForm() {
       const s = getAllowedTargets(fromTaskStatus, account.role);
 
       // các rule chặn sẵn
-      if (s.has("IN_PROGRESS") && blockToInProgress(fromTaskStatus, taskPhaseId)) {
+      if (
+        s.has("IN_PROGRESS") &&
+        blockToInProgress(fromTaskStatus, taskPhaseId)
+      ) {
         s.delete("IN_PROGRESS");
       }
       if (blockAllChange(taskPhaseId)) {
@@ -331,8 +466,13 @@ export default function KanbanForm() {
       setOverIndex(null);
       return;
     }
-    const colId = grouped[over.id] ? over.id : over.data.current?.sortable?.containerId;
-    if (!grouped[colId] || (allowedDropSet.size && !allowedDropSet.has(colId))) {
+    const colId = grouped[over.id]
+      ? over.id
+      : over.data.current?.sortable?.containerId;
+    if (
+      !grouped[colId] ||
+      (allowedDropSet.size && !allowedDropSet.has(colId))
+    ) {
       setOverColumn(null);
       setOverIndex(null);
       return;
@@ -344,7 +484,12 @@ export default function KanbanForm() {
 
   // gộp refresh meta
   const refreshMeta = useCallback(async () => {
-    await Promise.all([fetchAndGroup(), loadPhasesMeta(), loadPhaseInfo(), loadProjectInfo()]);
+    await Promise.all([
+      fetchAndGroup(),
+      loadPhasesMeta(),
+      loadPhaseInfo(),
+      loadProjectInfo(),
+    ]);
   }, [fetchAndGroup, loadPhasesMeta, loadPhaseInfo, loadProjectInfo]);
 
   const handleDragEnd = async ({ active, over }) => {
@@ -374,8 +519,17 @@ export default function KanbanForm() {
     }
 
     // ❌ Staff Tasks page: chặn Completed hoàn toàn + chặn IN_REVIEW→COMPLETED
-    if (isStaffTasksPage && (toCol === "COMPLETED" || fromCol === "COMPLETED")) {
-      alert("You don't have permission to change tasks in/from Completed.");
+    if (
+      isStaffTasksPage &&
+      (toCol === "COMPLETED" || fromCol === "COMPLETED")
+    ) {
+      dispatch(
+        setPopup({
+          type: "error",
+          message:
+            "You don't have permission to change tasks in/from Completed.",
+        })
+      );
       setAllowedDropSet(new Set());
       return;
     }
@@ -392,22 +546,38 @@ export default function KanbanForm() {
       return;
     }
 
-    if (toCol === "IN_REVIEW" && (fromCol === "COMPLETED" || fromCol === "CANCELED")) {
-      alert("Không thể chuyển sang In review từ trạng thái Completed hoặc Canceled.");
+    if (
+      toCol === "IN_REVIEW" &&
+      (fromCol === "COMPLETED" || fromCol === "CANCELED")
+    ) {
+      dispatch(
+        setPopup({
+          type: "error",
+          message:
+            "Cannot move to In review from Completed or Canceled status.",
+        })
+      );
       setAllowedDropSet(new Set());
       return;
     }
 
-    if (toCol === "IN_PROGRESS" && ["COMPLETED", "CANCELED"].includes(fromCol)) {
+    if (
+      toCol === "IN_PROGRESS" &&
+      ["COMPLETED", "CANCELED"].includes(fromCol)
+    ) {
       if (blockToInProgress(fromCol, task.phaseId)) {
-        alert("Không thể chuyển về In progress vì phase kế tiếp không còn ở Planning rỗng.");
+        alert(
+          "Không thể chuyển về In progress vì phase kế tiếp không còn ở Planning rỗng."
+        );
         setAllowedDropSet(new Set());
         return;
       }
     }
 
     if (fromCol !== toCol && blockAllChange(task.phaseId)) {
-      alert("Phase sau đã bắt đầu và có task. Không thể thay đổi trạng thái task ở phase đã hoàn thành.");
+      alert(
+        "Phase sau đã bắt đầu và có task. Không thể thay đổi trạng thái task ở phase đã hoàn thành."
+      );
       setAllowedDropSet(new Set());
       return;
     }
@@ -436,7 +606,11 @@ export default function KanbanForm() {
     if (fromCol === toCol) {
       const oldIdx = srcList.findIndex((t) => t.id === active.id);
       const newIdx = (grouped[toCol] || []).findIndex((t) => t.id === over.id);
-      next[fromCol] = arrayMove(srcList, oldIdx, newIdx >= 0 ? newIdx : srcList.length - 1);
+      next[fromCol] = arrayMove(
+        srcList,
+        oldIdx,
+        newIdx >= 0 ? newIdx : srcList.length - 1
+      );
     } else {
       next[fromCol] = srcList.filter((t) => t.id !== active.id);
       const dest = [...(grouped[toCol] || [])];
@@ -471,6 +645,10 @@ export default function KanbanForm() {
   const flattened = useMemo(() => Object.values(grouped).flat(), [grouped]);
   const activeTask = activeId ? flattened.find((t) => t.id === activeId) : null;
 
+  const advanceOptions = useMemo(() => {
+    return (flattened || []).filter((t) => t && t.status !== "CANCELED");
+  }, [flattened]);
+
   // ==== Tính khóa "Clear evidence" theo rule phase sau ====
   const curPhaseMeta = useMemo(() => {
     if (!pendingTask) return null;
@@ -501,21 +679,28 @@ export default function KanbanForm() {
     return !["COMPLETED", "CANCELED"].includes(st);
   }, [pendingTask]);
 
-  const handleBranchCreated = useCallback((taskId, fullBranchName) => {
-    setGrouped((prev) => {
-      const next = {};
-      for (const col of Object.keys(prev)) {
-        next[col] = (prev[col] || []).map((t) =>
-          t.id === taskId ? { ...t, githubBranch: fullBranchName, branchCreated: true } : t
-        );
-      }
-      return next;
-    });
-    setPendingTask((prev) =>
-      prev && prev.id === taskId ? { ...prev, githubBranch: fullBranchName, branchCreated: true } : prev
-    );
-    refreshMeta();
-  }, [refreshMeta]);
+  const handleBranchCreated = useCallback(
+    (taskId, fullBranchName) => {
+      setGrouped((prev) => {
+        const next = {};
+        for (const col of Object.keys(prev)) {
+          next[col] = (prev[col] || []).map((t) =>
+            t.id === taskId
+              ? { ...t, githubBranch: fullBranchName, branchCreated: true }
+              : t
+          );
+        }
+        return next;
+      });
+      setPendingTask((prev) =>
+        prev && prev.id === taskId
+          ? { ...prev, githubBranch: fullBranchName, branchCreated: true }
+          : prev
+      );
+      refreshMeta();
+    },
+    [refreshMeta]
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -532,8 +717,72 @@ export default function KanbanForm() {
     return statusOptions;
   }, [statusOptions, isStaffTasksPage]);
 
+  const handleSubmitAdvance = async () => {
+    try {
+      if (!advanceTask?.id) return setAdvanceError("Bạn chưa chọn task.");
+      const amountNum = Number(advanceAmount || 0);
+      if (!amountNum || amountNum <= 0)
+        return setAdvanceError("Số tiền tạm ứng phải > 0.");
+      if (!advanceReason?.trim())
+        return setAdvanceError("Vui lòng nhập lý do tạm ứng.");
+      if (!advanceDeadline)
+        return setAdvanceError("Vui lòng chọn thời hạn thanh toán.");
+      if (!sigRef?.current || sigRef.current.isEmpty())
+        return setAdvanceError("Vui lòng ký vào ô chữ ký.");
+
+      setAdvanceBusy(true);
+      setAdvanceError("");
+
+      const signatureDataUrl = getSignatureDataUrl(sigRef);
+      if (!signatureDataUrl) {
+        setAdvanceError("Không lấy được chữ ký. Vui lòng ký lại.");
+        return;
+      }
+      const payload = {
+        taskId: advanceTask.id,
+        unitName: "Next-Gen Enterprise Experience",
+        departmentOrAddress: "181 Cao Thắng, Phường 12, Quận 10, Hồ Chí Minh",
+        recipient,
+        amount: amountNum,
+        amountText: numToVietnameseWords(amountNum),
+        reason: advanceReason.trim(),
+        repaymentDeadline: advanceDeadline,
+        signatureDataUrl,
+      };
+
+      const res = await createCashAdvanceApi(payload);
+      console.log(payload)
+      if (res?.status !== 200) {
+        setAdvanceError(res?.message || "Gửi đề nghị thất bại.");
+        return;
+      }
+
+      // Reset & thông báo
+      setAdvanceOpen(false);
+      setAdvanceTask(null);
+      setAdvanceAmount("");
+      setAdvanceReason("");
+      setAdvanceDeadline(null);
+      sigRef?.current?.clear();
+      await refreshMeta();
+      dispatch(
+        setPopup({ type: "success", message: "Đã gửi đề nghị tạm ứng." })
+      );
+    } catch (e) {
+      console.error(e);
+      setAdvanceError("Có lỗi khi gửi. Vui lòng thử lại.");
+    } finally {
+      setAdvanceBusy(false);
+    }
+  };
+
   return (
-    <Box sx={{ minHeight: "100vh", background: "linear-gradient(135deg,#F8FAFC,#FEF2F2)" }}>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg,#F8FAFC,#FEF2F2)",
+      }}
+    >
       <Container maxWidth="xl" sx={{ py: 3 }}>
         {/* Ẩn Back khi là trang Tasks của staff */}
         {!isStaffTasksPage && (
@@ -550,7 +799,12 @@ export default function KanbanForm() {
         )}
 
         <Stack direction="row" spacing={2} alignItems="center" mb={2}>
-          <Paper sx={{ p: 1.5, background: "linear-gradient(135deg,#118D57,#10B981)" }}>
+          <Paper
+            sx={{
+              p: 1.5,
+              background: "linear-gradient(135deg,#118D57,#10B981)",
+            }}
+          >
             <TrendingUp sx={{ color: "#fff", fontSize: 28 }} />
           </Paper>
           <Typography variant="h5" fontWeight={700}>
@@ -558,7 +812,14 @@ export default function KanbanForm() {
           </Typography>
         </Stack>
 
-        <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: { xs: "wrap", md: "nowrap" } }}>
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            mb: 3,
+            flexWrap: { xs: "wrap", md: "nowrap" },
+          }}
+        >
           {projectInfo && (
             <Paper sx={{ flex: 1, p: 2, borderRadius: 2, boxShadow: 1 }}>
               <Typography variant="subtitle1" fontWeight={600} gutterBottom>
@@ -631,7 +892,7 @@ export default function KanbanForm() {
             <FormControl
               size="small"
               sx={{
-                 width: { xs: 320, sm: 360, md: 420 },
+                width: { xs: 320, sm: 360, md: 420 },
                 minWidth: 280,
                 ml: "auto", // đẩy sát bên phải
               }}
@@ -644,9 +905,9 @@ export default function KanbanForm() {
                 onChange={(e) => setSelectedProject(e.target.value || null)}
                 disabled={projLoading || (projectList?.length ?? 0) === 0}
                 renderValue={(value) => {
-                  const p = (Array.isArray(projectList) ? projectList : []).find(
-                    (x) => String(x.id) === String(value)
-                  );
+                  const p = (
+                    Array.isArray(projectList) ? projectList : []
+                  ).find((x) => String(x.id) === String(value));
                   return (
                     <Box
                       sx={{
@@ -702,6 +963,14 @@ export default function KanbanForm() {
               </Select>
             </FormControl>
           )}
+          <Button
+            variant="contained"
+            color="warning"
+            startIcon={<RequestQuote />}
+            onClick={() => setAdvanceOpen(true)}
+          >
+            Gửi đơn tạm ứng
+          </Button>
         </Paper>
 
         <DndContext
@@ -726,14 +995,18 @@ export default function KanbanForm() {
                   overColumn={overColumn}
                   overIndex={overIndex}
                   activeId={activeId}
-                  droppableDisabled={allowedDropSet.size ? !allowedDropSet.has(value) : false}
+                  droppableDisabled={
+                    allowedDropSet.size ? !allowedDropSet.has(value) : false
+                  }
                 />
               </SortableContext>
             ))}
           </Box>
 
           <DragOverlay>
-            {activeTask && <TaskCard project={activeTask} onTitleClick={() => {}} />}
+            {activeTask && (
+              <TaskCard project={activeTask} onTitleClick={() => {}} />
+            )}
           </DragOverlay>
         </DndContext>
 
@@ -786,7 +1059,9 @@ export default function KanbanForm() {
         <TaskReviewDialog
           open={reviewOpen}
           task={pendingTask}
-          canUpload={["PLANNING", "IN_PROGRESS", "IN_REVIEW"].includes(pendingTask?.status)}
+          canUpload={["PLANNING", "IN_PROGRESS", "IN_REVIEW"].includes(
+            pendingTask?.status
+          )}
           canClearEvidence={!lockClearEvidence}
           canCreateBranch={canCreateBranch}
           onClose={() => {
@@ -808,6 +1083,213 @@ export default function KanbanForm() {
           repoLink={projectInfo?.repoLink ?? selectedProjectInfo?.repoLink}
           onBranchCreated={handleBranchCreated}
         />
+        {/* Cash Advance dialog */}
+        <Dialog
+          open={advanceOpen}
+          onClose={() => {
+            if (advanceBusy) return;
+            setAdvanceOpen(false);
+            setAdvanceTask(null);
+            setAdvanceAmount("");
+            setAdvanceReason("");
+            setAdvanceDeadline(null);
+            setAdvanceError("");
+            setRecipient("Ban lãnh đạo Công ty Next-Gen Enterprise Experience");
+            sigRef?.current?.clear();
+          }}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>Đề nghị tạm ứng (Mẫu số 03-TT)</DialogTitle>
+
+          <DialogContent dividers>
+            <Stack spacing={2}>
+              {advanceError && <Alert severity="error">{advanceError}</Alert>}
+
+              {/* Thông tin cố định */}
+              <Paper variant="outlined" sx={{ p: 2, bgcolor: "#fafafa" }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="body2">
+                      <strong>Đơn vị:</strong> Next-Gen Enterprise Experience
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Bộ phận (hoặc Địa chỉ):</strong> 181 Cao Thắng,
+                      Phường 12, Quận 10, Hồ Chí Minh
+                    </Typography>
+                  </Grid>
+                  <Grid
+                    item
+                    xs={12}
+                    md={6}
+                    sx={{ textAlign: { xs: "left", md: "right" } }}
+                  >
+                    <Typography variant="body2">
+                      <em>Mẫu số 03-TT (TT 133/2016/TT-BTC)</em>
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Paper>
+
+              {/* Chọn task */}
+              <Autocomplete
+                options={advanceOptions}
+                value={advanceTask}
+                onChange={(_, v) => setAdvanceTask(v)}
+                getOptionLabel={(o) => (o?.name ? o.name : "")}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Chọn Task để tạm ứng"
+                    placeholder="Gõ tên task..."
+                  />
+                )}
+              />
+
+              {/* Kính gửi */}
+              <TextField
+                label="Kính gửi"
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
+                fullWidth
+              />
+
+              {/* Họ tên + chức vụ auto từ account */}
+              {(() => {
+                const { fullName, title } = getAccountFullNameAndTitle(account);
+                return (
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="Tên tôi là"
+                        value={fullName}
+                        fullWidth
+                        disabled
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="Chức vụ"
+                        value={title}
+                        fullWidth
+                        disabled
+                      />
+                    </Grid>
+                  </Grid>
+                );
+              })()}
+
+              {/* Số tiền + chữ */}
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Đề nghị tạm ứng (VNĐ)"
+                    type="number"
+                    fullWidth
+                    value={advanceAmount}
+                    onChange={(e) => setAdvanceAmount(e.target.value)}
+                    inputProps={{ min: 0 }}
+                  />
+                </Grid>
+                <Grid
+                  item
+                  xs={12}
+                  md={6}
+                  sx={{ display: "flex", alignItems: "center" }}
+                >
+                  <Typography variant="body2">
+                    {Number(advanceAmount) > 0
+                      ? `Bằng chữ: ${numToVietnameseWords(
+                          Number(advanceAmount)
+                        )}`
+                      : "Bằng chữ sẽ hiển thị ở đây"}
+                  </Typography>
+                </Grid>
+              </Grid>
+
+              {/* Lý do & Thời hạn thanh toán */}
+              <TextField
+                label="Lý do tạm ứng"
+                multiline
+                minRows={2}
+                value={advanceReason}
+                onChange={(e) => setAdvanceReason(e.target.value)}
+                placeholder="Ví dụ: Mua vật tư cho task, chi phí đi lại,..."
+                fullWidth
+              />
+              <TextField
+                label="Thời hạn thanh toán"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                value={advanceDeadline || ""}
+                onChange={(e) => setAdvanceDeadline(e.target.value)}
+                fullWidth
+              />
+
+              {/* Ký */}
+              <Box>
+                <Typography fontWeight={600} mb={1}>
+                  Người đề nghị tạm ứng – Ký tên
+                </Typography>
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 1, width: "100%", height: 160 }}
+                >
+                  <SignatureCanvas
+                    ref={sigRef}
+                    canvasProps={{
+                      width: 700,
+                      height: 140,
+                      style: { width: "100%", height: "140px" },
+                    }}
+                    backgroundColor="#fff"
+                    penColor="black"
+                  />
+                </Paper>
+                <Stack direction="row" spacing={1} mt={1}>
+                  <Button onClick={() => sigRef?.current?.clear()}>
+                    Xóa chữ ký
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      sigRef?.current?.fromData(sigRef?.current?.toData())
+                    }
+                  >
+                    Làm mịn nét
+                  </Button>
+                </Stack>
+              </Box>
+
+              {/* Gợi ý chữ ký khác (tùy chọn) */}
+              {/* Có thể dùng getMySignatureSampleApi/saveMySignatureSampleApi như module nghỉ phép của bạn */}
+            </Stack>
+          </DialogContent>
+
+          <DialogActions>
+            <Button
+              onClick={() => {
+                if (advanceBusy) return;
+                setAdvanceOpen(false);
+                setAdvanceTask(null);
+                setAdvanceAmount("");
+                setAdvanceReason("");
+                setAdvanceDeadline(null);
+                setAdvanceError("");
+                sigRef?.current?.clear();
+              }}
+              color="inherit"
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="contained"
+              disabled={advanceBusy}
+              onClick={handleSubmitAdvance}
+            >
+              Gửi kế toán
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </Box>
   );

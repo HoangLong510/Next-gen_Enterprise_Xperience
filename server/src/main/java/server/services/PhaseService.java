@@ -2,15 +2,14 @@ package server.services;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import server.dtos.CreatePhaseDto;
 import server.dtos.PhaseDto;
 import server.dtos.TaskDto;
 import server.dtos.UpdatePhaseDto;
 import server.models.Account;
 import server.models.Phase;
+import server.models.Task;
 import server.models.enums.PhaseStatus;
 import server.models.enums.TaskStatus;
 import server.repositories.PhaseRepository;
@@ -31,30 +30,27 @@ public class PhaseService {
     @Transactional
     public ApiResponse<PhaseDto> createPhase(Long projectId, CreatePhaseDto dto) {
         var projectOpt = projectRepository.findById(projectId);
-        if (projectOpt.isEmpty()) {
-            return ApiResponse.notfound("project-not-found");
-        }
+        if (projectOpt.isEmpty()) return ApiResponse.notfound("project-not-found");
+
         var project = projectOpt.get();
 
         Integer maxSeq = phaseRepository.findMaxSequenceByProject(project.getId());
         int newSeq = (maxSeq == null ? 0 : maxSeq) + 1;
 
-        // phase sau phải >= phase trước
+        // phase sau phải có deadline >= phase trước
         if (newSeq > 1) {
-            phaseRepository.findByProjectIdAndSequence(project.getId(), newSeq - 1)
-                    .ifPresent(prev -> {
-                        if (dto.getDeadline().isBefore(prev.getDeadline())) {
-                            throw new ResponseStatusException(
-                                    HttpStatus.BAD_REQUEST,
-                                    "deadline-before-previous-phase"
-                            );
-                        }
-                    });
+            var prevOpt = phaseRepository.findByProjectIdAndSequence(project.getId(), newSeq - 1);
+            if (prevOpt.isPresent()) {
+                var prev = prevOpt.get();
+                if (dto.getDeadline().isBefore(prev.getDeadline())) {
+                    return ApiResponse.badRequest("deadline-before-previous-phase");
+                }
+            }
         }
 
         // không vượt quá deadline project
         if (project.getDeadline() != null && dto.getDeadline().isAfter(project.getDeadline())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "deadline-after-project-deadline");
+            return ApiResponse.badRequest("deadline-after-project-deadline");
         }
 
         Phase phase = new Phase();
@@ -99,7 +95,7 @@ public class PhaseService {
 
         Phase phase = phaseOpt.get();
         if (phase.getStatus() != PhaseStatus.PLANNING) {
-            return ApiResponse.errorServer("phase-already-started-or-completed");
+            return ApiResponse.badRequest("phase-already-started-or-completed");
         }
 
         // tất cả phase trước phải completed
@@ -107,7 +103,7 @@ public class PhaseService {
         for (Phase p : phases) {
             if (p.getSequence() >= phase.getSequence()) break;
             if (p.getStatus() != PhaseStatus.COMPLETED) {
-                return ApiResponse.errorServer("previous-phase-not-completed");
+                return ApiResponse.badRequest("previous-phase-not-completed");
             }
         }
 
@@ -124,7 +120,7 @@ public class PhaseService {
 
         Phase phase = phaseOpt.get();
         if (phase.getStatus() != PhaseStatus.IN_PROGRESS) {
-            return ApiResponse.errorServer("phase-not-in-progress");
+            return ApiResponse.badRequest("phase-not-in-progress");
         }
 
         phase.setStatus(PhaseStatus.COMPLETED);
@@ -132,6 +128,7 @@ public class PhaseService {
 
         return ApiResponse.success(null, "phase-completed");
     }
+
     // ====== Helper cho @PreAuthorize trong PhaseController ======
     // PM của project theo projectId?
     public boolean isProjectManager(Long projectId, String username) {
@@ -152,12 +149,12 @@ public class PhaseService {
                 })
                 .orElse(false);
     }
+
     @Transactional
     public ApiResponse<PhaseDto> updatePhase(Long id, UpdatePhaseDto dto) {
         var phaseOpt = phaseRepository.findById(id);
-        if (phaseOpt.isEmpty()) {
-            return ApiResponse.notfound("phase-not-found");
-        }
+        if (phaseOpt.isEmpty()) return ApiResponse.notfound("phase-not-found");
+
         Phase phase = phaseOpt.get();
 
         // ==== Update name / deadline (nếu có) ====
@@ -170,23 +167,18 @@ public class PhaseService {
 
             // không nhỏ hơn deadline phase trước
             if (phase.getSequence() > 1) {
-                phaseRepository.findByProjectIdAndSequence(project.getId(), phase.getSequence() - 1)
-                        .ifPresent(prev -> {
-                            if (dto.getDeadline().isBefore(prev.getDeadline())) {
-                                throw new ResponseStatusException(
-                                        HttpStatus.BAD_REQUEST,
-                                        "deadline-before-previous-phase"
-                                );
-                            }
-                        });
+                var prevOpt = phaseRepository.findByProjectIdAndSequence(project.getId(), phase.getSequence() - 1);
+                if (prevOpt.isPresent()) {
+                    var prev = prevOpt.get();
+                    if (dto.getDeadline().isBefore(prev.getDeadline())) {
+                        return ApiResponse.badRequest("deadline-before-previous-phase");
+                    }
+                }
             }
 
             // không vượt quá deadline project
             if (project.getDeadline() != null && dto.getDeadline().isAfter(project.getDeadline())) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "deadline-after-project-deadline"
-                );
+                return ApiResponse.badRequest("deadline-after-project-deadline");
             }
 
             phase.setDeadline(dto.getDeadline());
@@ -199,10 +191,10 @@ public class PhaseService {
 
             boolean hasTasks = phase.getTasks() != null && !phase.getTasks().isEmpty();
 
-            // ⭐ Rule 1: COMPLETED -> IN_PROGRESS chỉ khi còn deadline & phase sau đang PLANNING và chưa có task
+            // ⭐ COMPLETED -> IN_PROGRESS (chỉ khi còn deadline & phase sau đang PLANNING và chưa có task)
             if (current == PhaseStatus.COMPLETED && target == PhaseStatus.IN_PROGRESS) {
                 if (phase.getDeadline() != null && phase.getDeadline().isBefore(LocalDate.now())) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "phase-deadline-passed");
+                    return ApiResponse.badRequest("phase-deadline-passed");
                 }
                 var nextOpt = phaseRepository.findByProjectIdAndSequence(
                         phase.getProject().getId(), phase.getSequence() + 1
@@ -211,15 +203,12 @@ public class PhaseService {
                     var next = nextOpt.get();
                     boolean nextHasTasks = next.getTasks() != null && !next.getTasks().isEmpty();
                     if (next.getStatus() != PhaseStatus.PLANNING || nextHasTasks) {
-                        throw new ResponseStatusException(
-                                HttpStatus.BAD_REQUEST,
-                                "cannot-reopen-completed-when-next-not-planning-or-has-tasks"
-                        );
+                        return ApiResponse.badRequest("cannot-reopen-completed-when-next-not-planning-or-has-tasks");
                     }
                 }
             }
 
-            // ⭐ Rule 2: CANCELED -> IN_PROGRESS chỉ khi phase sau đang PLANNING và chưa có task
+            // ⭐ CANCELED -> IN_PROGRESS (chỉ khi phase sau đang PLANNING và chưa có task)
             if (current == PhaseStatus.CANCELED && target == PhaseStatus.IN_PROGRESS) {
                 var nextOpt = phaseRepository.findByProjectIdAndSequence(
                         phase.getProject().getId(), phase.getSequence() + 1
@@ -228,53 +217,40 @@ public class PhaseService {
                     var next = nextOpt.get();
                     boolean nextHasTasks = next.getTasks() != null && !next.getTasks().isEmpty();
                     if (next.getStatus() != PhaseStatus.PLANNING || nextHasTasks) {
-                        throw new ResponseStatusException(
-                                HttpStatus.BAD_REQUEST,
-                                "cannot-reopen-canceled-phase-when-next-not-planning-or-has-tasks"
-                        );
+                        return ApiResponse.badRequest("cannot-reopen-canceled-phase-when-next-not-planning-or-has-tasks");
                     }
                 }
-                // (tuỳ chọn) cũng có thể yêu cầu còn deadline:
-                // if (phase.getDeadline() != null && phase.getDeadline().isBefore(LocalDate.now())) {
-                //     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "phase-deadline-passed");
-                // }
             }
 
             // Các rule hiện hữu
             if (current == PhaseStatus.PLANNING) {
                 if (target == PhaseStatus.IN_PROGRESS && !hasTasks) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                            "cannot-start-phase-without-tasks");
+                    return ApiResponse.badRequest("cannot-start-phase-without-tasks");
                 } else if (target == PhaseStatus.CANCELED
                         || target == PhaseStatus.PLANNING
                         || target == PhaseStatus.IN_PROGRESS) {
                     // ok
                 } else {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                            "invalid-status-transition-from-planning");
+                    return ApiResponse.badRequest("invalid-status-transition-from-planning");
                 }
             } else if (current == PhaseStatus.CANCELED) {
                 if (hasTasks) {
                     if (target != PhaseStatus.IN_PROGRESS && target != PhaseStatus.CANCELED) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                "canceled-with-tasks-only-to-in-progress");
+                        return ApiResponse.badRequest("canceled-with-tasks-only-to-in-progress");
                     }
                 } else {
                     if (target != PhaseStatus.PLANNING && target != PhaseStatus.CANCELED) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                "canceled-without-tasks-only-to-planning");
+                        return ApiResponse.badRequest("canceled-without-tasks-only-to-planning");
                     }
                 }
             } else if (current == PhaseStatus.IN_PROGRESS) {
                 if (target == PhaseStatus.PLANNING && hasTasks) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                            "cannot-move-in-progress-to-planning-when-has-tasks");
+                    return ApiResponse.badRequest("cannot-move-in-progress-to-planning-when-has-tasks");
                 }
-                // cho -> CANCELED, -> COMPLETED (COMPLETED đã check ở ngoài nếu cần)
+                // cho -> CANCELED, -> COMPLETED
             } else if (current == PhaseStatus.COMPLETED) {
                 if (target != PhaseStatus.IN_PROGRESS && target != PhaseStatus.COMPLETED) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                            "completed-can-only-go-to-in-progress");
+                    return ApiResponse.badRequest("completed-can-only-go-to-in-progress");
                 }
             }
 
@@ -289,6 +265,7 @@ public class PhaseService {
         return ApiResponse.success(toDto(saved), "phase-updated-successfully");
     }
 
+    // ================== Mapping helpers ==================
     private PhaseDto toDto(Phase phase) {
         PhaseDto dto = new PhaseDto();
         dto.setId(phase.getId());
@@ -302,29 +279,31 @@ public class PhaseService {
         return dto;
     }
 
+    private TaskDto mapTask(Task task) {
+        TaskDto t = new TaskDto();
+        t.setId(task.getId());
+        t.setName(task.getName());
+        t.setStatus(task.getStatus().name());
+        t.setDeadline(task.getDeadline());
+        t.setDescription(task.getDescription());
+        t.setSize(task.getSize() != null ? task.getSize().name() : null);
+        t.setPhaseId(task.getPhase() != null ? task.getPhase().getId() : null);
+
+        if (task.getAssignee() != null) {
+            var a = task.getAssignee();
+            t.setAssigneeId(a.getId());
+            t.setAssigneeName((a.getFirstName() + " " + a.getLastName()).trim());
+            t.setAssigneeUsername(a.getAccount() != null ? a.getAccount().getUsername() : null);
+        }
+        return t;
+    }
+
     private PhaseDto toDtoWithTasks(Phase phase) {
         PhaseDto dto = toDto(phase);
 
-        List<TaskDto> taskDtos = (phase.getTasks() == null) ? List.of()
-                : phase.getTasks().stream().map(task -> {
-            TaskDto t = new TaskDto();
-            t.setId(task.getId());
-            t.setName(task.getName());
-            t.setStatus(task.getStatus().name());
-            t.setDeadline(task.getDeadline());
-            t.setDescription(task.getDescription());
-            t.setSize(task.getSize() != null ? task.getSize().name() : null);
-
-            if (task.getAssignee() != null) {
-                var a = task.getAssignee();
-                t.setAssigneeId(a.getId());
-                t.setAssigneeName((a.getFirstName() + " " + a.getLastName()).trim());
-                t.setAssigneeUsername(
-                        a.getAccount() != null ? a.getAccount().getUsername() : null
-                );
-            }
-            return t;
-        }).toList();
+        List<TaskDto> taskDtos = (phase.getTasks() == null)
+                ? List.of()
+                : phase.getTasks().stream().map(this::mapTask).toList();
 
         dto.setTasks(taskDtos);
 

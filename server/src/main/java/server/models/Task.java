@@ -21,9 +21,12 @@ public class Task {
 
     private String name;
 
-    private String description; // Mô tả task
-    @Enumerated(EnumType.STRING) // 👈 mới thêm
-    private TaskSize size;        // 👈 mới thêm
+    private String description;
+
+    private String imageUrl;
+
+    @Enumerated(EnumType.STRING)
+    private TaskSize size;
     private LocalDate deadline;
 
     @Enumerated(EnumType.STRING)

@@ -101,9 +101,37 @@ public class AccountService {
         return ApiResponse.success(responseData, "get-accounts-page-success");
     }
 
-    public List<Account> getAccountsByRole(Role role) {
-        return accountRepository.findByRole(role);
+    public List<AccountDto> getAccountsByRole(Role role) {
+        return accountRepository.findByRole(role).stream()
+                .map(this::toDto)
+                .toList();
     }
+
+    private AccountDto toDto(Account account) {
+        AccountDto dto = new AccountDto();
+        dto.setId(account.getId());
+        dto.setUsername(account.getUsername());
+        dto.setRole(account.getRole());
+        dto.setEnabled(account.isEnabled());
+        dto.setCreatedAt(account.getCreatedAt());
+        dto.setUpdatedAt(account.getUpdatedAt());
+        dto.setLastActiveAt(account.getLastActiveAt());
+        dto.setStatus(account.getStatus());
+
+        // nếu có employee
+        if (account.getEmployee() != null) {
+            dto.setFirstName(account.getEmployee().getFirstName());
+            dto.setLastName(account.getEmployee().getLastName());
+            dto.setEmail(account.getEmployee().getEmail());
+            dto.setPhone(account.getEmployee().getPhone());
+            dto.setDateBirth(account.getEmployee().getDateBirth());
+            dto.setAddress(account.getEmployee().getAddress());
+            dto.setGender(account.getEmployee().getGender());
+            dto.setAvatar(account.getEmployee().getAvatar());
+        }
+        return dto;
+    }
+
 
     public ApiResponse<?> getAccountManagementDetails(Long id) {
         Account account = accountRepository.findById(id).orElse(null);

@@ -10,10 +10,7 @@ import DocumentDetail from "~/pages/management/document/DocumentDetail";
 import DocumentUpdate from "~/pages/management/document/DocumentUpdate";
 import DocumentHistoryList from "~/pages/management/document/DocumentHistoryList";
 
-// Projects
-import ProjectManagement from "~/pages/management/project/list-project";
-import ProjectDetailPage from "~/pages/management/project/ProjectDetailPage";
-import ProjectKanbanBoard from "~/components/project/KanbanForm";
+
 
 // Departments
 import AddDepartmentPage from "~/pages/departments/add";
@@ -32,6 +29,7 @@ import EmployeesListPage from "~/pages/employees";
 import CreateEmployeePage from "~/pages/employees/create";
 import EmployeeDetailsPage from "~/pages/employees/details";
 import EmployeeExcelImport from "~/pages/employees/excel_import";
+import CashAdvanceList from "~/pages/accountant/CashAdvanceList";
 
 const roleRoutes = [
   // Accounts
@@ -74,33 +72,7 @@ const roleRoutes = [
     roles: ["MANAGER", "ADMIN"],
   },
 
-  // Projects
-  {
-    path: "/management/projects",
-    component: ProjectManagement,
-    layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM"],
-  },
-  {
-    path: "/management/projects/:id",
-    component: ProjectDetailPage,
-    layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM","EMPLOYEE"],
-  },
-
-  // Kanban (Project & Phase)
-  {
-    path: "/projects/:id/kanban",
-    component: ProjectKanbanBoard,
-    layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM"],
-  },
-  {
-    path: "/projects/:projectId/phase/:phaseId/kanban",
-    component: ProjectKanbanBoard,
-    layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM","EMPLOYEE"],
-  },
+  
 
   // Departments
   {
@@ -159,6 +131,7 @@ const roleRoutes = [
     layout: DefaultLayout,
     roles: ["ADMIN"],
   },
+ 
 
   // Employees
   {
@@ -186,13 +159,7 @@ const roleRoutes = [
     roles: ["ADMIN", "MANAGER", "HR"],
   },
 
-  // Tasks
-  {
-    path: "/utilities/tasks",
-    component: ProjectKanbanBoard,
-    layout: DefaultLayout,
-    roles: ["HOD", "EMPLOYEE"],
-  },
+
 ];
 
 export default roleRoutes;

@@ -91,4 +91,77 @@ const handleApiError = (error) => {
   if (error.response) return error.response.data;
   return { status: 500, message: "server-is-busy" };
 };
- 
+
+export const createQuickTask = async (projectId, name) => {
+  try {
+    const payload = name ? { name } : {}; 
+    const res = await api.post(`/projects/${projectId}/quick-task`, payload, {
+      headers: { "Content-Type": "application/json" },
+    });
+    return res.data;  
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+export const createQuickTasksBulk = async (projectId, data, isFormData = false) => {
+  try {
+    const headers = isFormData
+      ? { "Content-Type": "multipart/form-data" }
+      : { "Content-Type": "application/json" };
+
+    const res = await api.post(`/projects/${projectId}/quick-tasks`, data, {
+      headers,
+    });
+    return res.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+export const getDepartmentsApi = async () => {
+  try {
+    const res = await api.get("/projects/quick-tasks/departments");
+    return res.data; 
+  } catch (error) {
+    return error.response?.data || { status: 500, message: "server-is-busy" };
+  }
+};
+
+export const searchEmployeesApi = async (q = "", opts = {}) => {
+  try {
+    const params = { q };
+
+    if (opts.limit != null) params.limit = opts.limit;
+    if (opts.departmentId != null) params.departmentId = opts.departmentId;
+
+    const res = await api.get("/projects/quick-tasks/employees/search", {
+      params,
+    });
+
+    return res.data;
+  } catch (error) {
+    return (
+      error.response?.data || {
+        status: 500,
+        message: "server-is-busy",
+      }
+    );
+  }
+};
+
+export const uploadPublicImageApi = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await api.post("/projects/uploads", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    return res.data; 
+  } catch (err) {
+    if (err.response) return err.response.data;  
+    return { status: 500, message: "server-is-busy" };
+  }
+};

@@ -4,12 +4,19 @@ import HomePage from "~/pages/index.jsx";
 import LeaveRequest from "~/pages/leave-request";
 import ProfilePage from "~/pages/profile";
 import DepartmentPage from "~/pages/departments";
-import ContractsPage from "~/pages/contracts";
+import ContractList from "~/pages/contracts";
 import FaceCameraVerify from "~/pages/attendance/FaceCameraVerify";
 import MissingCheckOutList from "~/pages/attendance/MissingCheckOutList";
 import MissingCheckOutReview from "~/pages/attendance/MissingCheckOutReview";
 import AttendanceList from "~/pages/attendance/AttendanceList";
 import AttendanceDetail from "~/pages/attendance/AttendanceDetail";
+import BankAndTopupPage from "~/pages/bank/BankAndTopupPage";
+// Projects
+import ProjectManagement from "~/pages/management/project/list-project";
+import ProjectDetailPage from "~/pages/management/project/ProjectDetailPage";
+import ProjectKanbanBoard from "~/components/project/KanbanForm";
+import CashAdvanceList from "~/pages/accountant/CashAdvanceList";
+
 
 const publicRoutes = [
   {
@@ -39,7 +46,7 @@ const publicRoutes = [
   },
   {
     path: "/contracts",
-    component: ContractsPage,
+    component: ContractList,
     layout: DefaultLayout,
   },
   {
@@ -65,6 +72,45 @@ const publicRoutes = [
   {
     path: "/attendance/:id",
     component: AttendanceDetail,
+    layout: DefaultLayout,
+  },
+  {
+    path: "/payment",
+    component: BankAndTopupPage,
+    layout: DefaultLayout,
+  },
+   {
+    path: "/payment-request",
+    component: CashAdvanceList,
+    layout: DefaultLayout,
+  },
+  // Projects
+  {
+    path: "/management/projects",
+    component: ProjectManagement,
+    layout: DefaultLayout,
+  },
+  {
+    path: "/management/projects/:id",
+    component: ProjectDetailPage,
+    layout: DefaultLayout,
+  },
+
+  // Kanban (Project & Phase)
+  {
+    path: "/projects/:id/kanban",
+    component: ProjectKanbanBoard,
+    layout: DefaultLayout,
+  },
+  {
+    path: "/projects/:projectId/phase/:phaseId/kanban",
+    component: ProjectKanbanBoard,
+    layout: DefaultLayout,
+  },
+  // Tasks
+  {
+    path: "/utilities/tasks",
+    component: ProjectKanbanBoard,
     layout: DefaultLayout,
   },
 ];
