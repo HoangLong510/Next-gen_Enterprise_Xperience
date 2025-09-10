@@ -21,7 +21,7 @@ public class Document {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false, length = 32)
+    @Column(name = "code", unique = true, nullable = false, length = 50)
     private String code;
 
     private String title;
@@ -38,10 +38,6 @@ public class Document {
 
     @Column(name = "project_deadline")
     private LocalDate projectDeadline;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "project_priority")
-    private ProjectPriority projectPriority;
 
     @ManyToOne
     @JoinColumn(name = "created_by_id")
@@ -84,4 +80,7 @@ public class Document {
 
     @Column(columnDefinition = "TEXT")
     private String signature;
+
+    @Column(columnDefinition = "TEXT")
+    private String managerNote;
 }

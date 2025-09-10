@@ -69,28 +69,23 @@ export const fetchEmployeeListApi = async () => {
       api.get("/employees/simple-list", {
         headers: { "Content-Type": "application/json" },
       }),
-      // gọi kèm để lấy role; nếu BE chưa có endpoint này thì cho phép fail mà không vỡ hàm
       api.get("/accounts/employees-lite", {
         headers: { "Content-Type": "application/json" },
       }).catch(() => ({ data: { status: 200, data: [] } })),
     ]);
 
-    // mảng từ simple-list (tuỳ BE có thể là {status,data} hoặc array)
     const simpleRaw = simpleRes?.data?.data ?? simpleRes?.data ?? [];
     const simple = Array.isArray(simpleRaw) ? simpleRaw : [];
 
-    // mảng lite có { id, fullName, role }
     const liteRaw = liteRes?.data?.data ?? liteRes?.data ?? [];
     const lite = Array.isArray(liteRaw) ? liteRaw : [];
 
-    // map employeeId -> role
     const roleById = new Map(
       lite
         .filter((x) => x && (x.id ?? x.employeeId) != null)
         .map((x) => [Number(x.id ?? x.employeeId), x.role || x.employeeRole || null])
     );
 
-    // chuẩn hoá item và bù role nếu thiếu
     const normalized = simple.map((e) => {
       const id = Number(e.id);
       const fullName =
@@ -98,7 +93,6 @@ export const fetchEmployeeListApi = async () => {
         e.name ||
         [e.firstName, e.lastName].filter(Boolean).join(" ").trim();
 
-      // ưu tiên những chỗ có sẵn role trong simple-list; nếu không có thì lấy từ lite
       const role =
         e.role ||
         e.employeeRole ||
@@ -117,7 +111,6 @@ export const fetchEmployeeListApi = async () => {
     return { status: 500, data: [] };
   }
 };
-
 
 // Tạo mới nhân viên
 export const createEmployeeApi = async (data) => {
@@ -139,3 +132,87 @@ export const createEmployeeApi = async (data) => {
   }
 };
 
+// Chỉnh sửa nhân viên
+export const editEmployeeApi = async (data) => {
+  try {
+    const res = await api.post("/employees/edit", data, {
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response) {
+      return error.response.data;
+    }
+    return {
+      status: 500,
+      message: "server-is-busy"
+    };
+  }
+};
+
+// Lấy chi tiết nhân viên theo accountId
+export const getEmployeeDetailsByAccountIdApi = async (id) => {
+  try {
+    const res = await api.get(
+      `/employees/get-employee-details-by-account-id/${id}`,
+      {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    return res.data;
+  } catch (error) {
+    if (error.response) {
+      return error.response.data;
+    }
+    return {
+      status: 500,
+      message: "server-is-busy"
+    };
+  }
+};
+
+// Download template import nhân viên
+export const downloadEmployeesImportTemplateApi = async () => {
+  try {
+    const res = await api.get("/employees/import/template", {
+      responseType: "blob"
+    });
+    return res;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Preview file import nhân viên
+export const previewEmployeesImportApi = async (fileOrBlob) => {
+  const form = new FormData();
+  form.append("file", fileOrBlob, "employees.xlsx");
+  try {
+    const res = await api.post("/employees/import/preview", form, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};
+
+// Import thật nhân viên
+export const importEmployeesApi = async (fileOrBlob) => {
+  const form = new FormData();
+  form.append("file", fileOrBlob, "employees.xlsx");
+  try {
+    const res = await api.post("/employees/import/", form, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};

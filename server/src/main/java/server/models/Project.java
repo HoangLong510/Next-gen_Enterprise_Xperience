@@ -2,7 +2,6 @@ package server.models;
 
 import jakarta.persistence.*;
 import lombok.*;
-import server.models.enums.ProjectPriority;
 import server.models.enums.ProjectStatus;
 
 import java.time.LocalDate;
@@ -30,9 +29,6 @@ public class Project {
     @Enumerated(EnumType.STRING)
     private ProjectStatus status;
 
-    @Enumerated(EnumType.STRING)
-    private ProjectPriority priority;
-
     @OneToOne
     @JoinColumn(name = "document_id")
     private Document document;
@@ -42,7 +38,7 @@ public class Project {
     private Account projectManager;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Task> tasks;
+    private List<Phase> phases;
 
     @ManyToMany
     @JoinTable(

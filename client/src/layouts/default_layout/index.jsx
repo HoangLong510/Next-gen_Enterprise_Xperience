@@ -3,11 +3,12 @@ import React from "react"
 import Menu from "./menu"
 import Header from "./header"
 import SimplebarReact from "~/components/simplebar-react"
+import { useLocation } from "react-router-dom"
 
 export default function DefaultLayout({ children }) {
 	const [open, setOpen] = React.useState(false)
 	const theme = useTheme()
-
+const location = useLocation();
 	return (
 		<SimplebarReact style={{ width: "100%", overflowX: "hidden" }}>
 			<Box sx={{ width: "100%", overflowX: "hidden" }}>

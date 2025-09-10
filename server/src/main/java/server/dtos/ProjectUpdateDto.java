@@ -13,8 +13,7 @@ public class ProjectUpdateDto {
     public LocalDate deadline;
     public LocalDateTime completedAt;
     public String status;
-    public String priority;
-
+    public String documentCode;
     public Long documentId;
     public String documentTitle;
 
@@ -28,12 +27,12 @@ public class ProjectUpdateDto {
         this.deadline = project.getDeadline();
         this.completedAt = project.getCompletedAt();
         this.status = project.getStatus() != null ? project.getStatus().name() : null;
-        this.priority = project.getPriority() != null ? project.getPriority().name() : null;
 
         // 🗂 Document info
         if (project.getDocument() != null) {
             this.documentId = project.getDocument().getId();
             this.documentTitle = project.getDocument().getTitle(); // dùng title để hiển thị
+            this.documentCode = project.getDocument().getCode();
         }
 
         // 👤 Project Manager info

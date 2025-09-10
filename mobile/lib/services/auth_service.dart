@@ -33,6 +33,28 @@ class AuthService {
     }
   }
 
+  static Future<Map<String, dynamic>> changePasswordApi(
+    String password,
+    String newPassword,
+    String confirmNewPassword,
+  ) async {
+    try {
+      final response = await ApiService.client.post(
+        "/auth/change-password",
+        data: {
+          "password": password,
+          "newPassword": newPassword,
+          "confirmNewPassword": confirmNewPassword,
+        },
+        options: Options(headers: {"Content-Type": "application/json"}),
+      );
+      return response.data;
+    } catch (e) {
+      if (e is DioError && e.response != null) return e.response!.data;
+      return {"status": 500, "message": "server-is-busy"};
+    }
+  }
+
   static Future<void> logoutApi() async {
     try {
       await ApiService.client.get("/auth/logout");

@@ -49,9 +49,9 @@ const List<MenuSection> menuItems = [
     title: "Employees",
     items: [
       MenuItemData(
-        label: "Profiles",
+        label: "List",
         icon: Icons.assignment_ind,
-        route: "/employees/profiles",
+        route: "/employees",
         roles: ["ADMIN", "MANAGER"],
       ),
       MenuItemData(
@@ -65,6 +65,12 @@ const List<MenuSection> menuItems = [
   MenuSection(
     title: "Utilities",
     items: [
+       MenuItemData(
+        label: "Bank & Top-up",
+        icon: Icons.account_balance_wallet,
+        route: "/accountant/bank-topup",
+        roles: ["ADMIN", "ACCOUNTANT", "CHIEFACCOUNTANT", "CHIEF_ACCOUNTANT"],
+      ),
       MenuItemData(
         label: "Departments",
         icon: Icons.diversity_1,
@@ -83,17 +89,32 @@ const List<MenuSection> menuItems = [
         route: "/management/documents",
         roles: ["ADMIN", "MANAGER", "PM"],
       ),
+      // Tasks chỉ dành cho HOD & EMPLOYEE
       MenuItemData(
         label: "Tasks",
         icon: Icons.task_alt,
         route: "/utilities/tasks",
-        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+        roles: ["HOD", "EMPLOYEE"],
       ),
       MenuItemData(
         label: "Leave Request",
         icon: Icons.description,
         route: "/utilities/leave-request",
         roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR", "ACCOUNTANT","SECRETARY","CHIEFACCOUNTANT"],
+      ),
+      MenuItemData(
+        label: "AttenDance",
+        icon: Icons.access_time,
+        route: "/attendance/list",
+        roles: [
+          "ADMIN",
+          "MANAGER",
+          "PM",
+          "HOD",
+          "EMPLOYEE",
+          "ACCOUNTANT",
+          "HR",
+        ],
       ),
     ],
   ),

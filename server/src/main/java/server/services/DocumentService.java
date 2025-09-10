@@ -7,19 +7,16 @@ import org.apache.poi.xwpf.usermodel.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.zwobble.mammoth.DocumentConverter;
 import org.zwobble.mammoth.Result;
-import server.dtos.DocumentRequestDto;
-import server.dtos.DocumentResponseDto;
-import server.dtos.GetDocumentsPageDto;
+import server.dtos.*;
 import server.models.*;
 import server.models.Document;
 import server.models.accountant.fund.Fund;
-import server.models.enums.DocumentStatus;
-import server.models.enums.DocumentType;
-import server.models.enums.NotificationType;
-import server.models.enums.Role;
+import server.models.enums.*;
 import server.repositories.*;
 import server.repositories.accountant.fund.FundRepository;
 import server.specification.DocumentSpecifications;
@@ -37,7 +34,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Objects;
+
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +46,7 @@ public class DocumentService {
     private final NotificationService notificationService;
     private final UploadFileService uploadFileService;
     private final FundRepository fundRepository;
+    private final DocumentHistoryRepository documentHistoryRepository;
 
     @Getter
     @Value("${app.upload.folder}")
@@ -59,7 +58,7 @@ public class DocumentService {
 
         Account receiver = null;
         Account pm = null;
-        Account accountant =null;
+        Account accountant = null;
 
         if (request.getType() == null) {
             throw new IllegalArgumentException("Document type must be specified");
@@ -86,15 +85,10 @@ public class DocumentService {
                     .orElseThrow(() -> new IllegalArgumentException("Manager not found"));
 
             // Lấy kế toán để hiển thị sau
-            accountant = accountRepository.findByRole(Role.ACCOUNTANT)
+            accountant = accountRepository.findByRole(Role.CHIEFACCOUNTANT)
                     .stream()
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Accountant not found"));
-        } else {
-            if (request.getReceiverId() != null) {
-                receiver = accountRepository.findById(request.getReceiverId())
-                        .orElseThrow(() -> new IllegalArgumentException("Receiver not found"));
-            }
         }
 
         Document.DocumentBuilder builder = Document.builder()
@@ -113,7 +107,6 @@ public class DocumentService {
             builder.projectName(request.getProjectName());
             builder.projectDescription(request.getProjectDescription());
             builder.projectDeadline(request.getProjectDeadline());
-            builder.projectPriority(request.getProjectPriority());
             builder.pm(pm);
         }
 
@@ -151,7 +144,6 @@ public class DocumentService {
             placeholders.put("moTaDuAn", saved.getProjectDescription() != null ? saved.getProjectDescription() : "");
             placeholders.put("hanHoanThanh", saved.getProjectDeadline() != null ?
                     saved.getProjectDeadline().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "");
-            placeholders.put("mucDoUuTien", saved.getProjectPriority() != null ? saved.getProjectPriority().toString() : "");
             // Lấy tên PM
             if (saved.getPm() != null && saved.getPm().getEmployee() != null) {
                 var emp = saved.getPm().getEmployee();
@@ -166,7 +158,6 @@ public class DocumentService {
             placeholders.put("tenDuAn", "");
             placeholders.put("moTaDuAn", "");
             placeholders.put("hanHoanThanh", "");
-            placeholders.put("mucDoUuTien", "");
             placeholders.put("tenPM", "");
         }
 
@@ -207,10 +198,20 @@ public class DocumentService {
         return val != null ? val : "";
     }
 
-    public DocumentResponseDto getDocumentById(Long id) {
-        Document doc = documentRepository.findById(id)
+    public DocumentResponseDto getDocumentById(Long id, String username) {
+        var doc = documentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Document not found"));
-        return mapToResponse(doc);
+
+        var acc = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        boolean privileged = acc.getRole() == Role.ADMIN || acc.getRole() == Role.MANAGER;
+        if (!privileged && !documentRepository.hasAccess(id, username)) {
+            throw new AccessDeniedException("Forbidden");
+        }
+
+        boolean includeNote = acc.getRole() == Role.MANAGER || acc.getRole() == Role.ADMIN;
+        return mapToResponse(doc, includeNote);
     }
 
     public Document getDocumentEntityById(Long id) {
@@ -218,7 +219,8 @@ public class DocumentService {
                 .orElseThrow(() -> new IllegalArgumentException("Document not found"));
     }
 
-    private DocumentResponseDto mapToResponse(Document doc) {
+    // Hàm gốc, có tham số includeNote để bật/tắt note
+    private DocumentResponseDto mapToResponse(Document doc, boolean includeNote) {
         DocumentResponseDto dto = new DocumentResponseDto();
         dto.setId(doc.getId());
         dto.setCode(doc.getCode());
@@ -234,10 +236,9 @@ public class DocumentService {
 
         dto.setProjectName(doc.getProjectName());
         dto.setProjectDescription(doc.getProjectDescription());
-        dto.setProjectPriority(doc.getProjectPriority() != null ? doc.getProjectPriority().toString() : null);
         dto.setProjectDeadline(doc.getProjectDeadline() != null ? doc.getProjectDeadline().toString() : null);
 
-        // BỔ SUNG PM
+        // PM
         if (doc.getPm() != null) {
             dto.setPmId(doc.getPm().getId());
             if (doc.getPm().getEmployee() != null) {
@@ -252,10 +253,15 @@ public class DocumentService {
             dto.setAccountantName(doc.getAccountant().getUsername());
         }
 
-        // Quỹ (chỉ dành cho ADMINISTRATIVE)
+        // Quỹ
         dto.setFundName(doc.getFundName());
         dto.setFundBalance(doc.getFundBalance());
         dto.setFundPurpose(doc.getFundPurpose());
+
+        // Note chỉ hiển thị nếu được phép
+        if (includeNote) {
+            dto.setManagerNote(doc.getManagerNote());
+        }
 
         if (doc.getFileUrl() != null) {
             try {
@@ -263,9 +269,8 @@ public class DocumentService {
             } catch (Exception ex) {
                 dto.setPreviewHtml(null);
             }
-        } else {
-            dto.setPreviewHtml(null);
         }
+
         if (doc.getProject() != null) {
             dto.setRelatedProjectId(doc.getProject().getId());
         }
@@ -273,6 +278,10 @@ public class DocumentService {
         return dto;
     }
 
+    // Overload mặc định: không bao gồm note
+    private DocumentResponseDto mapToResponse(Document doc) {
+        return mapToResponse(doc, false);
+    }
 
     private ApiResponse<?> getDocumentsPageInternal(GetDocumentsPageDto req, Specification<Document> extraSpec) {
         int pageSize = req.getPageSize() > 0 ? req.getPageSize() : 10;
@@ -349,7 +358,6 @@ public class DocumentService {
             placeholders.put("hanHoanThanh", doc.getProjectDeadline() != null
                     ? doc.getProjectDeadline().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                     : "");
-            placeholders.put("mucDoUuTien", doc.getProjectPriority() != null ? doc.getProjectPriority().toString() : "");
             // Lấy tên PM
             if (doc.getPm() != null && doc.getPm().getEmployee() != null) {
                 var emp = doc.getPm().getEmployee();
@@ -363,7 +371,6 @@ public class DocumentService {
             placeholders.put("tenDuAn", "");
             placeholders.put("moTaDuAn", "");
             placeholders.put("hanHoanThanh", "");
-            placeholders.put("mucDoUuTien", "");
             placeholders.put("tenPM", "");
         }
 
@@ -421,8 +428,6 @@ public class DocumentService {
         return dto;
     }
 
-
-
     public ApiResponse<?> getDocumentsPage(GetDocumentsPageDto req) {
         return getDocumentsPageInternal(req, null);
     }
@@ -442,7 +447,6 @@ public class DocumentService {
         return getDocumentsPageInternal(req, filterByMe);
     }
 
-
     public String convertDocxToHtml(String fileUrl) throws IOException {
         // fileUrl là đường dẫn tới file Word đã lưu, ví dụ "/uploads/documents/abc.docx"
         // Xử lý đường dẫn thực tế trên ổ đĩa (nối với uploadFolder nếu cần)
@@ -458,7 +462,6 @@ public class DocumentService {
             return result.getValue();
         }
     }
-
 
     private void replacePlaceholdersInParagraph(XWPFParagraph paragraph, Map<String, String> data) throws IOException, InvalidFormatException {
         for (XWPFRun run : paragraph.getRuns()) {
@@ -499,7 +502,6 @@ public class DocumentService {
         }
     }
 
-
     public byte[] exportWordFromTemplate(String templateName, Map<String, String> data) throws IOException {
         try (InputStream template = new ClassPathResource("templates/" + templateName).getInputStream();
              XWPFDocument document = new XWPFDocument(template)) {
@@ -527,4 +529,261 @@ public class DocumentService {
             throw new RuntimeException("Invalid Word template format", e);
         }
     }
+
+    // ------- MAPPER -------
+    private DocumentHistoryDto mapHistoryToDto(DocumentHistory h) {
+        DocumentHistoryDto dto = new DocumentHistoryDto();
+        dto.setId(h.getId());
+        dto.setDocumentId(h.getDocument().getId());
+        dto.setVersion(h.getVersion());
+        dto.setAction(h.getAction());
+        dto.setTitle(h.getTitle());
+        dto.setContent(h.getContent());
+        dto.setFileUrl(h.getFileUrl());
+
+        dto.setProjectName(h.getProjectName());
+        dto.setProjectDescription(h.getProjectDescription());
+        dto.setProjectPriority(h.getProjectPriority());
+        dto.setProjectDeadline(h.getProjectDeadline());
+
+        dto.setFundName(h.getFundName());
+        dto.setFundBalance(h.getFundBalance());
+        dto.setFundPurpose(h.getFundPurpose());
+
+        dto.setType(h.getType());
+        dto.setStatus(h.getStatus());
+        dto.setSignature(h.getSignature());
+        dto.setManagerNote(h.getManagerNote());
+
+        dto.setCreatedAt(h.getCreatedAt());
+
+        if (h.getCreatedBy() != null) {
+            dto.setCreatedById(h.getCreatedBy().getId());
+            dto.setCreatedByUsername(h.getCreatedBy().getUsername());
+            dto.setCreatedByRole(h.getCreatedBy().getRole() != null ? h.getCreatedBy().getRole().name() : null);
+            if (h.getCreatedBy().getEmployee() != null) {
+                var emp = h.getCreatedBy().getEmployee();
+                dto.setCreatedByName(emp.getLastName() + " " + emp.getFirstName());
+            } else {
+                dto.setCreatedByName(h.getCreatedBy().getUsername());
+            }
+        }
+        return dto;
+    }
+
+    private int nextHistoryVersion(Document doc) {
+        return (int) (documentHistoryRepository.countByDocument(doc) + 1);
+    }
+
+    @Transactional
+    public DocumentResponseDto addManagerNote(Long id, String note, String managerUsername) {
+        Document doc = documentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Document not found"));
+
+        if (doc.getStatus() != DocumentStatus.NEW) {
+            throw new IllegalStateException("Chỉ được ghi chú khi tài liệu đang ở trạng thái NEW");
+        }
+
+        Account manager = accountRepository.findByUsername(managerUsername)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // cập nhật note hiện tại để FE thấy ngay
+        doc.setManagerNote(note);
+        documentRepository.save(doc);
+
+        // lưu lịch sử NOTE (snapshot nội dung hiện hành + note)
+        DocumentHistory history = DocumentHistory.builder()
+                .document(doc)
+                .createdBy(manager)
+                .action(DocumentHistoryAction.NOTE)
+                .version(nextHistoryVersion(doc))
+                .title(doc.getTitle())
+                .content(doc.getContent())
+                .fileUrl(doc.getFileUrl())
+                .projectName(doc.getProjectName())
+                .projectDescription(doc.getProjectDescription())
+                .projectDeadline(doc.getProjectDeadline() != null ? doc.getProjectDeadline().toString() : null)
+                .fundName(doc.getFundName())
+                .fundBalance(doc.getFundBalance())
+                .fundPurpose(doc.getFundPurpose())
+                .type(doc.getType())
+                .status(doc.getStatus())
+                .signature(doc.getSignature())
+                .managerNote(note)
+                .createdAt(LocalDateTime.now())
+                .build();
+        documentHistoryRepository.save(history);
+
+        // notify secretary/admin
+        try {
+            notificationService.notifyManagerNoteAdded(doc, manager);
+        } catch (Exception ignore) {
+        }
+
+        return mapToResponse(doc);
+    }
+
+    // ------- UPDATE bởi SECRETARY (khi NEW) + snapshot trước khi update -------
+    @Transactional
+    public DocumentResponseDto updateDocumentWithHistory(Long id, DocumentRequestDto req, String secretaryUsername) throws IOException {
+        Document doc = documentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Document not found"));
+
+        if (doc.getStatus() != DocumentStatus.NEW) {
+            throw new IllegalStateException("Chỉ được chỉnh sửa khi tài liệu đang ở trạng thái NEW");
+        }
+
+        Account secretary = accountRepository.findByUsername(secretaryUsername)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // 1) snapshot trước khi update
+        DocumentHistory history = DocumentHistory.builder()
+                .document(doc)
+                .createdBy(secretary)
+                .action(DocumentHistoryAction.UPDATE)
+                .version(nextHistoryVersion(doc))
+                .title(doc.getTitle())
+                .content(doc.getContent())
+                .fileUrl(doc.getFileUrl())
+                .projectName(doc.getProjectName())
+                .projectDescription(doc.getProjectDescription())
+                .projectDeadline(doc.getProjectDeadline() != null ? doc.getProjectDeadline().toString() : null)
+                .fundName(doc.getFundName())
+                .fundBalance(doc.getFundBalance())
+                .fundPurpose(doc.getFundPurpose())
+                .type(doc.getType())
+                .status(doc.getStatus())
+                .signature(doc.getSignature())
+                .managerNote(doc.getManagerNote())
+                .createdAt(LocalDateTime.now())
+                .build();
+        documentHistoryRepository.save(history);
+
+        // 2) cập nhật document theo req
+        if (req.getTitle() != null) doc.setTitle(req.getTitle());
+        if (req.getContent() != null) doc.setContent(req.getContent());
+
+        // Giữ PM cũ để so sánh
+        Account oldPm = doc.getPm();
+        Account newPm = oldPm; // mặc định không đổi
+
+        if (doc.getType() == DocumentType.PROJECT) {
+            doc.setProjectName(req.getProjectName());
+            doc.setProjectDescription(req.getProjectDescription());
+            doc.setProjectDeadline(req.getProjectDeadline());
+
+            if (req.getPmId() != null) {
+                Account candidate = accountRepository.findById(req.getPmId())
+                        .orElseThrow(() -> new IllegalArgumentException("Project Manager not found"));
+                if (candidate.getRole() != Role.PM) {
+                    throw new IllegalArgumentException("Selected user is not a Project Manager");
+                }
+                newPm = candidate;
+                doc.setPm(candidate);
+            }
+        } else if (doc.getType() == DocumentType.ADMINISTRATIVE) {
+            doc.setFundName(req.getFundName());
+            doc.setFundBalance(req.getFundBalance());
+            doc.setFundPurpose(req.getFundPurpose());
+        }
+
+        // Tính pmChanged CHUẨN
+        boolean pmChanged = (doc.getType() == DocumentType.PROJECT)
+                && !Objects.equals(oldPm != null ? oldPm.getId() : null, newPm != null ? newPm.getId() : null);
+
+        // (Tùy chọn) regenerate file & preview
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("soVanBan", doc.getCode());
+        placeholders.put("tenDonVi", doc.getCreatedBy().getUsername());
+        placeholders.put("nguoiNhan", doc.getReceiver() != null ? doc.getReceiver().getUsername() : "");
+        placeholders.put("noiDung", doc.getContent() != null ? doc.getContent() : "");
+        placeholders.put("kyTen", doc.getSignature() != null ? doc.getSignature() : "");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd 'tháng' MM 'năm' yyyy");
+        placeholders.put("ngayTao", doc.getCreatedAt().format(formatter));
+
+        if (doc.getType() == DocumentType.PROJECT) {
+            placeholders.put("tenDuAn", doc.getProjectName() != null ? doc.getProjectName() : "");
+            placeholders.put("moTaDuAn", doc.getProjectDescription() != null ? doc.getProjectDescription() : "");
+            placeholders.put("hanHoanThanh", doc.getProjectDeadline() != null ? doc.getProjectDeadline().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "");
+            if (doc.getPm() != null && doc.getPm().getEmployee() != null) {
+                var emp = doc.getPm().getEmployee();
+                placeholders.put("tenPM", emp.getFirstName() + " " + emp.getLastName());
+            } else {
+                placeholders.put("tenPM", doc.getPm() != null ? doc.getPm().getUsername() : "");
+            }
+        } else {
+            placeholders.put("tenDuAn", "");
+            placeholders.put("moTaDuAn", "");
+            placeholders.put("hanHoanThanh", "");
+            placeholders.put("tenPM", "");
+        }
+
+        if (doc.getType() == DocumentType.ADMINISTRATIVE) {
+            var accountant = doc.getAccountant();
+            placeholders.put("tenKeToan", accountant != null ? accountant.getUsername() : "");
+            placeholders.put("tenQuy", defaultStr(doc.getFundName()));
+            placeholders.put("soTienQuy", doc.getFundBalance() != null ? doc.getFundBalance().toString() : "");
+            placeholders.put("mucDichQuy", defaultStr(doc.getFundPurpose()));
+        } else {
+            placeholders.put("tenKeToan", "");
+            placeholders.put("tenQuy", "");
+            placeholders.put("soTienQuy", "");
+            placeholders.put("mucDichQuy", "");
+        }
+
+        String templateName = doc.getType() == DocumentType.ADMINISTRATIVE ? "admin_template.docx" : "template.docx";
+        byte[] wordFile = exportWordFromTemplate(templateName, placeholders);
+        String logicalFileName = "congvan_" + doc.getId() + ".docx";
+        String fileUrl = uploadFileService.storeFileFromBytes("documents", logicalFileName, wordFile);
+        doc.setFileUrl(fileUrl);
+
+        Document saved = documentRepository.save(doc);
+
+        // 4) Bắn thông báo — đúng nhánh
+        try {
+            if (pmChanged) {
+                notificationService.notifyPmReassignment(saved, oldPm, newPm, secretary);
+            } else {
+                notificationService.notifyDocumentRevised(saved, secretary);
+            }
+        } catch (Exception ex) {
+            // log.warn("Notify failed for document update id={}", saved.getId(), ex);
+        }
+
+        try {
+            String previewHtml = convertDocxToHtml(saved.getFileUrl());
+            DocumentResponseDto dto = mapToResponse(saved);
+            dto.setPreviewHtml(previewHtml);
+            return dto;
+        } catch (Exception ex) {
+            return mapToResponse(saved);
+        }
+    }
+
+    public ApiResponse<?> getDocumentHistoriesPage(Long documentId, GetDocumentHistoryPageDto req) {
+        int pageSize = req.getPageSize() > 0 ? req.getPageSize() : 10;
+        int pageNumber = Math.max(1, req.getPageNumber()) - 1;
+
+        // sortBy: theo version hoặc createdAt; mặc định DESC
+        Sort.Direction direction = "asc".equalsIgnoreCase(req.getSortBy()) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        Document doc = documentRepository.findById(documentId)
+                .orElseThrow(() -> new IllegalArgumentException("Document not found"));
+
+        // Ở đây dùng sort theo version cho rõ ràng timeline
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(direction, "version"));
+
+        var all = documentHistoryRepository.findAll((root, q, cb) -> cb.equal(root.get("document"), doc), pageable);
+
+        var listDto = all.getContent().stream().map(this::mapHistoryToDto).toList();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("totalPage", all.getTotalPages());
+        data.put("totalElements", all.getTotalElements());
+        data.put("currentPage", all.getNumber() + 1);
+        data.put("histories", listDto);
+
+        return ApiResponse.success(data, "Fetched document histories");
+    }
+
 }

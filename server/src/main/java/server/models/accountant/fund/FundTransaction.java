@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import server.models.Account;
+import server.models.bank.BankTransaction;
 import server.models.enums.TransactionStatus;
 
 import java.time.LocalDateTime;
@@ -63,4 +64,10 @@ public class FundTransaction {
 
     private LocalDateTime approvedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bank_tx_id", unique = true) // 1 bankTx -> 1 fundTx
+    private BankTransaction bankTx;
+
+    @Column(name = "bank_ref_id", unique = true, length = 64)
+    private String bankRefId;
 }

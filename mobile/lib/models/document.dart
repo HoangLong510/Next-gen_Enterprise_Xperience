@@ -16,6 +16,9 @@ class DocumentModel {
   final String? signature;
   final String? previewHtml;
 
+  // 📝 Thêm trường ghi chú của giám đốc
+  final String? managerNote;
+
   // Project fields
   final String? projectName;
   final String? projectDescription;
@@ -44,6 +47,7 @@ class DocumentModel {
     required this.type,
     required this.signature,
     required this.previewHtml,
+    this.managerNote,
     this.projectName,
     this.projectDescription,
     this.projectPriority,
@@ -71,6 +75,9 @@ class DocumentModel {
       type: DocumentTypeX.fromString(json['type']),
       signature: json['signature'],
       previewHtml: json['previewHtml'],
+
+      // 📝 Lấy ghi chú từ BE
+      managerNote: json['managerNote'],
 
       projectName: json['projectName'],
       projectDescription: json['projectDescription'],

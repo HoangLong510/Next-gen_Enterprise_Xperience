@@ -50,14 +50,23 @@ class CustomDrawer extends StatelessWidget {
             leading: const Icon(Icons.person_outline),
             title: Text("ViewProfile".tr()),
             onTap: () {
-              // Xử lý xem hồ sơ
+              Navigator.of(context).pushNamed('/profile');
             },
           ),
           ListTile(
             leading: const Icon(Icons.lock_outline),
             title: Text("ChangePassword".tr()),
             onTap: () {
-              // Xử lý đổi mật khẩu
+              Navigator.of(context).pushNamed('/change-password');
+            },
+          ),
+          ListTile(
+            leading: const Icon(
+              Icons.fingerprint,
+            ), // hoặc dùng Icons.calendar_today
+            title: const Text("Timekeeping"),
+            onTap: () {
+              Navigator.of(context).pushNamed('/attendance');
             },
           ),
           ListTile(

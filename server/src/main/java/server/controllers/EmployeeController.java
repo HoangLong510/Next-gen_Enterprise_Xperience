@@ -18,7 +18,7 @@ import server.utils.ApiResponse;
 public class EmployeeController {
     private final EmployeeService employeeService;
 
-    @PreAuthorize("hasAnyAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'HR', 'MANAGER')")
     @PostMapping("/create")
     public ResponseEntity<?> create(@Valid @RequestBody CreateEmployeeDto request, BindingResult result) {
         try {
@@ -30,9 +30,21 @@ public class EmployeeController {
         }
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'HR', 'MANAGER')")
+    @PostMapping("/edit")
+    public ResponseEntity<?> edit(@Valid @RequestBody CreateEmployeeDto request, BindingResult result) {
+        try {
+            ApiResponse<?> response = employeeService.edit(request, result);
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } catch (Exception e) {
+            ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+    }
+
     @PostMapping("/change-avatar")
     public ResponseEntity<?> changeAvatar(@RequestParam("file") MultipartFile file) {
-        try{
+        try {
             ApiResponse<?> response = employeeService.changeAvatar(file);
             return ResponseEntity.status(response.getStatus()).body(response);
         } catch (Exception e) {
@@ -43,7 +55,7 @@ public class EmployeeController {
 
     @GetMapping("/get-list-hod")
     public ResponseEntity<?> getListHod() {
-        try{
+        try {
             ApiResponse<?> response = employeeService.getListHod();
             return ResponseEntity.status(response.getStatus()).body(response);
         } catch (Exception e) {
@@ -54,7 +66,7 @@ public class EmployeeController {
 
     @PostMapping("/get-employees-to-add-to-department")
     public ResponseEntity<?> getEmployeesToAddToDepartment(@RequestBody GetEmployeesToAddToDepartmentDto req) {
-        try{
+        try {
             ApiResponse<?> response = employeeService.GetEmployeesToAddToDepartment(req);
             return ResponseEntity.status(response.getStatus()).body(response);
         } catch (Exception e) {
@@ -63,10 +75,22 @@ public class EmployeeController {
         }
     }
 
-    //phần thêm của quân
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'HR', 'MANAGER')")
+    @GetMapping("/get-employee-details-by-account-id/{id}")
+    public ResponseEntity<?> getEmployeeDetailsByAccountId(@PathVariable("id") Long id) {
+        try {
+            ApiResponse<?> response = employeeService.getEmployeeDetailsByAccountId(id);
+            return ResponseEntity.status(response.getStatus()).body(response);
+        } catch (Exception e) {
+            ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+    }
+
+    // phần thêm của quân
     @GetMapping("/simple-list")
     public ApiResponse<?> getSimpleEmployeeList() {
         return employeeService.getSimpleEmployeeList();
     }
-    //hết phần thêm của quân
+    // hết phần thêm của quân
 }

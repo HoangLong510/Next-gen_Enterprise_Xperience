@@ -1,11 +1,11 @@
 package server.repositories;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import server.models.Task;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Repository
@@ -15,57 +15,60 @@ public class TaskRepositoryImpl {
     private final EntityManager entityManager;
 
     public List<Task> searchTasks(String keyword) {
-        return entityManager.createQuery("""
+        String jpql = """
             SELECT t FROM Task t
-            JOIN FETCH t.project
-            WHERE LOWER(t.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-               OR LOWER(t.description) LIKE LOWER(CONCAT('%', :keyword, '%'))
-        """, Task.class)
-                .setParameter("keyword", keyword)
-                .getResultList();
+            JOIN FETCH t.phase p
+            JOIN FETCH p.project proj
+            WHERE LOWER(t.name) LIKE LOWER(CONCAT('%', :kw, '%'))
+               OR LOWER(t.description) LIKE LOWER(CONCAT('%', :kw, '%'))
+        """;
+        TypedQuery<Task> query = entityManager.createQuery(jpql, Task.class);
+        query.setParameter("kw", keyword);
+        return query.getResultList();
     }
 
     public List<Task> filterByStatus(String status) {
-        StringBuilder query = new StringBuilder("""
-            SELECT t FROM Task t
-            JOIN FETCH t.project
-            WHERE 1=1
-        """);
-
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT t FROM Task t");
+        sb.append(" JOIN FETCH t.phase p");
+        sb.append(" JOIN FETCH p.project proj");
+        sb.append(" WHERE 1=1");
         if (status != null && !status.isBlank()) {
-            query.append(" AND LOWER(t.status) = LOWER(:status) ");
+            sb.append(" AND LOWER(t.status) = LOWER(:status)");
         }
-
         if (!"COMPLETED".equalsIgnoreCase(status)) {
-            query.append(" AND t.hidden = false ");
+            sb.append(" AND t.hidden = false");
         }
+        sb.append(" ORDER BY t.deadline ASC");
 
-        query.append(" ORDER BY t.deadline ASC ");
-
-        var q = entityManager.createQuery(query.toString(), Task.class);
-
+        TypedQuery<Task> query = entityManager.createQuery(sb.toString(), Task.class);
         if (status != null && !status.isBlank()) {
-            q.setParameter("status", status);
+            query.setParameter("status", status);
         }
-
-        return q.getResultList();
+        return query.getResultList();
     }
 
     public List<Task> getAllVisible() {
-        return entityManager.createQuery("""
+        String jpql = """
             SELECT t FROM Task t
-            JOIN FETCH t.project
+            JOIN FETCH t.phase p
+            JOIN FETCH p.project proj
             WHERE t.hidden = false
             ORDER BY t.deadline ASC
-        """, Task.class).getResultList();
+        """;
+        return entityManager.createQuery(jpql, Task.class)
+                .getResultList();
     }
 
     public List<Task> getCompletedTasks() {
-        return entityManager.createQuery("""
+        String jpql = """
             SELECT t FROM Task t
-            JOIN FETCH t.project
+            JOIN FETCH t.phase p
+            JOIN FETCH p.project proj
             WHERE t.status = 'COMPLETED'
             ORDER BY t.deadline ASC
-        """, Task.class).getResultList();
+        """;
+        return entityManager.createQuery(jpql, Task.class)
+                .getResultList();
     }
 }

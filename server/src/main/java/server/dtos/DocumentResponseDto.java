@@ -25,7 +25,6 @@ public class DocumentResponseDto {
 
     private String projectName;
     private String projectDescription;
-    private String projectPriority; // String hoặc ProjectPriority enum tuỳ FE
     private String projectDeadline; // String yyyy-MM-dd hoặc LocalDate (nếu FE biết convert)
     private String pmName;
     private Long pmId;
@@ -34,4 +33,5 @@ public class DocumentResponseDto {
     private Double fundBalance;
     private String fundPurpose;
     private String accountantName;
+    private String managerNote;
 }

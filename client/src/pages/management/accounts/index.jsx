@@ -23,8 +23,6 @@ import {
 	CardContent,
 	Divider,
 	alpha,
-	IconButton,
-	Tooltip,
 	Skeleton,
 	Pagination,
 	Button
@@ -35,10 +33,8 @@ import CustomAvatar from "~/components/custom-avatar"
 import { getAccountsPageApi } from "~/services/account.service"
 import SearchIcon from "@mui/icons-material/Search"
 import PersonIcon from "@mui/icons-material/Person"
-import MoreIcon from "@mui/icons-material/MoreVert"
 import TrendingUpIcon from "@mui/icons-material/TrendingUp"
 import GroupIcon from "@mui/icons-material/Group"
-import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings"
 import EmojiEvents from "@mui/icons-material/EmojiEvents"
 import CheckCircleIcon from "@mui/icons-material/CheckCircle"
 import CancelIcon from "@mui/icons-material/Cancel"
@@ -46,8 +42,8 @@ import { setPopup } from "~/libs/features/popup/popupSlice"
 import { useDispatch } from "react-redux"
 import { ROLE_CONFIGS } from "~/constants/account.constants"
 import RoleChip from "~/components/role-chip"
-import AddIcon from "@mui/icons-material/Add"
-import { Link } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
+import TrendingDownIcon from "@mui/icons-material/TrendingDown"
 
 // Enhanced Status Component
 const StatusIndicator = ({ enabled, t, theme }) => {
@@ -223,12 +219,15 @@ export default function AccountList() {
 	const theme = useTheme()
 	const { t, i18n } = useTranslation("accounts_management_page")
 	const dispatch = useDispatch()
+	const navigate = useNavigate()
+
 	const [loading, setLoading] = useState(false)
 	const [accounts, setAccounts] = useState([])
 	const [stats, setStats] = useState({
 		totalAccounts: 0,
 		totalEnabled: 0,
-		totalAdmin: 0
+		totalDisabled: 0,
+		totalResults: 0
 	})
 	const pageSize = 5
 	const [totalPage, setTotalPage] = useState(0)
@@ -260,7 +259,8 @@ export default function AccountList() {
 			setStats({
 				totalAccounts: res.data.totalAccounts ?? 0,
 				totalEnabled: res.data.totalEnabled ?? 0,
-				totalAdmin: res.data.totalAdmin ?? 0
+				totalDisabled: res.data.totalDisabled ?? 0,
+				totalResults: res.data.totalResults ?? 0
 			})
 		} else {
 			dispatch(setPopup({ type: "error", message: res.message }))
@@ -311,14 +311,14 @@ export default function AccountList() {
 			}
 		},
 		{
-			title: t("ADMIN"),
-			value: stats.totalAdmin,
-			icon: AdminPanelSettingsIcon,
+			title: t("disabled"),
+			value: stats.totalDisabled,
+			icon: TrendingDownIcon,
 			color: theme.palette.error.main,
 			action: () => {
 				setSearchTerm("")
-				setRoleFilter("ADMIN")
-				setStatusFilter("")
+				setRoleFilter("")
+				setStatusFilter("false")
 			}
 		}
 	]
@@ -326,38 +326,6 @@ export default function AccountList() {
 	return (
 		<>
 			<title>{t("accounts-management")}</title>
-
-			{/* Add CSS animations */}
-			<style>
-				{`
-                    @keyframes pulse-success {
-                        0%, 100% { opacity: 1; }
-                        50% { opacity: 0.6; }
-                    }
-                    @keyframes pulse-error {
-                        0%, 100% { opacity: 1; }
-                        50% { opacity: 0.6; }
-                    }
-                    @keyframes ripple-success {
-                        0% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
-                        100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
-                    }
-                    @keyframes ripple-error {
-                        0% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
-                        100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
-                    }
-                    @keyframes shimmer {
-                        0% { left: -100%; }
-                        100% { left: 100%; }
-                    }
-                    @keyframes bounce {
-                        0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
-                        40%, 43% { transform: translate3d(0,-8px,0); }
-                        70% { transform: translate3d(0,-4px,0); }
-                        90% { transform: translate3d(0,-2px,0); }
-                    }
-                `}
-			</style>
 
 			<Paper
 				sx={{
@@ -746,19 +714,6 @@ export default function AccountList() {
 								</Select>
 							</FormControl>
 						</Stack>
-						<Button
-							LinkComponent={Link}
-							to="/management/accounts/create"
-							variant="contained"
-							startIcon={<AddIcon />}
-							sx={{
-								textWrap: "nowrap",
-								px: 5,
-								textTransform: "capitalize"
-							}}
-						>
-							{t("AddNew")}
-						</Button>
 					</Stack>
 
 					{/* Active Filters Display */}
@@ -885,17 +840,6 @@ export default function AccountList() {
 										{t("createdAt")}
 									</TableSortLabel>
 								</TableCell>
-								<TableCell
-									sx={{
-										backgroundColor: alpha(
-											theme.palette.primary.main,
-											0.05
-										),
-										fontWeight: "bold"
-									}}
-								>
-									{t("action")}
-								</TableCell>
 							</TableRow>
 						</TableHead>
 						<TableBody
@@ -903,6 +847,7 @@ export default function AccountList() {
 								minHeight: pageSize * 70
 							}}
 						>
+							{/* Loading */}
 							{loading ? (
 								Array.from({ length: pageSize }).map(
 									(_, idx) => (
@@ -937,12 +882,6 @@ export default function AccountList() {
 											<TableCell>
 												<Skeleton width={80} />
 											</TableCell>
-											<TableCell>
-												<Skeleton
-													width={24}
-													height={24}
-												/>
-											</TableCell>
 										</TableRow>
 									)
 								)
@@ -950,9 +889,19 @@ export default function AccountList() {
 								<>
 									{accounts.map((acc) => (
 										<TableRow
+											onClick={() => {
+												if (acc.username !== "admin")
+													navigate(
+														`/management/accounts/details/${acc.id}`
+													)
+											}}
 											key={acc.id}
 											hover
 											sx={{
+												cursor:
+													acc.username !== "admin"
+														? "pointer"
+														: "default",
 												"&:hover": {
 													backgroundColor: alpha(
 														theme.palette.primary
@@ -1062,31 +1011,6 @@ export default function AccountList() {
 													</Typography>
 												</Box>
 											</TableCell>
-											<TableCell>
-												<Tooltip title="Thêm tùy chọn">
-													<IconButton
-														size="small"
-														sx={{
-															"&:hover": {
-																backgroundColor:
-																	alpha(
-																		theme
-																			.palette
-																			.primary
-																			.main,
-																		0.1
-																	),
-																color: theme
-																	.palette
-																	.primary
-																	.main
-															}
-														}}
-													>
-														<MoreIcon />
-													</IconButton>
-												</Tooltip>
-											</TableCell>
 										</TableRow>
 									))}
 									{accounts.length > 0 &&
@@ -1151,8 +1075,7 @@ export default function AccountList() {
 					>
 						<Typography variant="body2" color="text.secondary">
 							{t("Showing")} <strong>{accounts.length}</strong> /{" "}
-							<strong>{stats.totalAccounts}</strong>{" "}
-							{t("Results")}
+							<strong>{stats.totalResults}</strong> {t("Results")}
 						</Typography>
 						<Pagination
 							color="primary"

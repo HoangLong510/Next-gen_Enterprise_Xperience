@@ -1,11 +1,11 @@
 package server.dtos;
 
-import jakarta.validation.constraints.FutureOrPresent;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.Data;
+import server.models.enums.ProjectStatus;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
-import server.models.enums.ProjectPriority;
-
 import java.time.LocalDate;
 
 @Data
@@ -18,9 +18,9 @@ public class UpdateProjectDto {
     private String description;
 
     @NotNull(message = "Deadline is required")
-    @FutureOrPresent(message = "Deadline must be today or in the future")
-    private LocalDate deadline;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate deadline;     // không @FutureOrPresent ở UPDATE
 
-    @NotNull(message = "Priority is required")
-    private ProjectPriority priority;
+    @NotNull(message = "Status is required")
+    private ProjectStatus status;
 }

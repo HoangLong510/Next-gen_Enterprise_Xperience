@@ -99,3 +99,40 @@ export const fetchMyDocumentsPageApi = async (payload) => {
 		return { status: 500, message: "server-is-busy" };
 	}
 };
+
+/** MANAGER ghi chú (NOTE) khi trạng thái NEW */
+export const addManagerNoteApi = async (id, note) => {
+  try {
+    const res = await api.put(`/documents/${id}/note`, { note });
+    return res.data; // ApiResponse
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};
+
+/** SECRETARY chỉnh sửa document khi NEW (BE sẽ tự snapshot history) */
+export const updateDocumentApi = async (id, payload) => {
+  try {
+    const res = await api.put(`/documents/${id}`, payload, {
+      headers: { "Content-Type": "application/json" },
+    });
+    return res.data; // ApiResponse
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};
+
+/** Lấy lịch sử của document theo trang (ADMIN/MANAGER/SECRETARY/PM/ACCOUNTANT/HOD) */
+export const fetchDocumentHistoriesPageApi = async (id, payload) => {
+  try {
+    const res = await api.post(`/documents/${id}/histories`, payload, {
+      headers: { "Content-Type": "application/json" },
+    });
+    return res.data; // ApiResponse { data: { histories, totalPage, ... } }
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};

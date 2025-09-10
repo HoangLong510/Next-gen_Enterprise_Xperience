@@ -16,6 +16,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import server.dtos.DocumentRequestDto;
 import server.dtos.DocumentResponseDto;
+import server.dtos.GetDocumentHistoryPageDto;
 import server.dtos.GetDocumentsPageDto;
 import server.models.Document;
 import server.services.DocumentService;
@@ -54,7 +55,8 @@ public class DocumentController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'PM','ACCOUNTANT','SECRETARY')")
     public ResponseEntity<?> getDetail(@PathVariable Long id) {
-        var doc = documentService.getDocumentById(id);
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        var doc = documentService.getDocumentById(id, username);
         return ResponseEntity.ok(ApiResponse.success(doc, "Fetched document detail"));
     }
 
@@ -121,6 +123,35 @@ public class DocumentController {
             ApiResponse<?> response = ApiResponse.errorServer(e.getMessage());
             return ResponseEntity.status(response.getStatus()).body(response);
         }
+    }
+
+    // --- MANAGER ghi chú (NOTE) khi NEW
+    @PutMapping("/{id}/note")
+    @PreAuthorize("hasAnyAuthority('MANAGER')")
+    public ResponseEntity<?> addNote(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        var user = (UserDetails) auth.getPrincipal();
+        String note = body.getOrDefault("note", "");
+        var dto = documentService.addManagerNote(id, note, user.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(dto, "Đã lưu ghi chú của giám đốc"));
+    }
+
+    // --- SECRETARY chỉnh sửa khi NEW (tự động snapshot vào history)
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
+    public ResponseEntity<?> updateDocument(@PathVariable Long id, @RequestBody DocumentRequestDto req) throws IOException {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        var user = (UserDetails) auth.getPrincipal();
+        var dto = documentService.updateDocumentWithHistory(id, req, user.getUsername());
+        return ResponseEntity.ok(ApiResponse.success(dto, "Đã cập nhật công văn & lưu lịch sử"));
+    }
+
+    // --- Xem lịch sử của 1 document (ADMIN, MANAGER, SECRETARY, PM, ACCOUNTANT, HOD...)
+    @PostMapping("/{id}/histories")
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','SECRETARY')")
+    public ResponseEntity<?> getHistories(@PathVariable Long id, @RequestBody GetDocumentHistoryPageDto req) {
+        ApiResponse<?> response = documentService.getDocumentHistoriesPage(id, req);
+        return ResponseEntity.status(response.getStatus()).body(response);
     }
 
 }

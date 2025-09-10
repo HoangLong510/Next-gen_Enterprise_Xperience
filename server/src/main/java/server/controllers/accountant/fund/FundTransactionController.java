@@ -1,6 +1,7 @@
 package server.controllers.accountant.fund;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -12,6 +13,7 @@ import server.utils.ApiResponse;
 
 import java.time.LocalDateTime;
 
+@Slf4j
 @RestController
 @RequestMapping("/accountant/funds")
 @RequiredArgsConstructor
@@ -36,6 +38,7 @@ public class FundTransactionController {
 
     @GetMapping("/{fundId}/transactions")
     public ResponseEntity<ApiResponse<?>> getTransactions(@PathVariable Long fundId) {
+        System.out.println("API getTransactions called for fundId: " + fundId);
         ApiResponse<?> response = transactionService.getTransactions(fundId);
         return ResponseEntity.ok(response);
     }

@@ -1,17 +1,15 @@
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import Diversity1Icon from "@mui/icons-material/Diversity1";
 import SettingsIcon from "@mui/icons-material/Settings";
-import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import FilePresentIcon from "@mui/icons-material/FilePresent";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import DescriptionIcon from "@mui/icons-material/Description";
-import GavelIcon from '@mui/icons-material/Gavel';
-import ChatIcon from '@mui/icons-material/Chat';
-import WorkIcon from '@mui/icons-material/Work';
-import { PunchClock } from "@mui/icons-material";
+import WorkIcon from "@mui/icons-material/Work";
+import PunchClockIcon from "@mui/icons-material/PunchClock";
+import GavelIcon from "@mui/icons-material/Gavel"; // thêm cho Contracts
 
 export const menuItems = [
   {
@@ -21,47 +19,47 @@ export const menuItems = [
         label: "Finance",
         icon: AttachMoneyIcon,
         href: "/management/finance",
-        roles: ["ADMIN", "MANAGER", "ACCOUNTANT"]
+        roles: ["ADMIN", "MANAGER", "ACCOUNTANT"],
       },
       {
         label: "Accounts",
         icon: ManageAccountsIcon,
         href: "/management/accounts",
-        roles: ["ADMIN"]
+        roles: ["ADMIN"],
       },
       {
         label: "Settings",
         icon: SettingsIcon,
         href: "/management/settings",
-        roles: ["ADMIN"]
-      }
-    ]
+        roles: ["ADMIN"],
+      },
+    ],
   },
   {
     title: "Employees",
     items: [
       {
-        label: "Profiles",
+        label: "Employees List",
         icon: AssignmentIndIcon,
-        href: "/employees/profiles",
-        roles: ["ADMIN", "MANAGER"]
+        href: "/employees",
+        roles: ["ADMIN", "MANAGER", "HR"],
       },
       {
         label: "Contracts",
         icon: FilePresentIcon,
-        href: "/employees/contracts",
-        roles: ["ADMIN", "MANAGER"]
+        href: "/contracts",
+        roles: ["ADMIN", "MANAGER"],
       },
       {
-        label: "Attendace",
-        icon: PunchClock,
+        label: "Attendance",
+        icon: PunchClockIcon,
         href: "/attendance/list",
-        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"]
-      }
-    ]
+        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR"],
+      },
+    ],
   },
   {
-    title: "Finance",
+    title: "Accountant",
     items: [
       {
         label: "Fund",
@@ -73,8 +71,19 @@ export const menuItems = [
         label: "Salary",
         icon: FilePresentIcon,
         href: "/finance/salary",
-        roles: ["ADMIN", "MANAGER"],
-
+        roles: ["ADMIN", "MANAGER", "ACCOUNTANT"],
+      },
+      {
+        label: "Cash Advance",
+        icon: FilePresentIcon,
+        href: "/payment-request",
+        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR", "ACCOUNTANT", "CHIEFACCOUNTANT"],
+      },
+      {
+        label: "Payment",
+        icon: FilePresentIcon,
+        href: "/payment",
+        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR", "ACCOUNTANT", "CHIEFACCOUNTANT"],
       },
     ],
   },
@@ -89,29 +98,27 @@ export const menuItems = [
       },
       {
         label: "Projects",
-        // Chọn icon và đường dẫn phù hợp: 
-        // Nếu muốn icon chuẩn nghiệp vụ: AccountTreeIcon + đường dẫn /utilities/projects (giống bản web của bạn)
-        icon: AccountTreeIcon,
-        href: "/utilities/projects",
-        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+        icon: WorkIcon,
+        href: "/management/projects",
+        roles: ["ADMIN", "MANAGER", "PM"],
       },
       {
         label: "Dispatches",
         icon: AssignmentIcon,
-        href: "/utilities/dispatches",
-        roles: ["ADMIN", "MANAGER", "PM"],
+        href: "/management/documents",
+        roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
       },
       {
         label: "Tasks",
         icon: TaskAltIcon,
         href: "/utilities/tasks",
-        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+        roles: ["ADMIN", "MANAGER", "PM", "CHIEFACCOUNTANT", "ACCOUNTANT", "HOD", "EMPLOYEE"],
       },
       {
         label: "Leave Request",
         icon: DescriptionIcon,
         href: "/leave-request",
-        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR", "ACCOUNTANT","SECRETARY","CHIEFACCOUNTANT"],
+        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR", "ACCOUNTANT", "SECRETARY", "CHIEFACCOUNTANT"],
       },
       {
         label: "Contracts",

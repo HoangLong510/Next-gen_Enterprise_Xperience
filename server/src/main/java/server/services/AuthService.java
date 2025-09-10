@@ -45,12 +45,14 @@ public class AuthService {
     // Hết phần thêm
 
     public ApiResponse<?> login(LoginDto request, BindingResult result) {
+
         if(request.getCaptchaToken() != null) {
             boolean captchaValid = recaptchaService.verify(request.getCaptchaToken());
             if (!captchaValid) {
                 return ApiResponse.badRequest("captcha-verification-failed");
             }
         }
+
 
         if (result.hasErrors()) {
             return ApiResponse.badRequest(result);
@@ -76,6 +78,7 @@ public class AuthService {
         token.setAccessToken(accessToken);
         token.setRefreshToken(refreshToken);
         token.setAccount(account.get());
+        token.setDeviceName(request.getDeviceName());
         tokenRepository.save(token);
 
         TokenDto tokenDto = new TokenDto();
@@ -235,7 +238,7 @@ public class AuthService {
         }
 
         if(!request.getNewPassword().equals(request.getConfirmNewPassword())) {
-            result.rejectValue("newConfirmPassword", "", "confirm-password-does-not-match");
+            result.rejectValue("confirmNewPassword", "", "confirm-password-does-not-match");
             return ApiResponse.badRequest(result);
         }
 

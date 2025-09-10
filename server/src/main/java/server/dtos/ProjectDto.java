@@ -13,10 +13,11 @@ public class ProjectDto {
     private String description;
     private LocalDate createdAt;
     private LocalDate deadline;
+    private Long pmId;
 
     private String status;           // PLANNING, ACTIVE, DONE, etc.
-    private String priority;         // LOW, MEDIUM, HIGH
-
+    private String repoLink;
+    private String documentCode;
     private Long documentId;     // Linked document code
     private String pmName;           // Full name of the project manager
     private List<TaskDto> tasks;

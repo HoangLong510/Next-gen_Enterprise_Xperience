@@ -5,6 +5,7 @@ public enum Role {
     MANAGER,
     PM,
     ACCOUNTANT,
+    CHIEFACCOUNTANT,
     HR,
     HOD,
     EMPLOYEE,
