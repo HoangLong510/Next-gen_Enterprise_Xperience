@@ -4,10 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import server.dtos.Contracts.EmployeeLiteResponse;
 import server.dtos.AccountDto;
 import server.dtos.GetAccountsPageDto;
 import server.dtos.leave_requests.AccountResponse;
-import server.models.Account;
 import server.models.enums.Role;
 import server.services.AccountService;
 import server.services.AccountDetailService;
@@ -29,7 +29,7 @@ public class AccountController {
         return ApiResponse.success(data, "Danh sách tài khoản theo roles");
     }
 
-    // API phân trang lấy accounts, chỉ ADMIN được dùng
+    // API phân trang lấy accounts
     @PreAuthorize("hasAnyAuthority('ADMIN', 'HR', 'MANAGER')")
     @PostMapping("/get-accounts-page")
     public ResponseEntity<?> getAccountsPage(@RequestBody GetAccountsPageDto req) {
@@ -110,4 +110,9 @@ public class AccountController {
         return ResponseEntity.ok(ApiResponse.success(accounts, "Fetched-accounts-by-role"));
     }
 
+    // API trả danh sách employee lite (cho dropdown FE)
+    @GetMapping("/employees-lite")
+    public ApiResponse<List<EmployeeLiteResponse>> getEmployeesLite() {
+        return accountService.getEmployeeLiteList();
+    }
 }

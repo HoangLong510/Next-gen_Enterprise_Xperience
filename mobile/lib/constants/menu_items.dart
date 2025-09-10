@@ -99,8 +99,8 @@ const List<MenuSection> menuItems = [
       MenuItemData(
         label: "Leave Request",
         icon: Icons.description,
-        route: "/leave-request",
-        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+        route: "/utilities/leave-request",
+        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR", "ACCOUNTANT","SECRETARY","CHIEFACCOUNTANT"],
       ),
       MenuItemData(
         label: "AttenDance",

@@ -1,8 +1,8 @@
 package server.models.enums;
 
 public enum ContractStatus {
-    ACTIVE,       // Đang hiệu lực
-    EXPIRED,      // Hết hạn
-    SIGNED,       // Đã ký
-    PENDING       // Chờ ký
+    PENDING,               // Chờ ký
+    SIGNED_BY_MANAGER,     // Đã ký bởi Manager
+    ACTIVE,                // Hợp đồng có hiệu lực (đủ 2 chữ ký: Manager + Employee)
+    EXPIRED,               // Hết hạn
 }

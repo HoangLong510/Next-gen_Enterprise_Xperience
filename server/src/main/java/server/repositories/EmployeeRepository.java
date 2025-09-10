@@ -17,7 +17,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
     @Query("SELECT e FROM Employee e WHERE e.account.role IN :roles")
     List<Employee> findAllByAccountRoleIn(@Param("roles") List<Role> roles);
 
-
     Optional<Employee> findByEmail(String email);
     Optional<Employee> findByPhone(String phone);
 
@@ -29,6 +28,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
     AND e.account.role IN ('EMPLOYEE', 'HOD')
 """)
     List<Employee> findEmployeesNotInProjectWithValidRoles(@Param("projectId") Long projectId);
+
     @Query("""
     SELECT e FROM Employee e
     WHERE NOT EXISTS (
@@ -41,6 +41,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
             @Param("projectId") Long projectId,
             @Param("keyword") String keyword
     );
+
     @Query("""
     SELECT e FROM Employee e
     WHERE NOT EXISTS (
@@ -55,8 +56,20 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
             @Param("departmentId") Long departmentId,
             @Param("keyword") String keyword
     );
+
     Optional<Employee> findByCode(String code);
 
+    // lấy Employee kèm Department và HOD (để xem chi tiết)
+    @Query("""
+    SELECT e FROM Employee e
+    LEFT JOIN FETCH e.department d
+    LEFT JOIN FETCH d.hod h
+    LEFT JOIN FETCH h.account ha
+    WHERE e.account.id = :accountId
+""")
+    Optional<Employee> findByAccountIdWithDepartmentAndHod(@Param("accountId") Long accountId);
+
+    // tìm kiếm Employee kèm Department theo tên/email/phone
     @Query("""
     SELECT e FROM Employee e
     LEFT JOIN e.department d
@@ -75,5 +88,3 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
 
     List<Employee> findByDepartment_IdIn(Collection<Long> departmentIds);
 }
-
-

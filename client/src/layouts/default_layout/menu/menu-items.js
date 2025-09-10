@@ -9,6 +9,7 @@ import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import DescriptionIcon from "@mui/icons-material/Description";
 import WorkIcon from "@mui/icons-material/Work";
 import PunchClockIcon from "@mui/icons-material/PunchClock";
+import GavelIcon from "@mui/icons-material/Gavel"; // thêm cho Contracts
 
 export const menuItems = [
   {
@@ -76,13 +77,13 @@ export const menuItems = [
         label: "Cash Advance",
         icon: FilePresentIcon,
         href: "/payment-request",
-        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR","ACCOUNTANT", "CHIEFACCOUNTANT"],
+        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR", "ACCOUNTANT", "CHIEFACCOUNTANT"],
       },
       {
         label: "Payment",
         icon: FilePresentIcon,
         href: "/payment",
-        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR","ACCOUNTANT", "CHIEFACCOUNTANT"],
+        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR", "ACCOUNTANT", "CHIEFACCOUNTANT"],
       },
     ],
   },
@@ -111,13 +112,19 @@ export const menuItems = [
         label: "Tasks",
         icon: TaskAltIcon,
         href: "/utilities/tasks",
-        roles: ["ADMIN", "MANAGER", "PM","CHIEFACCOUNTANT", "ACCOUNTANT" ,"HOD", "EMPLOYEE"],
+        roles: ["ADMIN", "MANAGER", "PM", "CHIEFACCOUNTANT", "ACCOUNTANT", "HOD", "EMPLOYEE"],
       },
       {
         label: "Leave Request",
         icon: DescriptionIcon,
         href: "/leave-request",
-        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR", "ACCOUNTANT", "SECRETARY", "CHIEFACCOUNTANT"],
+      },
+      {
+        label: "Contracts",
+        icon: GavelIcon,
+        href: "/contracts",
+        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "ACCOUNTANT", "HR", "SECRETARY", "CHIEFACCOUNTANT"],
       },
     ],
   },
