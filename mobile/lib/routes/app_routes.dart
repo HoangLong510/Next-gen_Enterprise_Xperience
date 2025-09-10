@@ -8,9 +8,11 @@ import 'package:mobile/screens/dispatches/dispatches_list_page.dart';
 import 'package:mobile/screens/dispatches/dispatch_detail_page.dart';
 import 'package:mobile/screens/dispatches/dispatch_create_page.dart';
 import 'package:mobile/screens/notifaications/notification_list_page.dart';
+import 'package:mobile/screens/leave_requests/leave_request_page.dart';
 
 Route<dynamic> generateRoute(RouteSettings settings) {
   final name = settings.name;
+
   // --- 1. Xử lý dynamic route trước ---
   if (name != null) {
     // /management/documents/:id
@@ -19,12 +21,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       if (id != null) {
         return _buildPage(
           allowRoles: [
-            "ADMIN",
-            "MANAGER",
-            "PM",
-            "ACCOUNTANT",
-            "HOD",
-            "SECRETARY",
+            "ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HOD", "SECRETARY",
           ],
           child: DispatchDetailPage(id: id),
         );
@@ -39,12 +36,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       if (id != null) {
         return _buildPage(
           allowRoles: [
-            "ADMIN",
-            "MANAGER",
-            "PM",
-            "ACCOUNTANT",
-            "HOD",
-            "SECRETARY",
+            "ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HOD", "SECRETARY",
           ],
           child: DispatchDetailPage(id: id),
         );
@@ -52,9 +44,6 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         return _errorPage("Lỗi: ID document không hợp lệ");
       }
     }
-
-    // TODO: /project/:id nếu sau này có
-    // if (name.startsWith("/project/")) { ... }
   }
 
   switch (name) {
@@ -62,28 +51,16 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "ADMIN",
-            "MANAGER",
-            "PM",
-            "ACCOUNTANT",
-            "HR",
-            "HOD",
-            "EMPLOYEE",
+            "ADMIN","MANAGER","PM","ACCOUNTANT","HR","HOD","EMPLOYEE",
           ],
           child: CustomLayout(child: HomePage()),
         ),
       );
+
     case "/management/documents":
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
-          allowRoles: [
-            "ADMIN",
-            "MANAGER",
-            "PM",
-            "SECRETARY",
-            "ACCOUNTANT",
-            "HOD",
-          ],
+          allowRoles: ["ADMIN","MANAGER","PM","SECRETARY","ACCOUNTANT","HOD"],
           child: CustomLayout(child: DispatchesListPage()),
         ),
       );
@@ -100,35 +77,34 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "ADMIN",
-            "MANAGER",
-            "PM",
-            "ACCOUNTANT",
-            "HR",
-            "HOD",
-            "EMPLOYEE",
+            "ADMIN","MANAGER","PM","ACCOUNTANT","HR","HOD","EMPLOYEE",
           ],
           child: CustomLayout(child: NotificationListPage()),
         ),
       );
 
+    // >>> ADD THIS CASE <<<
+    case "/utilities/leave-request":
+      return _buildPage(
+        allowRoles: [
+          "ADMIN","MANAGER","PM","HOD","EMPLOYEE","HR","ACCOUNTANT",
+        ],
+        child: const LeaveRequestPage(),
+      );
+
     case "/login":
       return MaterialPageRoute(builder: (_) => const LoginPage());
+
     case "/logout":
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "ADMIN",
-            "MANAGER",
-            "PM",
-            "ACCOUNTANT",
-            "HR",
-            "HOD",
-            "EMPLOYEE",
+            "ADMIN","MANAGER","PM","ACCOUNTANT","HR","HOD","EMPLOYEE",
           ],
           child: CustomLayout(child: LogoutPage()),
         ),
       );
+
     default:
       return MaterialPageRoute(
         builder: (_) =>

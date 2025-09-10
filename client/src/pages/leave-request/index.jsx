@@ -25,6 +25,7 @@ import {
   Alert,
   IconButton,
   Menu,
+  Tooltip,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import {
@@ -39,8 +40,14 @@ import {
   getLeaveBalanceApi,
   getMySignatureSampleApi,
   saveMySignatureSampleApi,
+  getPendingHrApi,
+  hrConfirmLeaveRequestApi,
+  hrRejectLeaveRequestApi,
+  requestCancelLeaveApi,
+  hrCancelLeaveRequestApi,
 } from "~/services/leave.service";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useDispatch } from "react-redux";
 import { setPopup } from "~/libs/features/popup/popupSlice";
@@ -53,12 +60,16 @@ import { getAccountsByRolesApi } from "~/services/account.service";
 import SignatureCanvas from "react-signature-canvas";
 import DatePicker from "react-multi-date-picker";
 import "react-multi-date-picker/styles/colors/green.css";
+import DatePanel from "react-multi-date-picker/plugins/date_panel";
 
 const STATUS_OPTIONS = [
   { value: "", label: "Tất cả" },
   { value: "PENDING", label: "Chờ duyệt" },
+  { value: "PENDING_HR", label: "Chờ HR" },
   { value: "APPROVED", label: "Đã duyệt" },
   { value: "REJECTED", label: "Từ chối" },
+  { value: "CANCELLED", label: "Đã hủy" },
+  { value: "WAITING_TO_CANCEL", label: "Đợi Hủy Đơn" },
 ];
 
 const schema = yup.object().shape({
@@ -138,13 +149,71 @@ const formatDateTime = (isoString) => {
   return `${day}/${month}/${year}  ${hour}:${min}`;
 };
 
+// Convert DateObject | string -> 'YYYY-MM-DD' (dùng chung toàn file)
+const toISO = (d) =>
+  typeof d === "string" ? d : d?.format?.("YYYY-MM-DD") || "";
+
+// ==== Month-end reminder helpers (hoisted) ====
+function startOfDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function daysLeftInMonth() {
+  const now = new Date();
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return Math.floor(
+    (startOfDay(last) - startOfDay(now)) / (1000 * 60 * 60 * 24)
+  );
+}
+function isWithinLastTwoDaysOfMonth() {
+  const left = daysLeftInMonth();
+  return left >= 0 && left <= 21;
+}
+function isCreatedThisMonth(iso) {
+  if (!iso) return false;
+  const d = new Date(iso);
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+  );
+}
+function humanDaysLeftText() {
+  const left = daysLeftInMonth();
+  if (left === 0) return "Hôm nay là ngày cuối tháng";
+  if (left === 1) return "Còn 1 ngày là hết tháng";
+  if (left === 2) return "Còn 2 ngày là hết tháng";
+  return "";
+}
+
 export default function LeaveRequest() {
   const { t } = useTranslation("leave_page");
   const dispatch = useDispatch();
 
-  const [savedSignature, setSavedSignature] = useState(null); // base64 string
+  const [pendingHr, setPendingHr] = useState([]);
+  const [showPendingHr, setShowPendingHr] = useState(false);
+
+  // HR cancel
+  const [hrCancelDialogOpen, setHrCancelDialogOpen] = useState(false);
+  const [hrCancelTargetId, setHrCancelTargetId] = useState(null);
+  const [hrCancelLoading, setHrCancelLoading] = useState(false);
+
+  const [savedSignature, setSavedSignature] = useState(null);
   const [useSavedSignature, setUseSavedSignature] = useState(false);
   const [loadingSignature, setLoadingSignature] = useState(false);
+
+  const [calendarValue, setCalendarValue] = useState([]); // dùng cho cả RANGE & MULTI
+
+  // --- Filter states ---
+  //const [departmentId, setDepartmentId] = useState(""); // chỉ HR mới thấy input này
+  const [departmentName, setDepartmentName] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [dateFilter, setDateFilter] = useState(""); // yyyy-MM-dd
+  const [monthFilter, setMonthFilter] = useState(""); // yyyy-MM
+
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelTargetId, setCancelTargetId] = useState(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelError, setCancelError] = useState("");
 
   const [leaveMode, setLeaveMode] = useState("RANGE");
   const [leaveType, setLeaveType] = useState("FULL_DAY");
@@ -166,10 +235,31 @@ export default function LeaveRequest() {
   const [rejectTargetId, setRejectTargetId] = useState(null);
   const [rejectLoading, setRejectLoading] = useState(false);
   const [rejectError, setRejectError] = useState("");
+  const [isHrRejectMode, setIsHrRejectMode] = useState(false);
 
   // Dialog xem trước đơn nghỉ phép
   const [previewData, setPreviewData] = useState(null);
   const [openPreview, setOpenPreview] = useState(false);
+  // Hành động cần thực thi sau khi xem preview
+  // { type: 'export'|'approve'|'reject'|'hrConfirm'|'hrReject'|'hrCancel'|'requestCancel', id, row }
+  const [pendingAction, setPendingAction] = useState(null);
+
+  const actionLabels = {
+    export: "Xuất Word",
+    approve: "Duyệt",
+    reject: "Từ chối",
+    hrConfirm: "Xác nhận HR",
+    hrReject: "Từ chối HR",
+    hrCancel: "Hủy đơn (HR)",
+    requestCancel: "Xin hủy đơn",
+  };
+
+  // Mở preview kèm hành động cần thực thi sau khi xem
+  const openPreviewWithAction = (row, type) => {
+    setPreviewData(row);
+    setPendingAction({ type, id: row.id, row });
+    setOpenPreview(true);
+  };
 
   // Các state quản lý khác (giữ nguyên)
   const [showPendingToApprove, setShowPendingToApprove] = useState(false);
@@ -197,6 +287,120 @@ export default function LeaveRequest() {
     currentPage: 1,
   });
   const [account, setAccount] = useState(null);
+
+  const doHrConfirm = async (id) => {
+    setLoading(true);
+    const res = await hrConfirmLeaveRequestApi(id);
+    setLoading(false);
+    if (res.status !== 200) {
+      dispatch(
+        setPopup({
+          type: "error",
+          message: res.message || "Xác nhận HR thất bại!",
+        })
+      );
+    } else {
+      dispatch(
+        setPopup({ type: "success", message: res.message || "Đã xác nhận HR" })
+      );
+      if (showPendingHr) {
+        const r = await getPendingHrApi();
+        if (r.status === 200 && Array.isArray(r.data)) {
+          setPendingHr(r.data);
+          setLeaveData({
+            items: r.data,
+            totalPages: 1,
+            totalElements: r.data.length,
+            currentPage: 1,
+          });
+        }
+      } else {
+        fetchLeaveRequests(buildListParams({ page }));
+      }
+    }
+  };
+
+  const executePendingAction = async () => {
+    if (!pendingAction) return;
+    const { type, id, row } = pendingAction;
+    // đóng preview trước để tránh chồng dialog
+    setOpenPreview(false);
+    setPendingAction(null);
+
+    switch (type) {
+      case "export":
+        handleExportWord(id);
+        break;
+      case "approve":
+        handleApprove(id); // mở dialog ký
+        break;
+      case "reject":
+        setRejectTargetId(id);
+        setRejectDialogOpen(true);
+        setRejectReason("");
+        setRejectError("");
+        setIsHrRejectMode(false);
+        break;
+      case "hrConfirm":
+        await doHrConfirm(id);
+        break;
+      case "hrReject":
+        setRejectTargetId(id);
+        setRejectDialogOpen(true);
+        setRejectReason("");
+        setRejectError("");
+        setIsHrRejectMode(true);
+        break;
+      case "hrCancel":
+        setHrCancelTargetId(id);
+        setHrCancelDialogOpen(true);
+        break;
+      case "requestCancel":
+        setCancelTargetId(id);
+        setCancelReason("");
+        setCancelError("");
+        setCancelDialogOpen(true);
+        break;
+      default:
+        break;
+    }
+  };
+
+  // build params cho list
+  const buildListParams = (overrides = {}) => {
+    const p = {
+      status,
+      page,
+      ...overrides,
+    };
+    // HR mới được chọn phòng ban; role khác để trống (BE tự visibility)
+    //if (account?.role === "HR" && departmentId) p.departmentId = departmentId;
+    if (account?.role === "HR" && departmentName)
+      p.departmentName = departmentName;
+    if (senderName) p.senderName = senderName;
+    if (dateFilter) p.date = dateFilter;
+    if (monthFilter) p.month = monthFilter;
+    return p;
+  };
+
+  const handleSearch = () => {
+    // tắt các filter "quick views" nếu đang bật
+    setShowMyPendingSent(false);
+    setShowPendingToApprove(false);
+    setShowPendingHr(false);
+    setPage(1);
+    fetchLeaveRequests(buildListParams({ page: 1 }));
+  };
+
+  const handleClearFilters = () => {
+    setDepartmentName("");
+    //setDepartmentId("");
+    setSenderName("");
+    setDateFilter("");
+    setMonthFilter("");
+    setPage(1);
+    fetchLeaveRequests({ status: "", page: 1 }); // trở về mặc định
+  };
 
   const {
     handleSubmit,
@@ -241,12 +445,6 @@ export default function LeaveRequest() {
     }
   };
 
-  // Click cả dòng TableRow để xem trước
-  const handleRowClick = (row) => {
-    setPreviewData(row);
-    setOpenPreview(true);
-  };
-
   const handleMenuOpen = (event, rowId) => {
     setAnchorEl(event.currentTarget);
     setMenuRowId(rowId);
@@ -261,6 +459,10 @@ export default function LeaveRequest() {
   const isManager = account?.role === "MANAGER";
   const isAdmin = account?.role === "ADMIN";
   const isPM = account?.role === "PM";
+  const isHR = account?.role === "HR";
+  const isHOD = account?.role === "HOD";
+  const isChiefAcc = account?.role === "CHIEFACCOUNTANT";
+  const isAccountant = account?.role === "ACCOUNTANT";
 
   // Các hàm fetch API
   const fetchLeaveRequests = async (params = {}) => {
@@ -276,48 +478,85 @@ export default function LeaveRequest() {
 
   const fetchAccountAndReceivers = async () => {
     const res = await fetchAccountDataApi();
-    if (res.status === 200) {
-      setAccount(res.data);
+    if (res.status !== 200) return;
 
-      if (res.data.role === "EMPLOYEE") {
-        // Lấy đúng HOD phòng ban của employee
-        const department = res.data.employee?.department;
-        if (department && department.hod) {
-          setReceiverList([
-            {
-              id: department.hod.id,
-              fullName: department.hod.fullName,
-              role: department.hod.role,
-            },
-          ]);
-          setHodError("");
-        } else {
-          setReceiverList([]);
-          setHodError(
-            "Bạn chưa thuộc phòng ban nào hoặc phòng chưa có trưởng phòng (HOD), không thể gửi đơn!"
-          );
-        }
+    setAccount(res.data);
+
+    // EMPLOYEE -> auto HOD (accountId)
+    if (res.data.role === "EMPLOYEE") {
+      const dept = res.data.employee?.department;
+      const hodEmp = dept?.hod;
+      const hodAccId = hodEmp?.account?.id;
+
+      if (dept && hodEmp && hodAccId) {
+        const fullName =
+          hodEmp?.account?.fullName ||
+          `${hodEmp?.firstName || ""} ${hodEmp?.lastName || ""}`.trim();
+
+        setReceiverList([
+          {
+            id: hodAccId,
+            fullName: fullName || "HOD",
+            role: hodEmp?.account?.role || "HOD",
+          },
+        ]);
+        setValue("receiverId", Number(hodAccId));
+        setHodError("");
       } else {
-        // Các role khác như cũ
-        let roles = [];
-        if (res.data.role === "HOD" || res.data.role === "PM")
-          roles = ["MANAGER"];
-        if (roles.length > 0) {
-          const receiverRes = await getAccountsByRolesApi(roles);
-          setReceiverList(receiverRes.status === 200 ? receiverRes.data : []);
-        } else setReceiverList([]);
-        setHodError(""); // reset lỗi
+        setReceiverList([]);
+        setValue("receiverId", null);
+        setHodError(
+          "Bạn chưa thuộc phòng ban nào hoặc phòng chưa có trưởng phòng (HOD), không thể gửi đơn!"
+        );
       }
-    }
-  };
-
-  const handleSignAndApprove = async () => {
-    if (!signaturePad || signaturePad.isEmpty()) {
-      setSignError("Bạn phải ký tên trước khi xác nhận!");
       return;
     }
+
+    // ACCOUNTANT -> CHIEFACCOUNTANT
+    if (res.data.role === "ACCOUNTANT") {
+      const receiverRes = await getAccountsByRolesApi(["CHIEFACCOUNTANT"]);
+      setReceiverList(receiverRes.status === 200 ? receiverRes.data : []);
+      setHodError("");
+      return;
+    }
+
+    // HOD/PM/HR/ADMIN/SECRETARY/CHIEFACCOUNTANT -> MANAGER
+    if (
+      ["HOD", "PM", "HR", "ADMIN", "SECRETARY", "CHIEFACCOUNTANT"].includes(
+        res.data.role
+      )
+    ) {
+      const receiverRes = await getAccountsByRolesApi(["MANAGER"]);
+      setReceiverList(receiverRes.status === 200 ? receiverRes.data : []);
+      setHodError("");
+      return;
+    }
+
+    // MANAGER (và còn lại) -> không có người duyệt
+    setReceiverList([]);
+    setValue("receiverId", null);
+    setHodError("");
+  };
+
+  // Truyền params object: { useSavedSignature, savedSignatureBase64 }
+  const handleSignAndApprove = async ({
+    useSavedSignature,
+    savedSignatureBase64,
+  }) => {
+    let signatureDataUrl = null;
+
+    if (useSavedSignature && savedSignatureBase64) {
+      signatureDataUrl = savedSignatureBase64;
+    } else {
+      // Phải kiểm tra signaturePad đã có ref và có ký chưa
+      if (!signaturePad || signaturePad.isEmpty()) {
+        setSignError("Bạn phải ký tên trước khi xác nhận!");
+        return;
+      }
+      signatureDataUrl = signaturePad.toDataURL();
+    }
+
     setLoading(true);
-    const signatureDataUrl = signaturePad.toDataURL();
     const res = await approveLeaveRequestApi(
       currentApproveId,
       signatureDataUrl
@@ -325,30 +564,51 @@ export default function LeaveRequest() {
     setLoading(false);
     setSignDialogOpen(false);
     setCurrentApproveId(null);
+
     if (res.status !== 200)
       dispatch(setPopup({ type: "error", message: res.message }));
     else {
       dispatch(setPopup({ type: "success", message: res.message }));
-      fetchLeaveRequests({ status, page });
+      fetchLeaveRequests(buildListParams({ page }));
     }
   };
+
   useEffect(() => {
-    fetchLeaveRequests({ status, page });
-  }, [status, page]);
-  useEffect(() => {
-    if (account?.role === "HOD" || account?.role === "MANAGER") {
+    // HOD / MANAGER / CHIEFACCOUNTANT: đơn chờ bạn duyệt (PENDING)
+    if (["HOD", "MANAGER", "CHIEFACCOUNTANT"].includes(account?.role)) {
       getPendingToApproveApi().then((res) => {
         if (res.status === 200 && Array.isArray(res.data))
           setPendingToApprove(res.data);
       });
     }
-    if (["EMPLOYEE", "HOD", "PM"].includes(account?.role)) {
+
+    // HR: đơn chờ HR confirm (PENDING_HR)
+    if (account?.role === "HR") {
+      getPendingHrApi().then((res) => {
+        if (res.status === 200 && Array.isArray(res.data))
+          setPendingHr(res.data);
+      });
+    }
+
+    // Những role được gửi đơn -> show "đơn bạn đã gửi chờ duyệt"
+    const senders = [
+      "EMPLOYEE",
+      "HOD",
+      "PM",
+      "HR",
+      "ADMIN",
+      "SECRETARY",
+      "CHIEFACCOUNTANT",
+      "ACCOUNTANT",
+    ];
+    if (senders.includes(account?.role)) {
       getMyPendingSentApi().then((res) => {
         if (res.status === 200 && Array.isArray(res.data))
           setMyPendingSent(res.data);
       });
     }
   }, [account]);
+
   useEffect(() => {
     fetchAccountAndReceivers();
   }, []);
@@ -359,20 +619,29 @@ export default function LeaveRequest() {
   };
   const handleChangePage = (e, value) => {
     setPage(value);
+    if (!showMyPendingSent && !showPendingToApprove && !showPendingHr) {
+      fetchLeaveRequests(buildListParams({ page: value }));
+    }
   };
+
   const handleApprove = (id) => {
     setCurrentApproveId(id);
     setSignDialogOpen(true);
     setSignError("");
-    fetchLeaveRequests({ status, page });
   };
   const handleReject = async (id, reason) => {
     setRejectLoading(true);
-    const res = await rejectLeaveRequestApi(id, reason);
+    let res;
+    if (isHrRejectMode) {
+      res = await hrRejectLeaveRequestApi(id, reason);
+    } else {
+      res = await rejectLeaveRequestApi(id, reason);
+    }
     setRejectLoading(false);
     setRejectDialogOpen(false);
     setRejectReason("");
     setRejectTargetId(null);
+    setIsHrRejectMode(false);
 
     if (res.status !== 200) {
       dispatch(
@@ -385,28 +654,56 @@ export default function LeaveRequest() {
       dispatch(
         setPopup({
           type: "success",
-          message: res.message || "Đã từ chối đơn nghỉ phép!",
+          message:
+            res.message ||
+            (isHrRejectMode
+              ? "HR đã từ chối xác nhận!"
+              : "Đã từ chối đơn nghỉ phép!"),
         })
       );
-      fetchLeaveRequests({ status, page });
+      // Nếu đang xem danh sách chờ HR thì refresh lại chính danh sách đó
+      if (isHrRejectMode && showPendingHr) {
+        const r = await getPendingHrApi();
+        if (r.status === 200 && Array.isArray(r.data)) {
+          setPendingHr(r.data);
+          setLeaveData({
+            items: r.data,
+            totalPages: 1,
+            totalElements: r.data.length,
+            currentPage: 1,
+          });
+        }
+      } else {
+        fetchLeaveRequests(buildListParams({ page }));
+      }
     }
   };
 
   const handleOpenDialog = () => {
+    // EMPLOYEE: tự động set HOD (accountId) để qua Yup; các role khác để null
+    const hodAccId = account?.employee?.department?.hod?.account?.id;
+    const defaultReceiverId =
+      account?.role === "EMPLOYEE" && hodAccId ? Number(hodAccId) : null;
+
     reset({
       reason: "",
-      receiverId: null,
+      receiverId: defaultReceiverId,
       startDate: "",
       endDate: "",
       days: [],
       leaveMode: "RANGE",
     });
+
     setLeaveMode("RANGE");
+    setCalendarValue([]); // reset Calendar
+    setSelectedStart("");
+    setSelectedEnd("");
     setDialogOpen(true);
-    // Gọi API leave-balance cho tháng hiện tại (khi mở dialog)
+
+    // Leave balance cho tháng hiện tại
     fetchLeaveBalance(getCurrentMonth());
 
-    // Lấy tháng hiện tại theo yyyy-MM
+    // Lấy yyyy-MM hiện tại
     const now = new Date();
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
       2,
@@ -414,10 +711,11 @@ export default function LeaveRequest() {
     )}`;
     setSelectedMonth(month);
 
-    // Lấy departmentId từ account
+    // Lấy ngày bận của phòng ban
     const departmentId = account?.employee?.department?.id;
     if (departmentId) fetchBusyDays(departmentId, month);
   };
+
   const handleCloseDialog = () => {
     setDialogOpen(false);
   };
@@ -440,16 +738,7 @@ export default function LeaveRequest() {
       // Xóa đảm bảo không có field days
       delete dto.days;
     } else if (leaveMode === "MULTI") {
-      // Kiểu nghỉ ngắt quãng (nhiều ngày)
-      dto.days = multiDays.map((d) =>
-        typeof d === "string"
-          ? d
-          : d.format
-          ? d.format("YYYY-MM-DD")
-          : `${d.year}-${String(d.month).padStart(2, "0")}-${String(
-              d.day
-            ).padStart(2, "0")}`
-      );
+      dto.days = formData.days || [];
       // Xóa đảm bảo không có field startDate, endDate
       delete dto.startDate;
       delete dto.endDate;
@@ -507,8 +796,9 @@ export default function LeaveRequest() {
       setLoadingSignature(true);
       getMySignatureSampleApi().then((res) => {
         setLoadingSignature(false);
-        if (res.status === 200 && res.data?.signatureBase64) {
-          setSavedSignature(res.data.signatureBase64);
+        // Đúng: kiểm tra res.data (không phải res.data.signatureBase64)
+        if (res.status === 200 && res.data) {
+          setSavedSignature(res.data); // base64 string
         } else {
           setSavedSignature(null);
         }
@@ -585,6 +875,167 @@ export default function LeaveRequest() {
     return "-";
   }
 
+  const canApproveRow = (row) => {
+    if (row.status !== "PENDING") return false;
+    if (!account?.id) return false;
+
+    // chỉ người được chỉ định (receiver) mới thấy nút
+    const isReceiver = row?.receiver?.id === account.id;
+    if (!isReceiver) return false;
+
+    const senderRole = row?.sender?.role;
+
+    if (isManager) {
+      return [
+        "HOD",
+        "PM",
+        "HR",
+        "ADMIN",
+        "SECRETARY",
+        "CHIEFACCOUNTANT",
+      ].includes(senderRole);
+    }
+    if (isHOD) {
+      return senderRole === "EMPLOYEE";
+    }
+    if (isChiefAcc) {
+      return senderRole === "ACCOUNTANT";
+    }
+    return false;
+  };
+
+  // Chỉ HR mới được hủy; theo BE: cho hủy khi PENDING_HR hoặc APPROVED
+  const canHrCancelRow = (row) => {
+    return isHR && row?.status !== "CANCELLED";
+  };
+
+  // NẠP LIST theo status + page (khi không bật các filter cục bộ)
+  useEffect(() => {
+    if (!showMyPendingSent && !showPendingToApprove && !showPendingHr) {
+      fetchLeaveRequests(buildListParams());
+    }
+  }, [
+    status,
+    page,
+    showMyPendingSent,
+    showPendingToApprove,
+    showPendingHr,
+    //departmentId,
+    departmentName,
+    senderName,
+    dateFilter,
+    monthFilter,
+    account,
+  ]);
+
+  const canRequestCancel = (row) => {
+    if (!account?.id) return false;
+    const isOwner = row?.sender?.id === account.id; // chỉ chính chủ đơn
+    if (!isOwner) return false;
+    // Cho phép xin hủy khi đơn đang chờ duyệt, chờ HR, hoặc đã duyệt
+    return ["PENDING", "PENDING_HR", "APPROVED"].includes(row?.status);
+  };
+
+  const handleCancelRequest = async () => {
+    if (!cancelReason.trim()) {
+      setCancelError("Bạn phải nhập lý do hủy!");
+      return;
+    }
+    setCancelError("");
+    setCancelLoading(true);
+    const res = await requestCancelLeaveApi(cancelTargetId, cancelReason);
+    setCancelLoading(false);
+    setCancelDialogOpen(false);
+    setCancelReason("");
+    setCancelTargetId(null);
+
+    if (res.status !== 200) {
+      dispatch(
+        setPopup({
+          type: "error",
+          message: res.message || "Gửi yêu cầu hủy thất bại!",
+        })
+      );
+    } else {
+      dispatch(
+        setPopup({
+          type: "success",
+          message: res.message || "Đã gửi yêu cầu hủy đơn!",
+        })
+      );
+      // refresh list hiện tại
+      if (showMyPendingSent) {
+        const r = await getMyPendingSentApi();
+        if (r.status === 200 && Array.isArray(r.data)) {
+          setMyPendingSent(r.data);
+          setLeaveData({
+            items: r.data,
+            totalPages: 1,
+            totalElements: r.data.length,
+            currentPage: 1,
+          });
+        }
+      } else {
+        fetchLeaveRequests(buildListParams({ page }));
+      }
+    }
+  };
+
+  const handleHrCancel = async () => {
+    setHrCancelLoading(true);
+    const res = await hrCancelLeaveRequestApi(hrCancelTargetId);
+    setHrCancelLoading(false);
+    setHrCancelDialogOpen(false);
+    setHrCancelTargetId(null);
+
+    if (res.status !== 200) {
+      dispatch(
+        setPopup({ type: "error", message: res.message || "Hủy đơn thất bại!" })
+      );
+    } else {
+      dispatch(
+        setPopup({ type: "success", message: res.message || "HR đã hủy đơn." })
+      );
+      // Nếu đang xem danh sách chờ HR thì reload danh sách đó,
+      // ngược lại refresh list theo filter hiện tại
+      if (showPendingHr) {
+        const r = await getPendingHrApi();
+        if (r.status === 200 && Array.isArray(r.data)) {
+          setPendingHr(r.data);
+          setLeaveData({
+            items: r.data,
+            totalPages: 1,
+            totalElements: r.data.length,
+            currentPage: 1,
+          });
+        }
+      } else {
+        fetchLeaveRequests(buildListParams({ page }));
+      }
+    }
+  };
+
+  // (tuỳ chọn) nạp 1 lần khi mở trang
+  useEffect(() => {
+    fetchLeaveRequests({ status: "", page: 1 });
+  }, []);
+
+  // --- Month-end counts (lọc theo đơn tạo trong THÁNG HIỆN TẠI) ---
+  const isReminderWindow = isWithinLastTwoDaysOfMonth();
+  const pendingForMeThisMonth = pendingToApprove.filter(
+    (r) => r.status === "PENDING" && isCreatedThisMonth(r.createdAt)
+  ).length;
+
+  const pendingHrThisMonth = pendingHr.filter(
+    (r) => r.status === "PENDING_HR" && isCreatedThisMonth(r.createdAt)
+  ).length;
+
+  const myPendingThisMonth = myPendingSent.filter(
+    (r) =>
+      (r.status === "PENDING" || r.status === "PENDING_HR") &&
+      isCreatedThisMonth(r.createdAt)
+  ).length;
+
   return (
     <>
       <title>{t("Leave Requests")}</title>
@@ -603,6 +1054,76 @@ export default function LeaveRequest() {
             {t("Leave Requests")}
           </Typography>
           <Box sx={{ display: "flex", gap: 2 }}>
+            {/* Bộ lọc nâng cao */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  md: "repeat(4, 1fr)",
+                  lg: "repeat(5, 1fr)",
+                },
+                gap: 2,
+                mt: 1,
+                mb: 2,
+              }}
+            >
+              {/* Chỉ HR mới thấy filter phòng ban
+              {account?.role === "HR" && (
+                <TextField
+                  size="small"
+                  label="Phòng ban (ID)"
+                  value={departmentId}
+                  onChange={(e) =>
+                    setDepartmentId(e.target.value.replace(/\D+/g, ""))
+                  }
+                  placeholder="VD: 3"
+                />
+              )} */}
+              {account?.role === "HR" && (
+                <TextField
+                  size="small"
+                  label="Phòng ban (tên)"
+                  value={departmentName}
+                  onChange={(e) => setDepartmentName(e.target.value)}
+                  placeholder="Nhập tên phòng ban..."
+                />
+              )}
+
+              <TextField
+                size="small"
+                label="Tên người gửi / username"
+                value={senderName}
+                onChange={(e) => setSenderName(e.target.value)}
+                placeholder="Nhập từ khóa..."
+              />
+
+              <TextField
+                size="small"
+                type="date"
+                label="Ngày nghỉ (đúng ngày)"
+                InputLabelProps={{ shrink: true }}
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+              />
+
+              <TextField
+                size="small"
+                type="month"
+                label="Tháng nghỉ"
+                InputLabelProps={{ shrink: true }}
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+              />
+
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Button variant="text" onClick={handleClearFilters}>
+                  Xóa lọc
+                </Button>
+              </Stack>
+            </Box>
+
             <FormControl size="small" sx={{ minWidth: 160 }}>
               <InputLabel>{t("Status")}</InputLabel>
               <Select
@@ -617,8 +1138,8 @@ export default function LeaveRequest() {
                 ))}
               </Select>
             </FormControl>
-            {/* Ẩn nút tạo đơn cho MANAGER và ADMIN */}
-            {!isManager && !isAdmin && (
+            {/* Ẩn nút tạo đơn cho MANAGER */}
+            {!isManager && (
               <Button
                 variant="contained"
                 onClick={handleOpenDialog}
@@ -654,7 +1175,7 @@ export default function LeaveRequest() {
                         setShowPendingToApprove(false);
                       } else {
                         setShowMyPendingSent(false);
-                        fetchLeaveRequests({ status, page });
+                        fetchLeaveRequests(buildListParams({ page }));
                       }
                     }}
                   >
@@ -679,7 +1200,7 @@ export default function LeaveRequest() {
           )}
 
         {/* Đơn bạn cần duyệt */}
-        {(account?.role === "HOD" || account?.role === "MANAGER") &&
+        {["HOD", "MANAGER", "CHIEFACCOUNTANT"].includes(account?.role) &&
           pendingToApprove.length > 0 && (
             <Stack sx={{ mb: 2, width: "100%" }}>
               <Alert
@@ -702,7 +1223,7 @@ export default function LeaveRequest() {
                         setShowMyPendingSent(false);
                       } else {
                         setShowPendingToApprove(false);
-                        fetchLeaveRequests({ status, page });
+                        fetchLeaveRequests(buildListParams({ page }));
                       }
                     }}
                   >
@@ -722,6 +1243,207 @@ export default function LeaveRequest() {
               >
                 Bạn có <b>{pendingToApprove.length}</b> đơn{" "}
                 <span style={{ color: "#ff9800" }}>chờ bạn duyệt</span>
+              </Alert>
+            </Stack>
+          )}
+
+        {/* Đơn chờ HR xác nhận */}
+        {isHR && pendingHr.length > 0 && (
+          <Stack sx={{ mb: 2, width: "100%" }}>
+            <Alert
+              icon={<TaskAltIcon fontSize="inherit" />}
+              severity="info"
+              action={
+                <Button
+                  color="primary"
+                  size="small"
+                  variant={showPendingHr ? "outlined" : "contained"}
+                  onClick={() => {
+                    if (!showPendingHr) {
+                      setLeaveData({
+                        items: pendingHr,
+                        totalPages: 1,
+                        totalElements: pendingHr.length,
+                        currentPage: 1,
+                      });
+                      setShowPendingHr(true);
+                      setShowMyPendingSent(false);
+                      setShowPendingToApprove(false);
+                    } else {
+                      setShowPendingHr(false);
+                      fetchLeaveRequests(buildListParams({ page }));
+                    }
+                  }}
+                >
+                  {showPendingHr ? "Bỏ lọc" : `Xem đơn (${pendingHr.length})`}
+                </Button>
+              }
+              sx={{
+                fontWeight: 500,
+                bgcolor: "#e3f2fd",
+                color: "#1976d2",
+                border: "1px solid #90caf9",
+                borderRadius: 2,
+                alignItems: "center",
+              }}
+            >
+              Bạn có <b>{pendingHr.length}</b> đơn{" "}
+              <span style={{ color: "#ff9800" }}>chờ HR xác nhận</span>
+            </Alert>
+          </Stack>
+        )}
+        {/* ============ Nhắc Receiver (HOD / MANAGER / CHIEFACCOUNTANT) ============ */}
+        {isReminderWindow &&
+          ["HOD", "MANAGER", "CHIEFACCOUNTANT"].includes(account?.role) &&
+          pendingForMeThisMonth > 0 && (
+            <Stack sx={{ mb: 2, width: "100%" }}>
+              <Alert
+                severity="warning"
+                action={
+                  <Button
+                    color="warning"
+                    size="small"
+                    variant={showPendingToApprove ? "outlined" : "contained"}
+                    onClick={() => {
+                      if (!showPendingToApprove) {
+                        setLeaveData({
+                          items: pendingToApprove,
+                          totalPages: 1,
+                          totalElements: pendingToApprove.length,
+                          currentPage: 1,
+                        });
+                        setShowPendingToApprove(true);
+                        setShowMyPendingSent(false);
+                        setShowPendingHr(false);
+                      } else {
+                        setShowPendingToApprove(false);
+                        fetchLeaveRequests(buildListParams({ page }));
+                      }
+                    }}
+                  >
+                    {showPendingToApprove ? "Bỏ lọc" : "Xem danh sách"}
+                  </Button>
+                }
+                sx={{
+                  fontWeight: 500,
+                  bgcolor: "#fff8e1",
+                  color: "#ff6f00",
+                  border: "1px solid #ffe082",
+                  borderRadius: 2,
+                  alignItems: "center",
+                }}
+              >
+                {humanDaysLeftText()}. Bạn có <b>{pendingForMeThisMonth}</b> đơn
+                <span style={{ color: "#ef6c00" }}> chờ bạn duyệt</span> trong
+                tháng này. Vui lòng xử lý để kịp chốt tháng.
+              </Alert>
+            </Stack>
+          )}
+
+        {/* ============ Nhắc HR (PENDING_HR) ============ */}
+        {isReminderWindow && isHR && pendingHrThisMonth > 0 && (
+          <Stack sx={{ mb: 2, width: "100%" }}>
+            <Alert
+              severity="warning"
+              action={
+                <Button
+                  color="warning"
+                  size="small"
+                  variant={showPendingHr ? "outlined" : "contained"}
+                  onClick={() => {
+                    if (!showPendingHr) {
+                      setLeaveData({
+                        items: pendingHr,
+                        totalPages: 1,
+                        totalElements: pendingHr.length,
+                        currentPage: 1,
+                      });
+                      setShowPendingHr(true);
+                      setShowMyPendingSent(false);
+                      setShowPendingToApprove(false);
+                    } else {
+                      setShowPendingHr(false);
+                      fetchLeaveRequests(buildListParams({ page }));
+                    }
+                  }}
+                >
+                  {showPendingHr ? "Bỏ lọc" : "Xem danh sách"}
+                </Button>
+              }
+              sx={{
+                fontWeight: 500,
+                bgcolor: "#fff8e1",
+                color: "#ff6f00",
+                border: "1px solid #ffe082",
+                borderRadius: 2,
+                alignItems: "center",
+              }}
+            >
+              {humanDaysLeftText()}. Có <b>{pendingHrThisMonth}</b> đơn
+              <span style={{ color: "#ef6c00" }}> chờ HR xác nhận</span> trong
+              tháng này.
+            </Alert>
+          </Stack>
+        )}
+
+        {/* ============ Nhắc Sender (đơn mình đã gửi còn chờ duyệt) ============ */}
+        {isReminderWindow &&
+          [
+            "EMPLOYEE",
+            "HOD",
+            "PM",
+            "HR",
+            "ADMIN",
+            "SECRETARY",
+            "CHIEFACCOUNTANT",
+            "ACCOUNTANT",
+          ].includes(account?.role) &&
+          myPendingThisMonth > 0 && (
+            <Stack sx={{ mb: 2, width: "100%" }}>
+              <Alert
+                severity="warning"
+                action={
+                  <Button
+                    color="warning"
+                    size="small"
+                    variant={showMyPendingSent ? "outlined" : "contained"}
+                    onClick={() => {
+                      if (!showMyPendingSent) {
+                        setLeaveData({
+                          items: myPendingSent,
+                          totalPages: 1,
+                          totalElements: myPendingSent.length,
+                          currentPage: 1,
+                        });
+                        setShowMyPendingSent(true);
+                        setShowPendingToApprove(false);
+                        setShowPendingHr(false);
+                      } else {
+                        setShowMyPendingSent(false);
+                        fetchLeaveRequests(buildListParams({ page }));
+                      }
+                    }}
+                  >
+                    {showMyPendingSent ? "Bỏ lọc" : "Xem đơn của tôi"}
+                  </Button>
+                }
+                sx={{
+                  fontWeight: 500,
+                  bgcolor: "#fff8e1",
+                  color: "#ff6f00",
+                  border: "1px solid #ffe082",
+                  borderRadius: 2,
+                  alignItems: "center",
+                }}
+              >
+                {humanDaysLeftText()}. Bạn còn <b>{myPendingThisMonth}</b> đơn
+                đã gửi
+                <span style={{ color: "#ef6c00" }}>
+                  {" "}
+                  chưa được duyệt/xác nhận
+                </span>{" "}
+                trong tháng này. Vui lòng chủ động liên hệ người duyệt/HR nếu
+                cần.
               </Alert>
             </Stack>
           )}
@@ -857,12 +1579,7 @@ export default function LeaveRequest() {
                   }
 
                   return (
-                    <TableRow
-                      key={row.id}
-                      hover
-                      style={{ cursor: "pointer" }}
-                      onClick={() => handleRowClick(row)}
-                    >
+                    <TableRow key={row.id} hover>
                       <TableCell>
                         {(leaveData.currentPage - 1) * size + idx + 1}
                       </TableCell>
@@ -917,8 +1634,12 @@ export default function LeaveRequest() {
                               ? "success"
                               : row.status === "REJECTED"
                               ? "error"
+                              : row.status === "PENDING_HR" // +++
+                              ? "info"
                               : row.status === "PENDING"
                               ? "warning"
+                              : row.status === "CANCELLED"
+                              ? "default"
                               : "default"
                           }
                           variant="outlined"
@@ -926,6 +1647,18 @@ export default function LeaveRequest() {
                         />
                       </TableCell>
                       <TableCell align="center">
+                        <Tooltip title="Xem trước">
+                          <IconButton
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewData(row);
+                              setOpenPreview(true);
+                            }}
+                            sx={{ mr: 0.5 }}
+                          >
+                            <VisibilityIcon />
+                          </IconButton>
+                        </Tooltip>
                         <IconButton
                           onClick={(e) => {
                             e.stopPropagation();
@@ -949,44 +1682,78 @@ export default function LeaveRequest() {
                         >
                           <MenuItem
                             onClick={() => {
-                              handleExportWord(row.id);
+                              openPreviewWithAction(row, "export");
                               handleMenuClose();
                             }}
                           >
                             {t("Export Word")}
                           </MenuItem>
-                          {!isEmployee &&
-                            !isAdmin &&
-                            !isPM &&
-                            row.status === "PENDING" &&
-                            !(
-                              account.role === "HOD" &&
-                              row.sender?.role === "HOD"
-                            ) && [
-                              <MenuItem
-                                key="approve"
-                                onClick={() => {
-                                  handleApprove(row.id);
-                                  handleMenuClose();
-                                }}
-                                sx={{ color: "green" }}
-                              >
-                                {t("Approve")}
-                              </MenuItem>,
-                              <MenuItem
-                                key="reject"
-                                onClick={() => {
-                                  setRejectTargetId(row.id);
-                                  setRejectDialogOpen(true);
-                                  setRejectReason("");
-                                  setRejectError("");
-                                  handleMenuClose();
-                                }}
-                                sx={{ color: "red" }}
-                              >
-                                {t("Reject")}
-                              </MenuItem>,
-                            ]}
+                          {canApproveRow(row) && [
+                            <MenuItem
+                              key="approve"
+                              onClick={() => {
+                                openPreviewWithAction(row, "approve");
+                                handleMenuClose();
+                              }}
+                              sx={{ color: "green" }}
+                            >
+                              {t("Approve")}
+                            </MenuItem>,
+                            <MenuItem
+                              key="reject"
+                              onClick={() => {
+                                openPreviewWithAction(row, "reject");
+                                handleMenuClose();
+                              }}
+                              sx={{ color: "red" }}
+                            >
+                              {t("Reject")}
+                            </MenuItem>,
+                          ]}
+                          {isHR && row.status === "PENDING_HR" && (
+                            <MenuItem
+                              onClick={() => {
+                                openPreviewWithAction(row, "hrConfirm");
+                                handleMenuClose();
+                              }}
+                              sx={{ color: "green" }}
+                            >
+                              Xác nhận HR
+                            </MenuItem>
+                          )}
+                          {isHR && row.status === "PENDING_HR" && (
+                            <MenuItem
+                              onClick={() => {
+                                openPreviewWithAction(row, "hrReject");
+                                handleMenuClose();
+                              }}
+                              sx={{ color: "red" }}
+                            >
+                              Từ chối HR
+                            </MenuItem>
+                          )}
+                          {canHrCancelRow(row) && (
+                            <MenuItem
+                              onClick={() => {
+                                openPreviewWithAction(row, "hrCancel");
+                                handleMenuClose();
+                              }}
+                              sx={{ color: "error.main" }}
+                            >
+                              Hủy đơn (HR){" "}
+                            </MenuItem>
+                          )}
+                          {canRequestCancel(row) && (
+                            <MenuItem
+                              onClick={() => {
+                                openPreviewWithAction(row, "requestCancel");
+                                handleMenuClose();
+                              }}
+                              sx={{ color: "warning.main" }}
+                            >
+                              Xin hủy đơn
+                            </MenuItem>
+                          )}
                         </Menu>
                       </TableCell>
                     </TableRow>
@@ -1059,8 +1826,18 @@ export default function LeaveRequest() {
                 onChange={(e) => {
                   setLeaveMode(e.target.value);
                   setValue("leaveMode", e.target.value); // BẮT BUỘC PHẢI CÓ
-                  setValue("days", []); // reset luôn cho chắc
+                  // reset dữ liệu liên quan khi đổi mode
+                  setCalendarValue([]);
+                  setSelectedStart("");
+                  setSelectedEnd("");
                   setMultiDays([]);
+                  setValue("days", []);
+                  setValue("startDate", "");
+                  setValue("endDate", "");
+                  // MULTI chỉ hợp lệ với FULL_DAY
+                  if (e.target.value === "MULTI") {
+                    setLeaveType("FULL_DAY");
+                  }
                 }}
                 disabled={loading}
               >
@@ -1112,139 +1889,168 @@ export default function LeaveRequest() {
               )}
             />
 
-            {/* -- Chọn ngày nghỉ -- */}
-            {leaveMode === "RANGE" && (
-              <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-                <Controller
-                  name="startDate"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      label="Từ ngày"
-                      type="date"
-                      InputLabelProps={{ shrink: true }}
-                      fullWidth
-                      disabled={loading}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        setSelectedStart(e.target.value);
-                      }}
-                    />
-                  )}
-                />
-                <Controller
-                  name="endDate"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      label="Đến ngày"
-                      type="date"
-                      InputLabelProps={{ shrink: true }}
-                      fullWidth
-                      disabled={loading}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        setSelectedEnd(e.target.value);
-                      }}
-                    />
-                  )}
-                />
-              </Stack>
-            )}
-            {/* -- Cảnh báo ngày bận cho RANGE -- */}
-            {leaveMode === "RANGE" &&
-              selectedStart &&
-              selectedEnd &&
-              getBusyDaysInRange(busyDays, selectedStart, selectedEnd, 2)
-                .length > 0 && (
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                  {getBusyDaysInRange(
-                    busyDays,
-                    selectedStart,
-                    selectedEnd,
-                    2
-                  ).map((item, idx) => (
-                    <div key={idx}>
-                      Ngày <b>{item.date}</b> trong phòng ban của bạn đã có{" "}
-                      <b>{item.count}</b> người nghỉ. Hãy cân nhắc trước khi tạo
-                      đơn!
-                    </div>
-                  ))}
-                </Alert>
-              )}
+            {/* -- Chọn ngày nghỉ (dùng chung 1 Calendar) -- */}
+            <Box mt={2} sx={{ mb: 2 }}>
+              <Typography fontWeight={600} mb={1}>
+                Chọn ngày nghỉ
+              </Typography>
 
-            {leaveMode === "MULTI" && (
-              <Box mt={2} sx={{ mb: 2 }}>
-                <Typography fontWeight={600} mb={1}>
-                  Chọn các ngày nghỉ
-                </Typography>
-                <DatePicker
-                  multiple
-                  value={multiDays}
-                  onChange={(val) => {
-                    setMultiDays(val);
-                    setValue(
-                      "days",
-                      Array.isArray(val)
-                        ? val.map((d) =>
-                            typeof d === "string"
-                              ? d
-                              : d.format
-                              ? d.format("YYYY-MM-DD")
-                              : `${d.year}-${String(d.month).padStart(
-                                  2,
-                                  "0"
-                                )}-${String(d.day).padStart(2, "0")}`
-                          )
-                        : []
+              <DatePicker
+                value={calendarValue}
+                onChange={(val) => {
+                  setCalendarValue(val);
+
+                  if (leaveMode === "RANGE") {
+                    const [s, e] = Array.isArray(val)
+                      ? val
+                      : val
+                      ? [val, null]
+                      : [null, null];
+                    const sISO = toISO(s) || "";
+                    const eISO = toISO(e) || "";
+
+                    setSelectedStart(sISO);
+                    setSelectedEnd(eISO);
+                    setValue("startDate", sISO);
+                    setValue("endDate", eISO);
+                    setValue("days", []);
+                    setMultiDays([]);
+                  } else {
+                    const arr = Array.isArray(val) ? val : val ? [val] : [];
+                    const daysISO = arr.map(toISO).filter(Boolean);
+
+                    setMultiDays(arr);
+                    setValue("days", daysISO);
+                    setValue("startDate", "");
+                    setValue("endDate", "");
+                    setSelectedStart("");
+                    setSelectedEnd("");
+                  }
+                }}
+                range={leaveMode === "RANGE"}
+                multiple={leaveMode === "MULTI"}
+                locale="vi"
+                format="YYYY-MM-DD"
+                className="green"
+                weekStartDayIndex={1} // tuần bắt đầu từ Thứ Hai
+                plugins={[<DatePanel key="panel" header="Ngày đã chọn" />]}
+                mapDays={({ date }) => {
+                  const props = {};
+
+                  // 1) Làm mờ & chặn chọn ngày Chủ nhật
+                  if (date.weekDay.index === 0) {
+                    // 0 = Chủ nhật
+                    props.disabled = true; // không cho click/chọn
+                    props.className = "sunday-disabled";
+                    props.title = "Chủ nhật";
+                  }
+
+                  // 2) Tô nổi ngày bận (>= 2 người nghỉ)
+                  try {
+                    const iso = date.format("YYYY-MM-DD");
+                    const found = busyDays.find(
+                      (b) => b.date === iso && b.count >= 2
                     );
+                    if (found) {
+                      props.className = [props.className, "busy-day"]
+                        .filter(Boolean)
+                        .join(" ");
+                      props.title =
+                        (props.title ? props.title + " • " : "") +
+                        `${found.count} người nghỉ`;
+                    }
+                  } catch {}
+
+                  return props;
+                }}
+              />
+
+              {/* Legend & CSS cho ngày bận */}
+              <Typography
+                variant="caption"
+                sx={{ mt: 1, display: "inline-block" }}
+              >
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: 12,
+                    height: 12,
+                    border: "1px dashed #ff9800",
+                    background: "rgba(255,152,0,.15)",
+                    marginRight: 6,
+                    verticalAlign: "middle",
                   }}
-                  format="YYYY-MM-DD"
-                  locale="vi"
-                  className="green"
-                  style={{ width: "100%" }}
                 />
-                {multiDays.length > 0 && (
+                Ngày có nhiều người nghỉ trong phòng ban (≥2)
+              </Typography>
+              <style>
+                {`
+      .rmdp-day.sunday-disabled span{
+  color: #9e9e9e !important;
+  background: #f5f5f5 !important;
+  border: 1px dashed #e0e0e0 !important;
+  box-shadow: none !important;
+}
+  .rmdp-day.sunday-disabled span:hover{
+  background: #f5f5f5 !important; /* giữ nguyên mờ khi hover */
+}
+    `}
+              </style>
+
+              {/* Hiển thị nhanh các ngày đã chọn (MULTI) */}
+              {leaveMode === "MULTI" &&
+                Array.isArray(calendarValue) &&
+                calendarValue.length > 0 && (
                   <Alert severity="info" sx={{ mt: 1 }}>
                     Đã chọn:{" "}
-                    {multiDays
+                    {calendarValue
                       .map((d) =>
                         typeof d === "string" ? d : d.format?.("DD/MM/YYYY")
                       )
                       .join(", ")}
                   </Alert>
                 )}
-                {/* -- Cảnh báo ngày bận cho MULTI -- */}
-                {multiDays
-                  .map((d) =>
-                    typeof d === "string"
-                      ? d
-                      : d.format
-                      ? d.format("YYYY-MM-DD")
-                      : `${d.year}-${String(d.month).padStart(2, "0")}-${String(
-                          d.day
-                        ).padStart(2, "0")}`
-                  )
-                  .map((dateStr) => {
-                    const found = busyDays.find(
-                      (b) => b.date === dateStr && b.count >= 2
-                    );
-                    if (found) {
-                      const [y, m, day] = found.date.split("-");
-                      return (
-                        <Alert severity="warning" sx={{ my: 1 }} key={dateStr}>
-                          Ngày <b>{`${day}/${m}/${y}`}</b> trong phòng ban của
-                          bạn đã có <b>{found.count}</b> người nghỉ. Hãy cân
-                          nhắc trước khi tạo đơn!
-                        </Alert>
-                      );
-                    }
-                    return null;
-                  })}
-              </Box>
-            )}
+
+              {/* Cảnh báo ngày bận cho RANGE */}
+              {leaveMode === "RANGE" &&
+                selectedStart &&
+                selectedEnd &&
+                getBusyDaysInRange(busyDays, selectedStart, selectedEnd, 2)
+                  .length > 0 && (
+                  <Alert severity="warning" sx={{ mt: 1 }}>
+                    {getBusyDaysInRange(
+                      busyDays,
+                      selectedStart,
+                      selectedEnd,
+                      2
+                    ).map((item, idx) => (
+                      <div key={idx}>
+                        Ngày <b>{item.date}</b> trong phòng ban của bạn đã có{" "}
+                        <b>{item.count}</b> người nghỉ. Hãy cân nhắc trước khi
+                        tạo đơn!
+                      </div>
+                    ))}
+                  </Alert>
+                )}
+
+              {/* Cảnh báo ngày bận cho MULTI */}
+              {leaveMode === "MULTI" &&
+                (Array.isArray(calendarValue) ? calendarValue : []).map((d) => {
+                  const iso = toISO(d);
+                  const found = busyDays.find(
+                    (b) => b.date === iso && b.count >= 2
+                  );
+                  if (!found) return null;
+                  const [y, m, day] = iso.split("-");
+                  return (
+                    <Alert severity="warning" sx={{ mt: 1 }} key={iso}>
+                      Ngày <b>{`${day}/${m}/${y}`}</b> trong phòng ban của bạn
+                      đã có <b>{found.count}</b> người nghỉ. Hãy cân nhắc trước
+                      khi tạo đơn!
+                    </Alert>
+                  );
+                })}
+            </Box>
 
             {/* -- Nhập giờ nếu là nghỉ theo giờ -- */}
             {leaveType === "CUSTOM_HOURS" && (
@@ -1431,43 +2237,10 @@ export default function LeaveRequest() {
           </Button>
           <Button
             onClick={async () => {
-              if (useSavedSignature && savedSignature) {
-                setLoading(true);
-                const res = await approveLeaveRequestApi(
-                  currentApproveId,
-                  savedSignature
-                );
-                setLoading(false);
-                setSignDialogOpen(false);
-                setCurrentApproveId(null);
-                if (res.status !== 200)
-                  dispatch(setPopup({ type: "error", message: res.message }));
-                else {
-                  dispatch(setPopup({ type: "success", message: res.message }));
-                  fetchLeaveRequests({ status, page });
-                }
-              } else {
-                // Xác nhận bằng chữ ký mới (giữ logic cũ)
-                if (!signaturePad || signaturePad.isEmpty()) {
-                  setSignError("Bạn phải ký tên trước khi xác nhận!");
-                  return;
-                }
-                setLoading(true);
-                const signatureDataUrl = signaturePad.toDataURL();
-                const res = await approveLeaveRequestApi(
-                  currentApproveId,
-                  signatureDataUrl
-                );
-                setLoading(false);
-                setSignDialogOpen(false);
-                setCurrentApproveId(null);
-                if (res.status !== 200)
-                  dispatch(setPopup({ type: "error", message: res.message }));
-                else {
-                  dispatch(setPopup({ type: "success", message: res.message }));
-                  fetchLeaveRequests({ status, page });
-                }
-              }
+              await handleSignAndApprove({
+                useSavedSignature,
+                savedSignatureBase64: savedSignature,
+              });
             }}
             variant="contained"
             disabled={loading}
@@ -1480,7 +2253,10 @@ export default function LeaveRequest() {
       {/* DIALOG XEM TRƯỚC ĐƠN NGHỈ PHÉP */}
       <Dialog
         open={openPreview}
-        onClose={() => setOpenPreview(false)}
+        onClose={() => {
+          setOpenPreview(false);
+          setPendingAction(null);
+        }}
         maxWidth="md"
         fullWidth
       >
@@ -1584,15 +2360,28 @@ export default function LeaveRequest() {
         </DialogContent>
         <DialogActions>
           <Button
-            onClick={() => {
-              handleExportWord(previewData?.id);
-            }}
+            onClick={() => handleExportWord(previewData?.id)}
             variant="contained"
             color="success"
           >
             XUẤT FILE WORD
           </Button>
-          <Button onClick={() => setOpenPreview(false)} color="secondary">
+          {pendingAction && (
+            <Button
+              onClick={executePendingAction}
+              variant="contained"
+              color="primary"
+            >
+              {`Tiếp tục: ${actionLabels[pendingAction.type] || "Thực hiện"}`}
+            </Button>
+          )}
+          <Button
+            onClick={() => {
+              setOpenPreview(false);
+              setPendingAction(null);
+            }}
+            color="secondary"
+          >
             Đóng
           </Button>
         </DialogActions>
@@ -1642,6 +2431,82 @@ export default function LeaveRequest() {
             disabled={rejectLoading}
           >
             {rejectLoading ? <CircularProgress size={18} /> : "Từ chối"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={cancelDialogOpen}
+        onClose={() => setCancelDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Xin hủy đơn nghỉ phép</DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Yêu cầu hủy sẽ gửi email cho <b>Người duyệt</b> và <b>HR</b>.
+          </Alert>
+          <TextField
+            label="Lý do hủy"
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            multiline
+            rows={3}
+            fullWidth
+            autoFocus
+            disabled={cancelLoading}
+            error={!!cancelError}
+            helperText={cancelError}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setCancelDialogOpen(false)}
+            color="secondary"
+            disabled={cancelLoading}
+          >
+            Đóng
+          </Button>
+          <Button
+            onClick={handleCancelRequest}
+            variant="contained"
+            disabled={cancelLoading}
+          >
+            {cancelLoading ? <CircularProgress size={18} /> : "Gửi yêu cầu hủy"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog xác nhận HR hủy đơn */}
+      <Dialog
+        open={hrCancelDialogOpen}
+        onClose={() => setHrCancelDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Xác nhận hủy đơn</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Thao tác này sẽ <b>hủy đơn nghỉ phép</b> và gửi email cho người nộp
+            đơn.
+          </Alert>
+          <Typography>Bạn có chắc muốn hủy đơn này?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setHrCancelDialogOpen(false)}
+            color="secondary"
+            disabled={hrCancelLoading}
+          >
+            Đóng
+          </Button>
+          <Button
+            onClick={handleHrCancel}
+            variant="contained"
+            color="error"
+            disabled={hrCancelLoading}
+          >
+            {hrCancelLoading ? <CircularProgress size={18} /> : "Hủy đơn"}
           </Button>
         </DialogActions>
       </Dialog>

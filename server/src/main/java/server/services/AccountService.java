@@ -8,8 +8,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import server.dtos.AccountDto;
+import server.dtos.Contracts.EmployeeLiteResponse;
 import server.dtos.GetAccountsPageDto;
 import server.models.Account;
+import server.models.Employee;
 import server.models.enums.Role;
 import server.repositories.AccountRepository;
 import server.specification.AccountSpecifications;
@@ -93,4 +95,29 @@ public class AccountService {
     public List<Account> getAccountsByRole(Role role) {
         return accountRepository.findByRole(role);
     }
+
+
+    //phần thêm của Quân
+    /** Trả danh sách nhân viên (theo account) kèm role để dùng cho dropdown trên FE */
+    public ApiResponse<List<EmployeeLiteResponse>> getEmployeeLiteList() {
+        List<EmployeeLiteResponse> list = accountRepository.findAll(Sort.by(Sort.Direction.ASC, "id")).stream()
+                .filter(acc -> acc.getEmployee() != null) // chỉ các account đã gắn employee
+                .map(acc -> {
+                    Employee e = acc.getEmployee();
+                    EmployeeLiteResponse dto = new EmployeeLiteResponse();
+                    dto.setId(e.getId());
+                    dto.setFirstName(e.getFirstName());
+                    dto.setLastName(e.getLastName());
+                    String full = ((e.getFirstName() != null ? e.getFirstName() : "") + " " +
+                            (e.getLastName()  != null ? e.getLastName()  : "")).trim();
+                    dto.setFullName(full.isEmpty() ? String.valueOf(e.getId()) : full);
+                    dto.setRole(acc.getRole() != null ? acc.getRole().name() : null);
+                    return dto;
+                })
+                .toList();
+
+        return ApiResponse.success(list, "employee-lite-success");
+    }
+    //hết phần thêm của Quân
 }
+

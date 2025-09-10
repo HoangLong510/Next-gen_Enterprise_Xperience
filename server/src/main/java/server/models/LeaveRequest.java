@@ -52,6 +52,7 @@ public class LeaveRequest {
     private String reason;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 32)
     private LeaveStatus status = LeaveStatus.PENDING;
 
     @CreationTimestamp

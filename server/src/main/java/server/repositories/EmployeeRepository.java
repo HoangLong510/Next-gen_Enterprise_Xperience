@@ -54,4 +54,13 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
             @Param("keyword") String keyword
     );
     Optional<Employee> findByCode(String code);
+
+    @Query("""
+    SELECT e FROM Employee e
+    LEFT JOIN FETCH e.department d
+    LEFT JOIN FETCH d.hod h
+    LEFT JOIN FETCH h.account ha
+    WHERE e.account.id = :accountId
+""")
+    Optional<Employee> findByAccountIdWithDepartmentAndHod(@Param("accountId") Long accountId);
 }

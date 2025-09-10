@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import server.dtos.Contracts.EmployeeLiteResponse;
 import server.dtos.GetAccountsPageDto;
 import server.dtos.leave_requests.AccountResponse;
 import server.models.Account;
@@ -48,4 +49,11 @@ public class AccountController {
         List<Account> accounts = accountService.getAccountsByRole(roleEnum);
         return ResponseEntity.ok(ApiResponse.success(accounts, "Fetched-accounts-by-role"));
     }
+
+    //phần thêm của Quân
+    @GetMapping("/employees-lite")
+    public ApiResponse<List<EmployeeLiteResponse>> getEmployeesLite() {
+        return accountService.getEmployeeLiteList();
+    }
+    //hết phần thêm của Quân
 }

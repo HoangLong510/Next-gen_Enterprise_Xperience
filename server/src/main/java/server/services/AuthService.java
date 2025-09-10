@@ -142,27 +142,83 @@ public class AuthService {
         ProfileDto profileDto = new ProfileDto();
         profileDto.setId(account.getId());
         profileDto.setUsername(username);
-        profileDto.setFirstName(account.getEmployee().getFirstName());
-        profileDto.setLastName(account.getEmployee().getLastName());
-        profileDto.setEmail(account.getEmployee().getEmail());
-        profileDto.setPhone(account.getEmployee().getPhone());
-        profileDto.setAddress(account.getEmployee().getAddress());
-        profileDto.setGender(account.getEmployee().getGender().toString());
-        profileDto.setDateBirth(account.getEmployee().getDateBirth());
+
+        // (giữ nguyên) fill các field phẳng sẵn có
+        if (account.getEmployee() != null) {
+            profileDto.setFirstName(account.getEmployee().getFirstName());
+            profileDto.setLastName(account.getEmployee().getLastName());
+            profileDto.setEmail(account.getEmployee().getEmail());
+            profileDto.setPhone(account.getEmployee().getPhone());
+            profileDto.setAddress(account.getEmployee().getAddress());
+            if (account.getEmployee().getGender() != null) {
+                profileDto.setGender(account.getEmployee().getGender().toString());
+            }
+            profileDto.setDateBirth(account.getEmployee().getDateBirth());
+            profileDto.setAvatar(account.getEmployee().getAvatar());
+
+            if (account.getEmployee().getDepartment() != null) {
+                profileDto.setDepartment(account.getEmployee().getDepartment().getName());
+            }
+            if (account.getEmployee().getHodDepartment() != null) {
+                profileDto.setDepartment(account.getEmployee().getHodDepartment().getName());
+            }
+        }
+
         profileDto.setRole(account.getRole().toString());
         profileDto.setCreatedAt(account.getCreatedAt());
-        profileDto.setAvatar(account.getEmployee().getAvatar());
 
-        if(account.getEmployee().getDepartment() != null) {
-            profileDto.setDepartment(account.getEmployee().getDepartment().getName());
-        }
+        // === BEGIN: bổ sung node lồng để FE đọc employee.department.hod.account ===
+        if (account.getEmployee() != null) {
+            var emp = account.getEmployee();
 
-        if(account.getEmployee().getHodDepartment() != null) {
-            profileDto.setDepartment(account.getEmployee().getHodDepartment().getName());
+            ProfileDto.EmployeeNode empNode = new ProfileDto.EmployeeNode();
+            empNode.setId(emp.getId());
+
+            if (emp.getDepartment() != null) {
+                var dept = emp.getDepartment();
+
+                ProfileDto.DepartmentNode deptNode = new ProfileDto.DepartmentNode();
+                deptNode.setId(dept.getId());
+                deptNode.setName(dept.getName());
+
+                if (dept.getHod() != null) {
+                    var hodEmp = dept.getHod();
+
+                    ProfileDto.HodNode hodNode = new ProfileDto.HodNode();
+                    hodNode.setId(hodEmp.getId());
+                    hodNode.setFirstName(hodEmp.getFirstName());
+                    hodNode.setLastName(hodEmp.getLastName());
+
+                    // fullName để FE dùng luôn
+                    String hodFullName = (
+                            (hodEmp.getFirstName() != null ? hodEmp.getFirstName() : "") + " " +
+                                    (hodEmp.getLastName()  != null ? hodEmp.getLastName()  : "")
+                    ).trim();
+
+                    if (hodEmp.getAccount() != null) {
+                        var hodAcc = hodEmp.getAccount();
+
+                        ProfileDto.AccountNode accNode = new ProfileDto.AccountNode();
+                        accNode.setId(hodAcc.getId());
+                        accNode.setRole(hodAcc.getRole() != null ? hodAcc.getRole().name() : null);
+                        accNode.setFullName(hodFullName);
+
+                        hodNode.setAccount(accNode);
+                    }
+
+                    deptNode.setHod(hodNode);
+                }
+
+                empNode.setDepartment(deptNode);
+            }
+
+            profileDto.setEmployee(empNode);
         }
+        // === END: bổ sung node lồng ===
 
         return ApiResponse.success(profileDto, "");
     }
+
 
     @Transactional
     public ApiResponse<?> changePassword(ChangePasswordDto request, BindingResult result) {

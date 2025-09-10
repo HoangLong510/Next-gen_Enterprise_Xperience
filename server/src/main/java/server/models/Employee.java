@@ -55,12 +55,6 @@ public class Employee {
     @Column(nullable = false)
     private Gender gender;
 
-    //quan
-    @ManyToOne
-    @JoinColumn(name = "position_id")
-    private Position position;
-    //het
-
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "account_id")
     @JsonIgnoreProperties("employee")
