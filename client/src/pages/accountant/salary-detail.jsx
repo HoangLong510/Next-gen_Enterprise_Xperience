@@ -10,14 +10,12 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Avatar,
   CircularProgress,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   Chip,
-  Stack,
 } from "@mui/material";
 import { useParams } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
@@ -51,7 +49,7 @@ export default function SalaryDetail() {
       console.error("Error fetching current user", e);
     }
   };
-  
+
   const fetchDetailAndHistory = async () => {
     try {
       const res = await getSalaryByIdApi(id);
@@ -129,8 +127,8 @@ export default function SalaryDetail() {
     <Box sx={{ width: "100%", mx: "auto", my: 4 }}>
       <Typography variant="h5" fontWeight="bold" gutterBottom>
         {selectedId === "ALL"
-          ? "Danh Sách Tất Cả Phiếu Lương"
-          : `Phiếu Lương Tháng ${selectedSalary?.month || "-"}/${
+          ? "All Payslips"
+          : `Payslip for ${selectedSalary?.month || "-"}/${
               selectedSalary?.year || "-"
             }`}
       </Typography>
@@ -139,10 +137,10 @@ export default function SalaryDetail() {
         <InputLabel>Select Month</InputLabel>
         <Select
           value={selectedId || "ALL"}
-          label="Chọn Tháng"
+          label="Select Month"
           onChange={(e) => setSelectedId(e.target.value)}
         >
-          <MenuItem value="ALL">Tất cả</MenuItem>
+          <MenuItem value="ALL">All</MenuItem>
           {allSalaries.map((item) => (
             <MenuItem key={item.id} value={item.id}>
               Month {item.month}/{item.year}
@@ -157,51 +155,51 @@ export default function SalaryDetail() {
             <TableHead>
               <TableRow sx={{ backgroundColor: "primary.main" }}>
                 <TableCell rowSpan={2} sx={{ color: "white" }}>
-                 Position
+                  Position
                 </TableCell>
                 <TableCell rowSpan={2} sx={{ color: "white" }}>
-                  Lương cơ bản
+                  Base Salary
                 </TableCell>
                 <TableCell rowSpan={2} sx={{ color: "white" }}>
-                  Ngày công
+                  Working Days
                 </TableCell>
                 <TableCell rowSpan={2} sx={{ color: "white" }}>
-                  Lương thực tế
+                  Actual Salary
                 </TableCell>
 
                 <TableCell colSpan={3} align="center" sx={{ color: "white" }}>
-                  PHỤ CẤP
+                  ALLOWANCES
                 </TableCell>
                 <TableCell colSpan={4} align="center" sx={{ color: "white" }}>
-                  KHẤU TRỪ
+                  DEDUCTIONS
                 </TableCell>
 
                 <TableCell rowSpan={2} sx={{ color: "white" }}>
-                  Thực nhận
+                  Net Pay
                 </TableCell>
                 <TableCell rowSpan={2} sx={{ color: "white" }}>
-                  Phương thức
+                  Payment Method
                 </TableCell>
                 <TableCell rowSpan={2} sx={{ color: "white" }}>
-                  Trạng thái
+                  Status
                 </TableCell>
                 <TableCell colSpan={2} align="center" sx={{ color: "white" }}>
-                  Tạo bởi
+                  Created By
                 </TableCell>
               </TableRow>
 
               <TableRow sx={{ backgroundColor: "primary.main" }}>
-                <TableCell sx={{ color: "white" }}>Ăn trưa</TableCell>
-                <TableCell sx={{ color: "white" }}>Điện thoại</TableCell>
-                <TableCell sx={{ color: "white" }}>Trách nhiệm</TableCell>
+                <TableCell sx={{ color: "white" }}>Lunch</TableCell>
+                <TableCell sx={{ color: "white" }}>Phone</TableCell>
+                <TableCell sx={{ color: "white" }}>Responsibility</TableCell>
 
-                <TableCell sx={{ color: "white" }}>BHXH</TableCell>
-                <TableCell sx={{ color: "white" }}>BHYT</TableCell>
-                <TableCell sx={{ color: "white" }}>BHTN</TableCell>
-                <TableCell sx={{ color: "white" }}>Tổng khấu trừ</TableCell>
+                <TableCell sx={{ color: "white" }}>Social Insurance</TableCell>
+                <TableCell sx={{ color: "white" }}>Health Insurance</TableCell>
+                <TableCell sx={{ color: "white" }}>Unemployment Ins.</TableCell>
+                <TableCell sx={{ color: "white" }}>Total Deduction</TableCell>
 
-                <TableCell sx={{ color: "white" }}>Người tạo</TableCell>
-                <TableCell sx={{ color: "white" }}>Ngày tạo</TableCell>
+                <TableCell sx={{ color: "white" }}>User</TableCell>
+                <TableCell sx={{ color: "white" }}>Created At</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -222,7 +220,7 @@ export default function SalaryDetail() {
                           fontWeight="bold"
                           color="primary"
                         >
-                          Tháng {monthYear}
+                          {monthYear}
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -279,12 +277,12 @@ export default function SalaryDetail() {
                         <TableCell>
                           <Typography variant="body2">
                             {new Date(item.createdAt).toLocaleDateString(
-                              "vi-VN"
+                              "en-US"
                             )}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             {new Date(item.createdAt).toLocaleTimeString(
-                              "vi-VN"
+                              "en-US"
                             )}
                           </Typography>
                         </TableCell>
@@ -343,18 +341,16 @@ export default function SalaryDetail() {
                       size="small"
                     />
                   </TableCell>
-                 
-
                   <TableCell>{selectedSalary.createdBy}</TableCell>
                   <TableCell>
                     <Typography variant="body2">
                       {new Date(selectedSalary.createdAt).toLocaleDateString(
-                        "vi-VN"
+                        "en-US"
                       )}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {new Date(selectedSalary.createdAt).toLocaleTimeString(
-                        "vi-VN"
+                        "en-US"
                       )}
                     </Typography>
                   </TableCell>
@@ -363,7 +359,7 @@ export default function SalaryDetail() {
               {selectedId === "ALL" && (
                 <TableRow sx={{ backgroundColor: "#e3f2fd" }}>
                   <TableCell>
-                    <strong>Tổng</strong>
+                    <strong>Total</strong>
                   </TableCell>
                   <TableCell>{formatCurrency(totals.baseSalary)}</TableCell>
                   <TableCell>{totals.workingDays}</TableCell>
@@ -391,7 +387,7 @@ export default function SalaryDetail() {
               variant="subtitle1"
               color="success.main"
             >
-              Tổng thực nhận đã thanh toán: {formatCurrency(totals.totalPaid)}
+              Total Paid Net Salary: {formatCurrency(totals.totalPaid)}
             </Typography>
           </Box>
         )}
@@ -400,7 +396,7 @@ export default function SalaryDetail() {
           <Box sx={{ mt: 2 }}>
             <a href={selectedSalary.fileUrl} target="_blank" rel="noreferrer">
               <DownloadIcon sx={{ mr: 1 }} />
-              Tải file đính kèm
+              Download Attachment
             </a>
           </Box>
         )}

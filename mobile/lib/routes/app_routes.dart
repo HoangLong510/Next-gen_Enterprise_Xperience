@@ -22,11 +22,11 @@ import 'package:mobile/screens/dispatches/dispatch_detail_page.dart';
 import 'package:mobile/screens/dispatches/dispatch_create_page.dart';
 
 // Notifications
-import 'package:mobile/screens/notifaications/notification_list_page.dart';
-import 'package:mobile/screens/leave_requests/leave_request_page.dart';
+import 'package:mobile/screens/notifications/notification_list_page.dart';
 
 // Projects
-import 'package:mobile/screens/projects/project_list_page.dart';
+import 'package:mobile/screens/projects/project_list_page.dart'; 
+import 'package:mobile/screens/leave_requests/leave_request_page.dart';
 
 // Funds
 import 'package:mobile/screens/fund/fund_create_page.dart';
