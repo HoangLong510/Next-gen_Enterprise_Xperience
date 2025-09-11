@@ -9,7 +9,6 @@ import 'package:mobile/screens/bank/bank_and_topup_page.dart';
 
 import 'package:mobile/screens/change_password.dart';
 
-
 // Core
 import 'package:mobile/screens/home_page.dart';
 import 'package:mobile/screens/login_page.dart';
@@ -23,10 +22,10 @@ import 'package:mobile/screens/dispatches/dispatch_detail_page.dart';
 import 'package:mobile/screens/dispatches/dispatch_create_page.dart';
 
 // Notifications
-import 'package:mobile/screens/notifaications/notification_list_page.dart';
+import 'package:mobile/screens/notifications/notification_list_page.dart';
 
 // Projects
-import 'package:mobile/screens/projects/project_list_page.dart'; // (giữ import nếu dùng nơi khác)
+import 'package:mobile/screens/projects/project_list_page.dart'; 
 
 // Funds
 import 'package:mobile/screens/fund/fund_create_page.dart';

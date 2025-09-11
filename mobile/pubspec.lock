@@ -389,7 +389,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.5.4"
-
   image_gallery_saver:
     dependency: "direct main"
     description:
@@ -398,7 +397,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.3"
-
   image_picker:
     dependency: "direct main"
     description:
@@ -415,7 +413,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.8.13"
-
   image_picker_for_web:
     dependency: transitive
     description:
@@ -728,7 +725,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.0.2"
-
   shared_preferences:
     dependency: "direct main"
     description:
@@ -970,12 +966,10 @@ packages:
     dependency: transitive
     description:
       name: vector_graphics_compiler
-
       sha256: "12faff3f73b1741a36ca7e31b292ddeb629af819ca9efe9953b70bd63fc8cd81"
       url: "https://pub.dev"
     source: hosted
     version: "1.1.11+1"
-
   vector_math:
     dependency: transitive
     description:
@@ -988,10 +982,10 @@ packages:
     dependency: transitive
     description:
       name: vm_service
-      sha256: "45caa6c5917fa127b5dbcfbd1fa60b14e583afdc08bfc96dda38886ca252eb60"
+      sha256: ddfa8d30d89985b96407efce8acbdd124701f96741f2d981ca860662f1c0dc02
       url: "https://pub.dev"
     source: hosted
-    version: "15.0.2"
+    version: "15.0.0"
   web:
     dependency: transitive
     description:
