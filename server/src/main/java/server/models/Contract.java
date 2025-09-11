@@ -7,25 +7,30 @@ import org.hibernate.annotations.UpdateTimestamp;
 import server.models.enums.ContractType;
 import server.models.enums.ContractStatus;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "contracts")
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
+@Table(name = "contracts",
+        indexes = {
+                @Index(name = "idx_contract_code", columnList = "contractCode", unique = true),
+                @Index(name = "idx_contract_employee", columnList = "employee_id")
+        })
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
 @Builder
 public class Contract {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 100)
     private String contractCode;
 
-    @ManyToOne
-    @JoinColumn(name = "employee_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 
     @Column(nullable = false)
@@ -35,16 +40,25 @@ public class Contract {
     private LocalDate endDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ContractType type; // Enum: CHINH_THUC, THU_VIEC, ...
+    @Column(nullable = false, length = 30)
+    private ContractType type;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ContractStatus status; // Enum: HIEU_LUC, HET_HAN, ...
+    @Column(nullable = false, length = 40)
+    private ContractStatus status;
 
-    private String fileUrl; // Link file hợp đồng đã upload
-
+    @Column(columnDefinition = "TEXT")
     private String note;
+
+    // === Chữ ký điện tử (base64) ===
+    @Column(columnDefinition = "TEXT")
+    private String managerSignature;
+
+    @Column(columnDefinition = "TEXT")
+    private String employeeSignature;
+
+    @Column(nullable = false, precision = 15, scale = 2)
+    private BigDecimal basicSalary;
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -52,4 +66,9 @@ public class Contract {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    private void prePersist() {
+        if (status == null) status = ContractStatus.PENDING;
+    }
 }

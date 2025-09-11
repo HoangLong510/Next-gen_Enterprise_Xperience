@@ -6,6 +6,7 @@ import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.xwpf.usermodel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import server.dtos.leave_requests.*;
 import server.models.Account;
@@ -15,6 +16,7 @@ import server.models.SignatureSample;
 import server.models.enums.LeaveType;
 import server.models.enums.Role;
 import server.repositories.AccountRepository;
+import server.repositories.EmployeeRepository;
 import server.repositories.LeaveRequestRepository;
 import org.apache.poi.util.Units;
 
@@ -28,17 +30,34 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import server.repositories.SignatureSampleRepository;
 import server.utils.ApiResponse;
 import server.models.enums.LeaveStatus;
 import server.utils.HolidayUtils;
 
+import org.springframework.scheduling.annotation.Scheduled;
+import java.time.*;
+import java.time.temporal.TemporalAdjusters;
+import java.time.YearMonth;
+import java.util.List;
+import server.models.enums.LeaveStatus;
+import server.models.enums.LeaveType;
+import server.models.enums.Role;
+
+
 import java.util.stream.Collectors;
+
+import static server.repositories.specs.LeaveRequestSpecs.*;
 
 @Service
 @RequiredArgsConstructor
 public class LeaveRequestService {
+    private final EmployeeRepository employeeRepository;
     private final SignatureSampleRepository signatureSampleRepository;
     private final LeaveRequestRepository leaveRequestRepository;
     private final AccountRepository accountRepository;
@@ -217,11 +236,17 @@ public class LeaveRequestService {
             }
         }
 
-        // 8. Phân quyền gửi đơn
+        // --- 8. Phân quyền gửi đơn (cập nhật theo yêu cầu mới) ---
         Account receiver = null;
         if (role == Role.EMPLOYEE) {
-            Employee senderEmp = sender.getEmployee();
-            if (senderEmp == null || senderEmp.getDepartment() == null) {
+            // Gửi cho HOD của phòng ban (giữ nguyên)
+            Employee senderEmp = employeeRepository
+                    .findByAccountIdWithDepartmentAndHod(sender.getId())
+                    .orElse(null);
+            if (senderEmp == null) {
+                return ApiResponse.badRequest("Không tìm thấy thông tin nhân viên");
+            }
+            if (senderEmp.getDepartment() == null) {
                 return ApiResponse.badRequest("Bạn chưa thuộc phòng ban nào, không thể gửi đơn nghỉ phép");
             }
             Employee hodEmp = senderEmp.getDepartment().getHod();
@@ -229,18 +254,35 @@ public class LeaveRequestService {
                 return ApiResponse.badRequest("Phòng ban của bạn chưa có trưởng phòng (HOD), không thể gửi đơn nghỉ phép");
             }
             receiver = hodEmp.getAccount();
-        } else if (role == Role.HOD || role == Role.PM) {
-            Optional<Account> receiverOpt = accountRepository.findById(dto.getReceiverId());
-            if (receiverOpt.isEmpty()) {
-                return ApiResponse.notfound("Người nhận không tồn tại");
+
+        } else if (role == Role.ACCOUNTANT) {
+            // ACCOUNTANT -> CHIEFACCOUNTANT
+            if (dto.getReceiverId() == null) {
+                return ApiResponse.badRequest("Bạn phải chọn người duyệt là CHIEFACCOUNTANT!");
             }
-            receiver = receiverOpt.get();
-            if (receiver.getRole() != Role.MANAGER) {
-                return ApiResponse.badRequest((role == Role.HOD ? "Trưởng phòng" : "PM") + " chỉ được gửi đơn cho giám đốc (MANAGER)");
+            Optional<Account> rc = accountRepository.findById(dto.getReceiverId());
+            if (rc.isEmpty() || rc.get().getRole() != Role.CHIEFACCOUNTANT) {
+                return ApiResponse.badRequest("Người nhận phải là CHIEFACCOUNTANT");
             }
+            receiver = rc.get();
+
+        } else if (role == Role.HOD || role == Role.PM || role == Role.HR
+                || role == Role.ADMIN || role == Role.SECRETARY || role == Role.CHIEFACCOUNTANT) {
+            // Các role này -> MANAGER
+            if (dto.getReceiverId() == null) {
+                return ApiResponse.badRequest("Bạn phải chọn người duyệt là MANAGER!");
+            }
+            Optional<Account> rc = accountRepository.findById(dto.getReceiverId());
+            if (rc.isEmpty() || rc.get().getRole() != Role.MANAGER) {
+                return ApiResponse.badRequest("Người nhận phải là MANAGER");
+            }
+            receiver = rc.get();
+
         } else {
             return ApiResponse.unauthorized();
         }
+
+
 
         // 9. Tạo đơn
         LeaveRequest entity = new LeaveRequest();
@@ -265,11 +307,12 @@ public class LeaveRequestService {
 
 
     // Trả về DANH SÁCH đơn cần được bạn duyệt
+    // Dành cho HOD / MANAGER / CHIEFACCOUNTANT (đơn PENDING gửi đúng mình)
     public ApiResponse<?> listMyPendingToApprove(HttpServletRequest request) {
         Account user = authService.getCurrentAccount(request);
         Role role = user.getRole();
 
-        if (role != Role.HOD && role != Role.MANAGER) {
+        if (role != Role.HOD && role != Role.MANAGER && role != Role.CHIEFACCOUNTANT) {
             return ApiResponse.success(Collections.emptyList(), "Bạn không có quyền duyệt đơn!");
         }
 
@@ -283,7 +326,21 @@ public class LeaveRequestService {
                 .map(this::toResponse)
                 .collect(Collectors.toList());
 
-        return ApiResponse.success(data, "Các đơn cần bạn duyệt");
+        return ApiResponse.success(data, "Các đơn chờ bạn duyệt");
+    }
+
+    // Dành cho HR: đơn đang chờ HR xác nhận
+    public ApiResponse<?> listAwaitingHr(HttpServletRequest request) {
+        Account user = authService.getCurrentAccount(request);
+        if (user.getRole() != Role.HR) {
+            return ApiResponse.unauthorized();
+        }
+        List<LeaveRequestResponse> data = leaveRequestRepository.findByStatus(LeaveStatus.PENDING_HR)
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+
+        return ApiResponse.success(data, "Các đơn chờ HR xác nhận");
     }
 
 
@@ -306,75 +363,100 @@ public class LeaveRequestService {
     }
 
 
-    // Danh sách đơn nghỉ phép: filter status và phân trang
-    public ApiResponse<?> listAll(HttpServletRequest request, String status, Integer page, Integer size) {
+    // Danh sách đơn nghỉ phép: filter + pagination (Specification)
+    public ApiResponse<?> listAll(
+            HttpServletRequest request,
+            String status,
+            Integer page,
+            Integer size,
+            Long departmentId,     // <— mới
+            String departmentName,
+            String senderName,     // <— mới (keyword, tìm theo họ tên/username)
+            String date,           // <— mới (yyyy-MM-dd)
+            String month           // <— mới (yyyy-MM)
+    ) {
         Account user = authService.getCurrentAccount(request);
-        Role role = user.getRole();
 
         int pageIndex = (page != null && page > 0) ? page - 1 : 0;
-        int pageSize = (size != null && size > 0) ? size : 10;
+        int pageSize  = (size != null && size > 0) ? size : 10;
 
-        List<LeaveRequest> allLeaves;
+        // --- Build Specification ---
+        Specification<LeaveRequest> spec = (root, query, cb) -> cb.conjunction();
 
-        // Lấy toàn bộ (không phân trang ở DB)
-        if (status != null && !status.isEmpty()) {
-            LeaveStatus leaveStatus;
+        // Quyền hiển thị theo role
+        spec = spec.and(visibleFor(user));
+
+        // Trạng thái
+        LeaveStatus st = null;
+        if (status != null && !status.isBlank()) {
             try {
-                leaveStatus = LeaveStatus.valueOf(status);
+                st = LeaveStatus.valueOf(status);
             } catch (IllegalArgumentException e) {
                 return ApiResponse.badRequest("Trạng thái đơn không hợp lệ!");
             }
-            allLeaves = leaveRequestRepository.findByStatus(leaveStatus);
-        } else {
-            allLeaves = leaveRequestRepository.findAll();
+        }
+        spec = spec.and(byStatus(st));
+
+        // Phòng ban
+        if (departmentName != null && !departmentName.isBlank()) {
+            spec = spec.and(byDepartmentName(departmentName.trim()));
+        } else if (departmentId != null) {
+            spec = spec.and(byDepartmentId(departmentId));
         }
 
-        // Lọc quyền ở BE (trước khi phân trang)
-        List<LeaveRequest> filtered = allLeaves.stream()
-                .filter(lr -> {
-                    switch (role) {
-                        case ADMIN:
-                            return true;
-                        case MANAGER:
-                            return lr.getSender().getRole() == Role.HOD || lr.getSender().getRole() == Role.PM;
-                        case HOD:
-                            return lr.getSender().getId().equals(user.getId())
-                                    || (lr.getSender().getRole() == Role.EMPLOYEE && lr.getReceiver().getId().equals(user.getId()));
-                        case PM:
-                        case EMPLOYEE:
-                            return lr.getSender().getId().equals(user.getId());
-                        default:
-                            return false;
-                    }
-                })
-                .collect(Collectors.toList());
+        // Tên người gửi (keyword)
+        if (senderName != null && !senderName.isBlank()) {
+            spec = spec.and(senderNameLike(senderName));
+        }
 
-        //Sắp xếp theo createdAt giảm dần
-        filtered = filtered.stream()
-                .sorted(Comparator.comparing(LeaveRequest::getCreatedAt).reversed())
-                .collect(Collectors.toList());
+        // Lọc theo ngày (đơn overlap ngày này)
+        if (date != null && !date.isBlank()) {
+            try {
+                LocalDate d = LocalDate.parse(date); // yyyy-MM-dd
+                spec = spec.and(onDate(d));
+            } catch (Exception ex) {
+                return ApiResponse.badRequest("Định dạng 'date' phải là yyyy-MM-dd");
+            }
+        }
 
-        // Phân trang thủ công
-        int totalElements = filtered.size();
-        int totalPages = (int) Math.ceil((double) totalElements / pageSize);
-        int fromIndex = Math.min(pageIndex * pageSize, totalElements);
-        int toIndex = Math.min(fromIndex + pageSize, totalElements);
+        // Lọc theo tháng (đơn overlap trong tháng)
+        if (month != null && !month.isBlank()) {
+            try {
+                YearMonth ym = YearMonth.parse(month); // yyyy-MM
+                spec = spec.and(inMonth(ym));
+            } catch (Exception ex) {
+                return ApiResponse.badRequest("Định dạng 'month' phải là yyyy-MM");
+            }
+        }
 
-        List<LeaveRequestResponse> data = filtered.subList(fromIndex, toIndex).stream()
+        // --- Pageable + Sort ---
+        Pageable pageable = PageRequest.of(
+                pageIndex,
+                pageSize,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        // --- Query ---
+        Page<LeaveRequest> pageData = leaveRequestRepository.findAll(spec, pageable);
+
+        // --- Map DTO ---
+        List<LeaveRequestResponse> items = pageData.getContent()
+                .stream()
                 .map(this::toResponse)
-                .collect(Collectors.toList());
+                .toList();
 
-        // Trả về FE
+        // --- Return ---
         return ApiResponse.success(
                 new PageResult<>(
-                        data,
-                        totalPages,
-                        totalElements,
-                        pageIndex + 1
+                        items,
+                        pageData.getTotalPages(),
+                        (int) pageData.getTotalElements(),
+                        pageData.getNumber() + 1
                 ),
                 "Danh sách đơn nghỉ phép"
         );
     }
+
 
 
     // Duyệt đơn (approve: true=duyệt, false=từ chối)
@@ -382,7 +464,7 @@ public class LeaveRequestService {
             HttpServletRequest request,
             Long requestId,
             boolean approve,
-            LeaveRequestApproveRequest approveRequest // <== truyền lên từ Controller
+            LeaveRequestApproveRequest approveRequest
     ) {
         Logger log = LoggerFactory.getLogger(getClass());
 
@@ -395,29 +477,37 @@ public class LeaveRequestService {
         }
         LeaveRequest entity = optionalLeave.get();
 
-        // Phân quyền duyệt đơn
-        if (role == Role.HOD) {
-            if (!(entity.getReceiver().getId().equals(current.getId()) && entity.getSender().getRole() == Role.EMPLOYEE)) {
-                return ApiResponse.unauthorized();
-            }
-        } else if (role == Role.MANAGER) {
-            if (!(entity.getReceiver().getId().equals(current.getId()) &&
-                    (entity.getSender().getRole() == Role.HOD || entity.getSender().getRole() == Role.PM))) {
-                return ApiResponse.unauthorized();
-            }
+        // --- Phân quyền người duyệt TRƯỚC KHI HR xác nhận ---
+        Role senderRole = entity.getSender().getRole();
+        boolean isAllowedApprover = false;
+
+        if (role == Role.MANAGER) {
+            // MANAGER duyệt cho: HOD, PM, HR, ADMIN, SECRETARY, CHIEFACCOUNTANT
+            isAllowedApprover = (senderRole == Role.HOD || senderRole == Role.PM
+                    || senderRole == Role.HR || senderRole == Role.ADMIN
+                    || senderRole == Role.SECRETARY || senderRole == Role.CHIEFACCOUNTANT)
+                    && entity.getReceiver().getId().equals(current.getId());
+        } else if (role == Role.HOD) {
+            // HOD duyệt cho EMPLOYEE
+            isAllowedApprover = (senderRole == Role.EMPLOYEE) && entity.getReceiver().getId().equals(current.getId());
+        } else if (role == Role.CHIEFACCOUNTANT) {
+            // CHIEFACCOUNTANT duyệt cho ACCOUNTANT
+            isAllowedApprover = (senderRole == Role.ACCOUNTANT) && entity.getReceiver().getId().equals(current.getId());
         } else {
+            isAllowedApprover = false;
+        }
+
+        if (!isAllowedApprover) {
             return ApiResponse.unauthorized();
         }
 
         if (entity.getStatus() != LeaveStatus.PENDING) {
-            return ApiResponse.badRequest("Đơn này đã được xử lý");
+            return ApiResponse.badRequest("Đơn này không ở trạng thái chờ duyệt");
         }
 
-        // Xử lý duyệt hoặc từ chối
-        // Xử lý duyệt hoặc từ chối
         if (approve) {
+            // Lưu chữ ký & mẫu chữ ký như cũ
             if (approveRequest != null && approveRequest.getSignature() != null && !approveRequest.getSignature().isEmpty()) {
-                // Nếu lần đầu duyệt lưu luôn signature vào mẫu
                 Optional<SignatureSample> sampleOpt = signatureSampleRepository.findByAccount(current);
                 if (sampleOpt.isEmpty()) {
                     SignatureSample sample = new SignatureSample();
@@ -427,51 +517,83 @@ public class LeaveRequestService {
                 }
                 entity.setSignature(approveRequest.getSignature());
             }
-            entity.setStatus(LeaveStatus.APPROVED);
+            // Bước 1: Người duyệt đã ký -> chuyển sang chờ HR xác nhận
+            entity.setStatus(LeaveStatus.PENDING_HR);
+            leaveRequestRepository.save(entity);
+
+            // KHÔNG gửi email ở bước này
+            return ApiResponse.success(toResponse(entity), "Đã ký duyệt. Đơn đang chờ HR xác nhận.");
         } else {
+            // Từ chối -> giữ nguyên như cũ: set REJECTED + gửi email từ chối
             entity.setStatus(LeaveStatus.REJECTED);
+            leaveRequestRepository.save(entity);
+
+            try {
+                Account sender = entity.getSender();
+                Employee senderEmp = sender.getEmployee();
+                if (senderEmp != null && senderEmp.getEmail() != null) {
+                    String applicantName = (senderEmp.getFirstName() + " " + senderEmp.getLastName()).trim();
+                    String to = senderEmp.getEmail();
+                    String reason = (approveRequest != null && approveRequest.getRejectReason() != null && !approveRequest.getRejectReason().isEmpty())
+                            ? approveRequest.getRejectReason()
+                            : "Không rõ lý do";
+                    emailService.sendRejectEmailAsync(to, applicantName, reason);
+                }
+            } catch (Exception e) {
+                log.warn("Gửi email từ chối thất bại: " + e.getMessage());
+            }
+
+            return ApiResponse.success(toResponse(entity), "Từ chối đơn nghỉ phép thành công");
+        }
+    }
+
+
+    public ApiResponse<LeaveRequestResponse> hrConfirm(HttpServletRequest request, Long requestId) {
+        Account current = authService.getCurrentAccount(request);
+        if (current.getRole() != Role.HR) {
+            return ApiResponse.unauthorized();
         }
 
+        Optional<LeaveRequest> optionalLeave = leaveRequestRepository.findById(requestId);
+        if (optionalLeave.isEmpty()) {
+            return ApiResponse.notfound("Đơn nghỉ phép không tồn tại");
+        }
+        LeaveRequest entity = optionalLeave.get();
 
-        // Lưu DB trước, đảm bảo thành công
+        if (entity.getStatus() != LeaveStatus.PENDING_HR) {
+            return ApiResponse.badRequest("Đơn không ở trạng thái chờ HR xác nhận");
+        }
+
+        entity.setStatus(LeaveStatus.APPROVED);
         leaveRequestRepository.save(entity);
 
-        // Gửi email ASYNC (background)
+        // Gửi email thông báo duyệt (giữ nguyên template đã có)
         try {
             Account sender = entity.getSender();
             Employee senderEmp = sender.getEmployee();
             if (senderEmp != null && senderEmp.getEmail() != null) {
                 String applicantName = (senderEmp.getFirstName() + " " + senderEmp.getLastName()).trim();
                 String to = senderEmp.getEmail();
-
-                if (approve) {
-                    emailService.sendApproveEmailAsync(
-                            to,
-                            applicantName,
-                            entity.getLeaveType(),
-                            entity.getStartDate(),
-                            entity.getEndDate(),
-                            entity.getDaysOff(),
-                            entity.getStartTime(),
-                            entity.getEndTime()
-                    );
-                } else {
-                    String reason = (approveRequest != null && approveRequest.getRejectReason() != null && !approveRequest.getRejectReason().isEmpty())
-                            ? approveRequest.getRejectReason()
-                            : "Không rõ lý do";
-                    emailService.sendRejectEmailAsync(to, applicantName, reason); // gọi ASYNC
-                }
+                emailService.sendApproveEmailAsync(
+                        to,
+                        applicantName,
+                        entity.getLeaveType(),
+                        entity.getStartDate(),
+                        entity.getEndDate(),
+                        entity.getDaysOff(),
+                        entity.getStartTime(),
+                        entity.getEndTime()
+                );
             }
         } catch (Exception e) {
-            log.warn("Gửi email thông báo trạng thái đơn nghỉ phép thất bại: " + e.getMessage());
+            LoggerFactory.getLogger(getClass()).warn("Gửi email duyệt thất bại: " + e.getMessage());
         }
 
-        // Trả response thành công, không bị ảnh hưởng bởi email
-        return ApiResponse.success(
-                toResponse(entity),
-                (approve ? "Duyệt" : "Từ chối") + " đơn nghỉ phép thành công"
-        );
+        return ApiResponse.success(toResponse(entity), "HR đã xác nhận, đơn được APPROVED");
     }
+
+
+
 
 
 
@@ -688,9 +810,6 @@ public class LeaveRequestService {
 
         LeaveRequest leave = opt.get();
         // Kiểm tra quyền xem:
-        // - là sender hoặc receiver của đơn
-        // - hoặc ADMIN
-        // - hoặc MANAGER/HOD theo phân quyền của bạn (tùy business)
         Role role = user.getRole();
         boolean canView =
                 Objects.equals(leave.getSender().getId(), user.getId()) ||
@@ -773,6 +892,351 @@ public class LeaveRequestService {
 
         return ApiResponse.success(data, "Leave balance calculated successfully");
     }
+
+    // HR từ chối xác nhận đơn (đơn đã được người duyệt ký và đang chờ HR)
+    public ApiResponse<LeaveRequestResponse> hrReject(
+            HttpServletRequest request,
+            Long requestId,
+            LeaveRequestApproveRequest dto
+    ) {
+        Account current = authService.getCurrentAccount(request);
+        if (current.getRole() != Role.HR) {
+            return ApiResponse.unauthorized();
+        }
+
+        Optional<LeaveRequest> optionalLeave = leaveRequestRepository.findById(requestId);
+        if (optionalLeave.isEmpty()) {
+            return ApiResponse.notfound("Đơn nghỉ phép không tồn tại");
+        }
+        LeaveRequest entity = optionalLeave.get();
+
+        if (entity.getStatus() != LeaveStatus.PENDING_HR) {
+            return ApiResponse.badRequest("Đơn không ở trạng thái chờ HR xác nhận");
+        }
+
+        // Lý do HR từ chối
+        String reason = (dto != null && dto.getRejectReason() != null && !dto.getRejectReason().isBlank())
+                ? dto.getRejectReason().trim()
+                : "Không rõ lý do";
+
+        // Chuyển trạng thái -> REJECTED
+        entity.setStatus(LeaveStatus.REJECTED);
+        leaveRequestRepository.save(entity);
+
+        // Gửi email thông báo cho người làm đơn & người duyệt
+        try {
+            // Applicant (sender)
+            Account applicant = entity.getSender();
+            Employee applicantEmp = applicant != null ? applicant.getEmployee() : null;
+            String applicantEmail = applicantEmp != null ? applicantEmp.getEmail() : null;
+            String applicantName  = applicantEmp != null
+                    ? ((applicantEmp.getFirstName() + " " + applicantEmp.getLastName()).trim())
+                    : "Anh/Chị";
+
+            // Approver (receiver)
+            Account approver = entity.getReceiver();
+            Employee approverEmp = approver != null ? approver.getEmployee() : null;
+            String approverEmail = approverEmp != null ? approverEmp.getEmail() : null;
+            String approverName  = approverEmp != null
+                    ? ((approverEmp.getFirstName() + " " + approverEmp.getLastName()).trim())
+                    : "Người duyệt";
+
+            // Email to applicant
+            if (applicantEmail != null && !applicantEmail.isBlank()) {
+                emailService.sendHrRejectEmailToApplicantAsync(
+                        applicantEmail, applicantName, approverName, reason
+                );
+            }
+            // Email to approver
+            if (approverEmail != null && !approverEmail.isBlank()) {
+                emailService.sendHrRejectEmailToApproverAsync(
+                        approverEmail, approverName, applicantName, reason
+                );
+            }
+        } catch (Exception e) {
+            log.warn("Gửi email thông báo HR từ chối thất bại: {}", e.getMessage());
+        }
+
+        return ApiResponse.success(toResponse(entity), "HR đã từ chối xác nhận. Đơn đã bị REJECTED.");
+    }
+
+
+
+    // Nhân viên gửi yêu cầu HỦY đơn: gửi email cho Người duyệt + HR (1 HR)
+    public ApiResponse<?> requestCancellation(
+            HttpServletRequest request,
+            Long requestId,
+            LeaveCancelRequest dto
+    ) {
+        Account current = authService.getCurrentAccount(request);
+
+        if (dto == null || dto.getReason() == null || dto.getReason().isBlank()) {
+            return ApiResponse.badRequest("Bạn phải nhập lý do hủy!");
+        }
+
+        Optional<LeaveRequest> opt = leaveRequestRepository.findById(requestId);
+        if (opt.isEmpty()) {
+            return ApiResponse.notfound("Đơn nghỉ phép không tồn tại");
+        }
+        LeaveRequest entity = opt.get();
+
+        // Chỉ người đã nộp đơn mới được xin hủy
+        if (!Objects.equals(entity.getSender().getId(), current.getId())) {
+            return ApiResponse.unauthorized();
+        }
+
+        // Chỉ cho xin hủy khi đơn đang chờ duyệt hoặc chờ HR
+        if (!(entity.getStatus() == LeaveStatus.PENDING
+                || entity.getStatus() == LeaveStatus.PENDING_HR)) {
+            return ApiResponse.badRequest("Chỉ có thể xin hủy khi đơn đang chờ duyệt hoặc chờ HR xác nhận!");
+        }
+
+        // (Tuỳ chọn) nếu đã xin hủy trước đó
+        if (entity.getStatus() == LeaveStatus.WAITING_TO_CANCEL) {
+            return ApiResponse.badRequest("Đơn đang ở trạng thái WAITING_TO_CANCEL, vui lòng đợi xử lý.");
+        }
+
+        // ===== Chuẩn bị dữ liệu email (giữ nguyên phần bạn đã có) =====
+        Employee senderEmp = entity.getSender() != null ? entity.getSender().getEmployee() : null;
+        String applicantName = (senderEmp != null)
+                ? ((senderEmp.getFirstName() + " " + senderEmp.getLastName()).trim())
+                : (entity.getSender() != null ? entity.getSender().getUsername() : "Nhân viên");
+
+        Account approver = entity.getReceiver();
+        Employee approverEmp = approver != null ? approver.getEmployee() : null;
+        String approverName = (approverEmp != null)
+                ? ((approverEmp.getFirstName() + " " + approverEmp.getLastName()).trim())
+                : (approver != null ? approver.getUsername() : "Người duyệt");
+        String approverEmail = (approverEmp != null) ? approverEmp.getEmail() : null;
+
+        Account hrAcc = accountRepository.findByRole(Role.HR).stream().findFirst().orElse(null);
+        Employee hrEmp = hrAcc != null ? hrAcc.getEmployee() : null;
+        String hrEmail = hrEmp != null ? hrEmp.getEmail() : null;
+        String hrName = hrEmp != null
+                ? ((hrEmp.getFirstName() + " " + hrEmp.getLastName()).trim())
+                : "Phòng Nhân sự";
+
+        // ===== Gửi email (không fail toàn flow nếu 1 mail lỗi) =====
+        try {
+            if (approverEmail != null && !approverEmail.isBlank()) {
+                emailService.sendCancelRequestEmailToApproverAsync(
+                        approverEmail,
+                        approverName,
+                        applicantName,
+                        entity.getId(),
+                        dto.getReason().trim(),
+                        entity.getLeaveType(),
+                        entity.getStartDate(),
+                        entity.getEndDate(),
+                        entity.getDaysOff(),
+                        entity.getStartTime(),
+                        entity.getEndTime()
+                );
+            }
+
+            if (hrEmail != null && !hrEmail.isBlank()) {
+                emailService.sendCancelRequestEmailToHrAsync(
+                        hrEmail,
+                        hrName,
+                        approverName,
+                        applicantName,
+                        entity.getId(),
+                        dto.getReason().trim(),
+                        entity.getLeaveType(),
+                        entity.getStartDate(),
+                        entity.getEndDate(),
+                        entity.getDaysOff(),
+                        entity.getStartTime(),
+                        entity.getEndTime()
+                );
+            }
+        } catch (Exception ex) {
+            log.warn("Gửi email xin hủy đơn thất bại: {}", ex.getMessage());
+            // vẫn tiếp tục chuyển trạng thái để quy trình không bị kẹt
+        }
+
+        // ✅ Sau khi gửi email xong: CHUYỂN TRẠNG THÁI -> WAITING_TO_CANCEL
+        entity.setStatus(LeaveStatus.WAITING_TO_CANCEL);
+        leaveRequestRepository.save(entity);
+
+        return ApiResponse.success(
+                toResponse(entity),
+                "Đã gửi yêu cầu hủy đơn và chuyển trạng thái sang WAITING_TO_CANCEL."
+        );
+    }
+
+
+    //hàm hủy đơn nghỉ phép
+    public ApiResponse<LeaveRequestResponse> hrCancel(HttpServletRequest request, Long requestId) {
+        Account current = authService.getCurrentAccount(request);
+        if (current.getRole() != Role.HR) {
+            return ApiResponse.unauthorized();
+        }
+
+        LeaveRequest entity = leaveRequestRepository.findById(requestId).orElse(null);
+        if (entity == null) {
+            return ApiResponse.notfound("Đơn nghỉ phép không tồn tại");
+        }
+
+        // ✅ Cho hủy mọi trạng thái, chỉ chặn khi đã hủy rồi
+        if (entity.getStatus() == LeaveStatus.CANCELLED) {
+            return ApiResponse.badRequest("Đơn đã ở trạng thái CANCELLED, không thể hủy lại.");
+        }
+
+        // Cập nhật trạng thái
+        entity.setStatus(LeaveStatus.CANCELLED);
+        leaveRequestRepository.save(entity);
+
+        // Gửi email xác nhận hủy tới người nộp đơn (giữ logic cũ)
+        try {
+            Account applicant = entity.getSender();
+            Employee applicantEmp = (applicant != null) ? applicant.getEmployee() : null;
+
+            String applicantName = "Anh/Chị";
+            if (applicantEmp != null) {
+                String fn = applicantEmp.getFirstName();
+                String ln = applicantEmp.getLastName();
+                applicantName = ((fn != null ? fn : "") + " " + (ln != null ? ln : "")).trim();
+            } else if (applicant != null && applicant.getUsername() != null) {
+                applicantName = applicant.getUsername();
+            }
+            String applicantEmail = (applicantEmp != null) ? applicantEmp.getEmail() : null;
+
+            String hrName = "Phòng Nhân sự";
+            if (current.getEmployee() != null) {
+                String fn = current.getEmployee().getFirstName();
+                String ln = current.getEmployee().getLastName();
+                hrName = ((fn != null ? fn : "") + " " + (ln != null ? ln : "")).trim();
+            }
+
+            if (applicantEmail != null && !applicantEmail.isBlank()) {
+                emailService.sendCancelConfirmedByHrToApplicantAsync(
+                        applicantEmail,
+                        applicantName,
+                        hrName,
+                        entity.getId(),
+                        entity.getLeaveType(),
+                        entity.getStartDate(),
+                        entity.getEndDate(),
+                        entity.getDaysOff(),      // null nếu không dùng ngày lẻ
+                        entity.getStartTime(),    // null nếu không dùng giờ tùy chỉnh
+                        entity.getEndTime()
+                );
+            }
+        } catch (Exception ex) {
+            log.warn("Gửi email xác nhận hủy thất bại: {}", ex.getMessage());
+        }
+
+        return ApiResponse.success(toResponse(entity), "HR đã hủy đơn.");
+    }
+
+
+    /**
+     * Nhắc cuối tháng (trước 2 ngày):
+     * - PENDING      → nhắc người duyệt (receiver) + sender
+     * - PENDING_HR   → nhắc HR + sender
+     */
+    @Scheduled(cron = "0 0 13 * * *", zone = "Asia/Ho_Chi_Minh")
+    public void monthEndReminderJob() {
+        final ZoneId ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+        LocalDate today = LocalDate.now(ZONE);
+        LocalDate triggerDay = today.with(TemporalAdjusters.lastDayOfMonth()).minusDays(21);
+
+        if (!today.equals(triggerDay)) {
+            return; // Không phải ngày nhắc
+        }
+
+        // Tháng hiện tại [start, end)
+        YearMonth ym = YearMonth.from(today);
+        LocalDateTime monthStart = ym.atDay(1).atStartOfDay();
+        LocalDateTime monthEndExclusive = ym.plusMonths(1).atDay(1).atStartOfDay();
+
+        // Lấy các đơn còn treo trong tháng hiện tại
+        List<LeaveRequest> list = leaveRequestRepository.findByStatusInAndCreatedAtBetween(
+                List.of(LeaveStatus.PENDING, LeaveStatus.PENDING_HR),
+                monthStart, monthEndExclusive
+        );
+
+        if (list.isEmpty()) return;
+
+        // Lấy 1 HR đại diện
+        Account hrAcc = accountRepository.findByRole(Role.HR).stream().findFirst().orElse(null);
+        Employee hrEmp = hrAcc != null ? hrAcc.getEmployee() : null;
+        String hrName = hrEmp != null ? fullName(hrEmp) : "Phòng Nhân sự";
+        String hrEmail = hrEmp != null ? hrEmp.getEmail() : null;
+
+        int sent = 0;
+
+        for (LeaveRequest lr : list) {
+            try {
+                // Sender
+                Account applicant = lr.getSender();
+                Employee aEmp = applicant != null ? applicant.getEmployee() : null;
+                String applicantName = aEmp != null ? fullName(aEmp)
+                        : (applicant != null ? nz(applicant.getUsername()) : "Nhân viên");
+                String applicantEmail = aEmp != null ? aEmp.getEmail() : null;
+
+                // Receiver
+                Account approver = lr.getReceiver();
+                Employee apvEmp = approver != null ? approver.getEmployee() : null;
+                String approverName = apvEmp != null ? fullName(apvEmp)
+                        : (approver != null ? nz(approver.getUsername()) : "Người duyệt");
+                String approverEmail = apvEmp != null ? apvEmp.getEmail() : null;
+
+                LeaveStatus status = lr.getStatus();
+                LeaveType leaveType = lr.getLeaveType();
+
+                if (status == LeaveStatus.PENDING) {
+                    // ✅ Nhắc người duyệt + sender
+                    if (notBlank(approverEmail)) {
+                        emailService.sendMonthEndPendingReminderToApproverAsync(
+                                approverEmail, approverName, applicantName, lr.getId(),
+                                status, leaveType, lr.getStartDate(), lr.getEndDate(),
+                                lr.getDaysOff(), lr.getStartTime(), lr.getEndTime()
+                        );
+                        sent++;
+                    }
+                    if (notBlank(applicantEmail)) {
+                        emailService.sendMonthEndPendingReminderToApplicantAsync(
+                                applicantEmail, applicantName, approverName, lr.getId(),
+                                status, leaveType, lr.getStartDate(), lr.getEndDate(),
+                                lr.getDaysOff(), lr.getStartTime(), lr.getEndTime()
+                        );
+                        sent++;
+                    }
+                } else if (status == LeaveStatus.PENDING_HR) {
+                    // ✅ Nhắc HR + sender
+                    if (notBlank(hrEmail)) {
+                        emailService.sendMonthEndPendingReminderToApproverAsync(
+                                hrEmail, hrName, applicantName, lr.getId(),
+                                status, leaveType, lr.getStartDate(), lr.getEndDate(),
+                                lr.getDaysOff(), lr.getStartTime(), lr.getEndTime()
+                        );
+                        sent++;
+                    }
+                    if (notBlank(applicantEmail)) {
+                        emailService.sendMonthEndPendingReminderToApplicantAsync(
+                                applicantEmail, applicantName, hrName, lr.getId(),
+                                status, leaveType, lr.getStartDate(), lr.getEndDate(),
+                                lr.getDaysOff(), lr.getStartTime(), lr.getEndTime()
+                        );
+                        sent++;
+                    }
+                }
+            } catch (Exception ex) {
+                log.warn("[monthEndReminderJob] Gửi nhắc nhở thất bại cho đơn #{}: {}", lr.getId(), ex.getMessage());
+            }
+        }
+
+        log.info("[monthEndReminderJob] Đã gửi {} email nhắc nhở cuối tháng.", sent);
+    }
+
+    // ===== helpers trong service =====
+    private static String fullName(Employee e) {
+        return (nz(e.getFirstName()) + " " + nz(e.getLastName())).trim();
+    }
+    private static String nz(String s) { return (s == null) ? "" : s; }
+    private static boolean notBlank(String s) { return s != null && !s.isBlank(); }
 
 
 

@@ -18,6 +18,7 @@ import server.services.AuthService;
 import server.services.LeaveRequestService;
 import server.utils.ApiResponse;
 import server.dtos.leave_requests.LeaveRequestApproveRequest;
+import server.dtos.leave_requests.LeaveCancelRequest;
 
 
 import java.io.IOException;
@@ -34,6 +35,7 @@ public class LeaveRequestController {
     private final AuthService authService;
     private final LeaveRequestRepository leaveRequestRepository;
     private final SignatureSampleRepository signatureSampleRepository;
+
     // Tạo đơn nghỉ phép
     @PostMapping
     public ApiResponse<LeaveRequestResponse> createLeaveRequest(
@@ -43,15 +45,22 @@ public class LeaveRequestController {
         return leaveRequestService.create(request, dto);
     }
 
-    // Lấy danh sách đơn nghỉ phép
+    // Lấy danh sách đơn nghỉ phép (có filter + phân trang)
     @GetMapping
     public ApiResponse<?> getAllLeaveRequests(
             HttpServletRequest request,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) Long departmentId,
+            @RequestParam(required = false) String departmentName,
+            @RequestParam(required = false) String senderName,   // <-- mới (keyword)
+            @RequestParam(required = false) String date,         // <-- mới (yyyy-MM-dd)
+            @RequestParam(required = false) String month         // <-- mới (yyyy-MM)
     ) {
-        return leaveRequestService.listAll(request, status, page, size);
+        return leaveRequestService.listAll(
+                request, status, page, size, departmentId, departmentName, senderName, date, month
+        );
     }
 
     // Duyệt đơn nghỉ phép
@@ -64,8 +73,7 @@ public class LeaveRequestController {
         return leaveRequestService.approveOrReject(request, id, true, dto);
     }
 
-
-    // Từ chối đơn nghỉ phép
+    // Từ chối đơn nghỉ phép (người duyệt)
     @PostMapping("/{id}/reject")
     public ApiResponse<LeaveRequestResponse> rejectLeaveRequest(
             HttpServletRequest request,
@@ -74,8 +82,6 @@ public class LeaveRequestController {
     ) {
         return leaveRequestService.approveOrReject(request, id, false, dto);
     }
-
-
 
     // EXPORT WORD: Xuất đơn nghỉ phép ra file Word
     @GetMapping("/{id}/export-word")
@@ -107,7 +113,6 @@ public class LeaveRequestController {
         response.getOutputStream().write(docxBytes);
         response.getOutputStream().flush();
     }
-
 
     @GetMapping("/pending-to-approve")
     public ApiResponse<?> getPendingToApprove(HttpServletRequest request) {
@@ -163,6 +168,49 @@ public class LeaveRequestController {
         return ApiResponse.success(null, "Lưu chữ ký mẫu thành công");
     }
 
+    // HR xác nhận (APPROVE) khi đơn đang PENDING_HR
+    @PostMapping("/{id}/hr-confirm")
+    public ApiResponse<LeaveRequestResponse> hrConfirm(
+            HttpServletRequest request,
+            @PathVariable Long id
+    ) {
+        return leaveRequestService.hrConfirm(request, id);
+    }
 
+    // HR từ chối xác nhận khi đơn đang PENDING_HR
+    @PostMapping("/{id}/hr-reject")
+    public ApiResponse<LeaveRequestResponse> hrReject(
+            HttpServletRequest request,
+            @PathVariable Long id,
+            @RequestBody(required = false) LeaveRequestApproveRequest dto
+    ) {
+        return leaveRequestService.hrReject(request, id, dto);
+    }
+
+    // Danh sách đơn đang chờ HR xác nhận
+    @GetMapping("/pending-hr")
+    public ApiResponse<?> listAwaitingHr(HttpServletRequest request) {
+        return leaveRequestService.listAwaitingHr(request);
+    }
+
+    // Nhân viên gửi yêu cầu HỦY đơn nghỉ phép (gửi mail cho Người duyệt + HR)
+    @PostMapping("/{id}/cancel-request")
+    public ApiResponse<?> requestCancelLeave(
+            HttpServletRequest request,
+            @PathVariable Long id,
+            @RequestBody LeaveCancelRequest dto
+    ) {
+        return leaveRequestService.requestCancellation(request, id, dto);
+    }
+
+
+    // HR hủy đơn (chỉ HR có quyền, logic kiểm tra ở service)
+    @PostMapping("/{id}/hr-cancel")
+    public ApiResponse<LeaveRequestResponse> hrCancelLeave(
+            HttpServletRequest request,
+            @PathVariable Long id
+    ) {
+        return leaveRequestService.hrCancel(request, id);
+    }
 
 }

@@ -62,12 +62,50 @@ export const getEmployeesToAddToDepartmentApi = async (data) => {
 };
 
 // Lấy danh sách nhân viên (dùng chung cho nhiều chức năng)
+// Giữ nguyên endpoint simple-list, nhưng merge role từ accounts/employees-lite nếu có
 export const fetchEmployeeListApi = async () => {
   try {
-    const res = await api.get("/employees/simple-list", {
-      headers: { "Content-Type": "application/json" }
+    const [simpleRes, liteRes] = await Promise.all([
+      api.get("/employees/simple-list", {
+        headers: { "Content-Type": "application/json" },
+      }),
+      api.get("/accounts/employees-lite", {
+        headers: { "Content-Type": "application/json" },
+      }).catch(() => ({ data: { status: 200, data: [] } })),
+    ]);
+
+    const simpleRaw = simpleRes?.data?.data ?? simpleRes?.data ?? [];
+    const simple = Array.isArray(simpleRaw) ? simpleRaw : [];
+
+    const liteRaw = liteRes?.data?.data ?? liteRes?.data ?? [];
+    const lite = Array.isArray(liteRaw) ? liteRaw : [];
+
+    const roleById = new Map(
+      lite
+        .filter((x) => x && (x.id ?? x.employeeId) != null)
+        .map((x) => [Number(x.id ?? x.employeeId), x.role || x.employeeRole || null])
+    );
+
+    const normalized = simple.map((e) => {
+      const id = Number(e.id);
+      const fullName =
+        e.fullName ||
+        e.name ||
+        [e.firstName, e.lastName].filter(Boolean).join(" ").trim();
+
+      const role =
+        e.role ||
+        e.employeeRole ||
+        e.accountRole ||
+        e?.account?.role ||
+        (Array.isArray(e?.roles) ? e.roles[0] : null) ||
+        roleById.get(id) ||
+        null;
+
+      return { ...e, id, fullName, role };
     });
-    return res.data;
+
+    return { status: 200, data: normalized };
   } catch (error) {
     if (error.response) return error.response.data;
     return { status: 500, data: [] };
@@ -143,7 +181,7 @@ export const downloadEmployeesImportTemplateApi = async () => {
     const res = await api.get("/employees/import/template", {
       responseType: "blob"
     });
-    return res; // trả full response để lấy headers nếu cần
+    return res;
   } catch (error) {
     throw error;
   }

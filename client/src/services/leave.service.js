@@ -1,36 +1,39 @@
 import api from "~/utils/axios";
 
-/**
- * Lấy danh sách đơn nghỉ phép (có filter theo trạng thái và phân trang)
- * @param {Object} params
- *    - status: string ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED') (optional)
- *    - page: number (bắt đầu từ 1) (optional)
- *    - size: number (optional)
- */
+// Lấy danh sách đơn nghỉ phép (có filter + phân trang + tìm kiếm)
 export const getLeaveRequestsApi = async (params = {}) => {
-	try {
-		const query = [];
-		if (params.status) query.push(`status=${params.status}`);
-		if (params.page) query.push(`page=${params.page}`);
-		if (params.size) query.push(`size=${params.size}`);
-		const queryString = query.length ? `?${query.join("&")}` : "";
+  try {
+    const {
+      status, page, size,
+      departmentId,   // Long
+      departmentName, // String (keyword)
+      senderName,     // String (keyword)
+      date,           // 'yyyy-MM-dd'
+      month           // 'yyyy-MM'
+    } = params;
 
-		const res = await api.get(`/leave-requests${queryString}`, {
-			headers: {
-				"Content-Type": "application/json"
-			}
-		});
-		return res.data;
-	} catch (error) {
-		if (error.response) {
-			return error.response.data;
-		}
-		return {
-			status: 500,
-			message: "server-is-busy"
-		};
-	}
+    const query = [];
+    if (status)       query.push(`status=${encodeURIComponent(status)}`);
+    if (page)         query.push(`page=${page}`);
+    if (size)         query.push(`size=${size}`);
+    if (departmentId) query.push(`departmentId=${departmentId}`);
+    if (departmentName) query.push(`departmentName=${encodeURIComponent(departmentName)}`);
+    if (senderName)   query.push(`senderName=${encodeURIComponent(senderName)}`);
+    if (date)         query.push(`date=${encodeURIComponent(date)}`);   // yyyy-MM-dd
+    if (month)        query.push(`month=${encodeURIComponent(month)}`); // yyyy-MM
+
+    const queryString = query.length ? `?${query.join("&")}` : "";
+
+    const res = await api.get(`/leave-requests${queryString}`, {
+      headers: { "Content-Type": "application/json" }
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
 };
+
 
 // Tạo đơn nghỉ phép
 export const createLeaveRequestApi = async (form) => {
@@ -109,7 +112,7 @@ export const approveLeaveRequestApi = async (id, signature) => {
   }
 };
 
-// Lấy số lượng đơn bạn cần duyệt (pending - dành cho HOD/MANAGER)
+// Lấy danh sách đơn bạn cần duyệt (pending - dành cho HOD/MANAGER/CHIEFACCOUNTANT)
 export const getPendingToApproveApi = async () => {
   try {
     const res = await api.get("/leave-requests/pending-to-approve", {
@@ -201,3 +204,76 @@ export const saveMySignatureSampleApi = async (signatureBase64) => {
   }
 };
 
+// Các đơn đang chờ HR xác nhận
+export const getPendingHrApi = async () => {
+  try {
+    const res = await api.get("/leave-requests/pending-hr", {
+      headers: { "Content-Type": "application/json" },
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};
+
+// HR xác nhận duyệt sau khi người duyệt đã ký
+export const hrConfirmLeaveRequestApi = async (id) => {
+  try {
+    const res = await api.post(
+      `/leave-requests/${id}/hr-confirm`,
+      null,
+      { headers: { "Content-Type": "application/json" } }
+    );
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};
+
+// HR từ chối xác nhận (khi đơn đang PENDING_HR)
+export const hrRejectLeaveRequestApi = async (id, reason) => {
+  try {
+    const payload = reason ? { rejectReason: reason } : null; // gửi lý do nếu có
+    const res = await api.post(
+      `/leave-requests/${id}/hr-reject`,
+      payload,
+      { headers: { "Content-Type": "application/json" } }
+    );
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};
+
+// Nhân viên gửi yêu cầu hủy đơn (gửi email tới Người duyệt & HR)
+export const requestCancelLeaveApi = async (id, reason) => {
+  try {
+    const res = await api.post(
+      `/leave-requests/${id}/cancel-request`,
+      { reason }, // BE nhận { reason }
+      { headers: { "Content-Type": "application/json" } }
+    );
+    return res.data;
+  } catch (error) {
+    if (error?.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};
+
+// HR hủy đơn nghỉ phép (chỉ HR có quyền)
+export const hrCancelLeaveRequestApi = async (id) => {
+  try {
+    const res = await api.post(
+      `/leave-requests/${id}/hr-cancel`,
+      null,
+      { headers: { "Content-Type": "application/json" } }
+    );
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};

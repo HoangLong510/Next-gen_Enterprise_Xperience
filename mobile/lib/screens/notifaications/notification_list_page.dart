@@ -7,6 +7,8 @@ import 'package:mobile/services/notification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+
+
 class NotificationListPage extends StatefulWidget {
   const NotificationListPage({super.key});
 

@@ -10,4 +10,5 @@ public enum Role {
     HOD,
     EMPLOYEE,
     SECRETARY,
+    CHIEFACCOUNTANT,
 }

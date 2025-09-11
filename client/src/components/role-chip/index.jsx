@@ -15,8 +15,8 @@ export default function RoleChip({ role, onDelete, size = "small" }) {
 				<Box
 					sx={{
 						display: "flex",
-						alignItems: "center",
-						gap: 1
+						alignI1tems: "center",
+						gap: 
 					}}
 				>
 					<Icon
@@ -42,3 +42,20 @@ export default function RoleChip({ role, onDelete, size = "small" }) {
 		/>
 	)
 }
+
+// const CHIP_COLOR = {
+//   ADMIN: "error",
+//   MANAGER: "info",
+//   PM: "secondary",
+//   ACCOUNTANT: "success",
+//   HR: "warning",
+//   HOD: "info",
+//   SECRETARY: "info",
+//   EMPLOYEE: "default",
+//   CHIEFACCOUNTANT: "primary", // nhớ thêm role mới
+// };
+
+// export default function RoleChip({ role, label }) {
+//   const color = CHIP_COLOR[role] ?? "default"; // fallback an toàn
+//   return <Chip size="small" label={label ?? role} color={color} />;
+// }
