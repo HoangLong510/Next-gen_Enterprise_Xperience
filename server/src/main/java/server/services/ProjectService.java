@@ -406,8 +406,8 @@ public class ProjectService {
                                 && p.getTasks() != null
                                 && p.getTasks().stream().anyMatch(t ->
                                 t != null
-                                        && t.getAssignee() != null
-                                        && t.getAssignee().getId().equals(me.getId())
+                                        && t.getAssignee().getAccount() != null
+                                        && t.getAssignee().getAccount().getId().equals(me.getId())
                                         && t.getStatus() != TaskStatus.CANCELED)))
                 .collect(Collectors.toList());
 

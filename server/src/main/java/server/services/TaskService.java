@@ -191,7 +191,8 @@ public class TaskService {
         if (isStaff) {
             taskStream = taskStream
                     .filter(t -> t.getAssignee() != null
-                            && t.getAssignee().getId().equals(me.getId())
+                            && t.getAssignee().getAccount() != null
+                            && t.getAssignee().getAccount().getId().equals(me.getId())
                             && t.getStatus() != TaskStatus.CANCELED);
         }
 

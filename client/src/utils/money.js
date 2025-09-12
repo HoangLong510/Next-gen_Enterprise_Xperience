@@ -1,4 +1,5 @@
-// src/utils/money.utils.js
+import i18n from "i18next";
+
 export const getAccountFullNameAndTitle = (account) => {
   const fullName = [account?.lastName, account?.firstName]
     .filter(Boolean).join(" ").trim()
@@ -8,9 +9,9 @@ export const getAccountFullNameAndTitle = (account) => {
 };
 
 export const formatNumber = (n) =>
-  (n ?? 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  (n ?? 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, i18n.language === "vi" ? "." : ",");
 
-export const numToVietnameseWords = (input) => {
+const numToVietnameseWords = (input) => {
   let number = Math.floor(Number(input) || 0);
   if (number === 0) return "không đồng";
 
@@ -55,7 +56,6 @@ export const numToVietnameseWords = (input) => {
   for (let i = blocks.length - 1; i >= 0; i--) {
     const n = blocks[i];
     if (n === 0) continue;
-
     let seg = "";
     if (i === 0 && blocks.length > 1 && n < 100) {
       if (n < 10) seg = "lẻ " + DIG[n];
@@ -63,12 +63,64 @@ export const numToVietnameseWords = (input) => {
     } else {
       seg = read3(n);
     }
-
-    if (seg) {
-      words += (words ? " " : "") + seg + UNITS[i];
-    }
+    if (seg) words += (words ? " " : "") + seg + UNITS[i];
   }
 
   words = words.trim().replace(/\s+/g, " ");
   return words.charAt(0).toUpperCase() + words.slice(1) + " đồng";
+};
+
+const numToEnglishWords = (input) => {
+  let number = Math.floor(Number(input) || 0);
+  if (number === 0) return "Zero dollars";
+
+  const UNITS = ["", " thousand", " million", " billion", " trillion", " quadrillion"];
+  const DIG = ["zero","one","two","three","four","five","six","seven","eight","nine","ten",
+               "eleven","twelve","thirteen","fourteen","fifteen","sixteen",
+               "seventeen","eighteen","nineteen"];
+  const TENS = ["", "", "twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
+
+  const read3 = (n) => {
+    const hundreds = Math.floor(n / 100);
+    const tens = Math.floor((n % 100) / 10);
+    const ones = n % 10;
+    let s = "";
+
+    if (hundreds > 0) {
+      s += DIG[hundreds] + " hundred";
+      if (n % 100 > 0) s += " ";
+    }
+
+    if (n % 100 < 20 && n % 100 > 0) {
+      s += DIG[n % 100];
+    } else if (n % 100 >= 20) {
+      s += TENS[tens];
+      if (ones > 0) s += "-" + DIG[ones];
+    }
+
+    return s.trim();
+  };
+
+  const blocks = [];
+  while (number > 0 && blocks.length < UNITS.length) {
+    blocks.push(number % 1000);
+    number = Math.floor(number / 1000);
+  }
+
+  let words = "";
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const n = blocks[i];
+    if (n === 0) continue;
+    let seg = read3(n);
+    if (seg) words += (words ? " " : "") + seg + UNITS[i];
+  }
+
+  words = words.trim().replace(/\s+/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1) + " dollars";
+};
+
+export const numToWords = (input) => {
+  return i18n.language === "vi"
+    ? numToVietnameseWords(input)
+    : numToEnglishWords(input);
 };

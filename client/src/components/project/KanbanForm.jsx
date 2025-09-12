@@ -89,7 +89,7 @@ import {
 import {
   getAccountFullNameAndTitle,
   formatNumber,
-  numToVietnameseWords,
+  numToWords,
 } from "~/utils/money";
 
 function trimCanvasSafe(src) {
@@ -171,7 +171,7 @@ export default function KanbanForm() {
   const [advanceOpen, setAdvanceOpen] = useState(false);
   const [advanceTask, setAdvanceTask] = useState(null);
   const [recipient, setRecipient] = useState(
-    "Ban lãnh đạo Công ty Next-Gen Enterprise Experience"
+    "Board of Directors of Next-Gen Enterprise Experience Company"
   );
   const [advanceDeadline, setAdvanceDeadline] = useState(null);
   const sigRef = useRef(null);
@@ -567,7 +567,7 @@ export default function KanbanForm() {
     ) {
       if (blockToInProgress(fromCol, task.phaseId)) {
         alert(
-          "Không thể chuyển về In progress vì phase kế tiếp không còn ở Planning rỗng."
+          "Cannot switch back to In progress because the next phase is no longer in empty Planning."
         );
         setAllowedDropSet(new Set());
         return;
@@ -576,7 +576,7 @@ export default function KanbanForm() {
 
     if (fromCol !== toCol && blockAllChange(task.phaseId)) {
       alert(
-        "Phase sau đã bắt đầu và có task. Không thể thay đổi trạng thái task ở phase đã hoàn thành."
+        "The next phase has started and has tasks. It is not possible to change the task status in the completed phase."
       );
       setAllowedDropSet(new Set());
       return;
@@ -719,41 +719,41 @@ export default function KanbanForm() {
 
   const handleSubmitAdvance = async () => {
     try {
-      if (!advanceTask?.id) return setAdvanceError("Bạn chưa chọn task.");
+      if (!advanceTask?.id) return setAdvanceError("You have not selected a task.");
       const amountNum = Number(advanceAmount || 0);
       if (!amountNum || amountNum <= 0)
-        return setAdvanceError("Số tiền tạm ứng phải > 0.");
+        return setAdvanceError("Advance amount must be > 0.");
       if (!advanceReason?.trim())
-        return setAdvanceError("Vui lòng nhập lý do tạm ứng.");
+        return setAdvanceError("Reason for advance is required.");
       if (!advanceDeadline)
-        return setAdvanceError("Vui lòng chọn thời hạn thanh toán.");
+        return setAdvanceError("Please choose a payment term.");
       if (!sigRef?.current || sigRef.current.isEmpty())
-        return setAdvanceError("Vui lòng ký vào ô chữ ký.");
+        return setAdvanceError("Please sign in the signature box.");
 
       setAdvanceBusy(true);
       setAdvanceError("");
 
       const signatureDataUrl = getSignatureDataUrl(sigRef);
       if (!signatureDataUrl) {
-        setAdvanceError("Không lấy được chữ ký. Vui lòng ký lại.");
+        setAdvanceError("Could not get signature. Please re-sign.");
         return;
       }
       const payload = {
         taskId: advanceTask.id,
         unitName: "Next-Gen Enterprise Experience",
-        departmentOrAddress: "181 Cao Thắng, Phường 12, Quận 10, Hồ Chí Minh",
+        departmentOrAddress: "181 Cao Thang, Ward 12, District 10, Ho Chi Minh",
         recipient,
         amount: amountNum,
-        amountText: numToVietnameseWords(amountNum),
+        amountText: numToWords(amountNum),
         reason: advanceReason.trim(),
         repaymentDeadline: advanceDeadline,
         signatureDataUrl,
       };
 
       const res = await createCashAdvanceApi(payload);
-      console.log(payload)
+      console.log(payload);
       if (res?.status !== 200) {
-        setAdvanceError(res?.message || "Gửi đề nghị thất bại.");
+        setAdvanceError(res?.message || "Sending proposal failed.");
         return;
       }
 
@@ -766,11 +766,11 @@ export default function KanbanForm() {
       sigRef?.current?.clear();
       await refreshMeta();
       dispatch(
-        setPopup({ type: "success", message: "Đã gửi đề nghị tạm ứng." })
+        setPopup({ type: "success", message: "The advance request has been sent." })
       );
     } catch (e) {
       console.error(e);
-      setAdvanceError("Có lỗi khi gửi. Vui lòng thử lại.");
+      setAdvanceError("There was an error sending. Please try again.");
     } finally {
       setAdvanceBusy(false);
     }
@@ -887,14 +887,13 @@ export default function KanbanForm() {
             sx={{ flexGrow: 1, minWidth: { xs: 280, sm: 420, md: 560 } }}
           />
 
-          {/* Filter Project (chỉ hiện cho EMP/HOD ở trang Tasks) */}
           {isStaffTasksPage && (
             <FormControl
               size="small"
               sx={{
                 width: { xs: 320, sm: 360, md: 420 },
                 minWidth: 280,
-                ml: "auto", // đẩy sát bên phải
+                ml: "auto", 
               }}
             >
               <InputLabel id="project-filter-label">Project</InputLabel>
@@ -969,7 +968,7 @@ export default function KanbanForm() {
             startIcon={<RequestQuote />}
             onClick={() => setAdvanceOpen(true)}
           >
-            Gửi đơn tạm ứng
+            Send advance application
           </Button>
         </Paper>
 
@@ -1076,7 +1075,7 @@ export default function KanbanForm() {
           onUploading={() => {}}
           onUploaded={async (files) => {
             await uploadEvidence(pendingTask.id, files);
-            await refreshMeta(); // không auto đổi trạng thái
+            await refreshMeta(); 
           }}
           projectPmId={projectInfo?.pmId ?? selectedProjectInfo?.pmId}
           repoLinked={projectInfo?.repoLink ?? selectedProjectInfo?.repoLink}
@@ -1094,28 +1093,31 @@ export default function KanbanForm() {
             setAdvanceReason("");
             setAdvanceDeadline(null);
             setAdvanceError("");
-            setRecipient("Ban lãnh đạo Công ty Next-Gen Enterprise Experience");
+            setRecipient(
+              "Board of Directors of Next-Gen Enterprise Experience Company"
+            );
             sigRef?.current?.clear();
           }}
           maxWidth="md"
           fullWidth
         >
-          <DialogTitle>Đề nghị tạm ứng (Mẫu số 03-TT)</DialogTitle>
+          <DialogTitle>
+            Request for advance payment (Form No. 03-TT)
+          </DialogTitle>
 
           <DialogContent dividers>
             <Stack spacing={2}>
               {advanceError && <Alert severity="error">{advanceError}</Alert>}
 
-              {/* Thông tin cố định */}
               <Paper variant="outlined" sx={{ p: 2, bgcolor: "#fafafa" }}>
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={6}>
                     <Typography variant="body2">
-                      <strong>Đơn vị:</strong> Next-Gen Enterprise Experience
+                      <strong>Unit:</strong> Next-Gen Enterprise Experience
                     </Typography>
                     <Typography variant="body2">
-                      <strong>Bộ phận (hoặc Địa chỉ):</strong> 181 Cao Thắng,
-                      Phường 12, Quận 10, Hồ Chí Minh
+                      <strong>Department (or Address):</strong> 181 Cao Thang,
+                      Ward 12, District 10, Ho Chi Minh
                     </Typography>
                   </Grid>
                   <Grid
@@ -1125,7 +1127,7 @@ export default function KanbanForm() {
                     sx={{ textAlign: { xs: "left", md: "right" } }}
                   >
                     <Typography variant="body2">
-                      <em>Mẫu số 03-TT (TT 133/2016/TT-BTC)</em>
+                      <em>Form No. 03-TT (TT 133/2016/TT-BTC)</em>
                     </Typography>
                   </Grid>
                 </Grid>
@@ -1140,28 +1142,26 @@ export default function KanbanForm() {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Chọn Task để tạm ứng"
-                    placeholder="Gõ tên task..."
+                    label="Select Task to advance"
+                    placeholder="Type the task name..."
                   />
                 )}
               />
 
-              {/* Kính gửi */}
               <TextField
-                label="Kính gửi"
+                label="Dear"
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
                 fullWidth
               />
 
-              {/* Họ tên + chức vụ auto từ account */}
               {(() => {
                 const { fullName, title } = getAccountFullNameAndTitle(account);
                 return (
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={6}>
                       <TextField
-                        label="Tên tôi là"
+                        label="My name is"
                         value={fullName}
                         fullWidth
                         disabled
@@ -1169,7 +1169,7 @@ export default function KanbanForm() {
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <TextField
-                        label="Chức vụ"
+                        label="Position"
                         value={title}
                         fullWidth
                         disabled
@@ -1183,7 +1183,7 @@ export default function KanbanForm() {
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <TextField
-                    label="Đề nghị tạm ứng (VNĐ)"
+                    label="Advance request (VND)"
                     type="number"
                     fullWidth
                     value={advanceAmount}
@@ -1199,26 +1199,25 @@ export default function KanbanForm() {
                 >
                   <Typography variant="body2">
                     {Number(advanceAmount) > 0
-                      ? `Bằng chữ: ${numToVietnameseWords(
+                      ? `In words: ${numToWords(
                           Number(advanceAmount)
                         )}`
-                      : "Bằng chữ sẽ hiển thị ở đây"}
+                      : "Text will appear here"}
                   </Typography>
                 </Grid>
               </Grid>
 
-              {/* Lý do & Thời hạn thanh toán */}
               <TextField
-                label="Lý do tạm ứng"
+                label="Reason for advance"
                 multiline
                 minRows={2}
                 value={advanceReason}
                 onChange={(e) => setAdvanceReason(e.target.value)}
-                placeholder="Ví dụ: Mua vật tư cho task, chi phí đi lại,..."
+                placeholder="For example: Buying materials for tasks, travel expenses,..."
                 fullWidth
               />
               <TextField
-                label="Thời hạn thanh toán"
+                label="Payment term"
                 type="date"
                 InputLabelProps={{ shrink: true }}
                 value={advanceDeadline || ""}
@@ -1229,7 +1228,7 @@ export default function KanbanForm() {
               {/* Ký */}
               <Box>
                 <Typography fontWeight={600} mb={1}>
-                  Người đề nghị tạm ứng – Ký tên
+                  Person requesting advance payment - Sign
                 </Typography>
                 <Paper
                   variant="outlined"
@@ -1248,20 +1247,17 @@ export default function KanbanForm() {
                 </Paper>
                 <Stack direction="row" spacing={1} mt={1}>
                   <Button onClick={() => sigRef?.current?.clear()}>
-                    Xóa chữ ký
+                    Delete signature
                   </Button>
                   <Button
                     onClick={() =>
                       sigRef?.current?.fromData(sigRef?.current?.toData())
                     }
                   >
-                    Làm mịn nét
+                    Smoothing strokes
                   </Button>
                 </Stack>
               </Box>
-
-              {/* Gợi ý chữ ký khác (tùy chọn) */}
-              {/* Có thể dùng getMySignatureSampleApi/saveMySignatureSampleApi như module nghỉ phép của bạn */}
             </Stack>
           </DialogContent>
 
@@ -1279,14 +1275,14 @@ export default function KanbanForm() {
               }}
               color="inherit"
             >
-              Hủy
+              Cancel
             </Button>
             <Button
               variant="contained"
               disabled={advanceBusy}
               onClick={handleSubmitAdvance}
             >
-              Gửi kế toán
+            Send to accountant
             </Button>
           </DialogActions>
         </Dialog>
