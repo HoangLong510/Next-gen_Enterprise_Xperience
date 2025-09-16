@@ -59,20 +59,48 @@ const roleRoutes = [
     layout: DefaultLayout,
     roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
   },
+<<<<<<< Updated upstream
+=======
+
+  // Projects — mở cho tất cả vai trò liên quan (ADMIN/MANAGER/PM/HOD/EMPLOYEE)
+>>>>>>> Stashed changes
   {
     path: "/management/documents/:id/update",
     component: DocumentUpdate,
     layout: DefaultLayout,
+<<<<<<< Updated upstream
     roles: ["ADMIN"],
+=======
+    roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+>>>>>>> Stashed changes
   },
   {
     path: "/management/documents/:id/histories",
     component: DocumentHistoryList,
     layout: DefaultLayout,
+<<<<<<< Updated upstream
     roles: ["MANAGER", "ADMIN"],
   },
 
   
+=======
+    roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+  },
+
+  // Kanban (Project & Phase) — mở cho HOD/EMPLOYEE để họ xem/drag theo rule
+  {
+    path: "/projects/:id/kanban",
+    component: ProjectKanbanBoard,
+    layout: DefaultLayout,
+    roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+  },
+  {
+    path: "/projects/:projectId/phase/:phaseId/kanban",
+    component: ProjectKanbanBoard,
+    layout: DefaultLayout,
+    roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+  },
+>>>>>>> Stashed changes
 
   // Departments
   {
@@ -125,6 +153,7 @@ const roleRoutes = [
     layout: DefaultLayout,
     roles: ["ADMIN", "HOD", "ACCOUNTANT"],
   },
+<<<<<<< Updated upstream
   {
     path: "/finance/salary/create",
     component: CreateSalaryPage,
@@ -160,6 +189,8 @@ const roleRoutes = [
   },
 
 
+=======
+>>>>>>> Stashed changes
 ];
 
 export default roleRoutes;

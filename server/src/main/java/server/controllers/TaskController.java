@@ -27,6 +27,7 @@ public class TaskController {
     private final TaskService taskService;
     private final TaskOrderService taskOrderService;
 
+    // (tùy bạn muốn hạn chế role nào được tạo task; hiện để mở)
     @PostMapping
     public ApiResponse<?> createTask(@RequestBody CreateTaskDto dto) {
         return taskService.createTask(dto);
@@ -77,6 +78,12 @@ public class TaskController {
         return taskService.filter(status);
     }
 
+<<<<<<< Updated upstream
+=======
+    // ⬇️ Kanban Tasks: cho ADMIN, MANAGER, PM, HOD, EMPLOYEE
+    // Service sẽ tự lọc theo role (EMP/HOD chỉ thấy task của họ trong projects đủ điều kiện)
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
+>>>>>>> Stashed changes
     @GetMapping("/kanban")
     public ApiResponse<List<TaskDto>> getKanbanTasks(
             @RequestParam Long projectId,
@@ -94,7 +101,14 @@ public class TaskController {
         taskOrderService.updateOrder(orderedTaskIds, auth);
         return ApiResponse.success(null, "order-updated");
     }
-
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM')")
+    @GetMapping("/{taskId}/assignment-logs")
+    public ApiResponse<?> getAssignmentLogs(
+            @PathVariable Long taskId,
+            HttpServletRequest request
+    ) {
+        return taskService.getAssignmentLogs(taskId, request);
+    }
     @GetMapping("/visible")
     public ApiResponse<List<TaskDto>> getAllVisible() {
         return taskService.getAllVisible();

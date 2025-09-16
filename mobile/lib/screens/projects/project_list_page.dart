@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/screens/projects/project_detail_page.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
+
 import 'package:mobile/models/project_model.dart';
+import 'package:mobile/models/enums/project_status.dart';
+import 'package:mobile/services/project_service.dart';
+import 'package:mobile/providers/auth_provider.dart';
 
 class ProjectListPage extends StatefulWidget {
   const ProjectListPage({super.key});
@@ -10,248 +16,284 @@ class ProjectListPage extends StatefulWidget {
 }
 
 class _ProjectListPageState extends State<ProjectListPage> {
-  List<Project> allProjects = [];
-  List<Project> filteredProjects = [];
-  String searchTerm = '';
-  String? selectedStatus;
+  List<ProjectModel> _projects = [];
+  List<ProjectModel> _projectsBase = []; // nguồn gốc để lọc cục bộ cho EMP/HOD
+  bool _isLoading = false;
+
+  String? statusFilter; // dùng ProjectStatus.name
+  String? searchTerm;
+
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _role = '';
+
+  bool get _isEmpOrHod =>
+      _role.toUpperCase() == 'EMPLOYEE' || _role.toUpperCase() == 'HOD';
 
   @override
   void initState() {
     super.initState();
-    seedFakeProjects();
-  }
-
-  void seedFakeProjects() {
-    allProjects = [
-      Project(
-        name: "Hệ thống ERP",
-        code: "DOC001",
-        pmName: "Nguyễn Văn A",
-        status: "IN_PROGRESS",
-        progress: 0.6,
-        phases: [
-          Phase(
-            name: "Phân tích nghiệp vụ",
-            status: "COMPLETED",
-            tasks: [
-              Task(name: "Phỏng vấn người dùng", status: "DONE", assignee: "Nguyễn Văn B"),
-              Task(name: "Phỏng vấn người dùng", status: "DONE", assignee: "Nguyễn Văn B"),
-              Task(name: "Phỏng vấn người dùng", status: "DONE", assignee: "Nguyễn Văn B"),
-              Task(name: "Phỏng vấn người dùng", status: "DONE", assignee: "Nguyễn Văn B"),
-              Task(name: "Phỏng vấn người dùng", status: "DONE", assignee: "Nguyễn Văn B"),
-              Task(name: "Phỏng vấn người dùng", status: "DONE", assignee: "Nguyễn Văn B"),
-              Task(name: "Viết tài liệu BRD", status: "IN_PROGRESS", assignee: null),
-            ],
-          ),
-          Phase(
-            name: "Thiết kế hệ thống",
-            status: "IN_PROGRESS",
-            tasks: [
-              Task(name: "Thiết kế UI", status: "NEW", assignee: "Lê Thị A"),
-              Task(name: "Thiết kế Database", status: "NEW", assignee: null),
-            ],
-          ),
-        ],
-      ),
-      Project(
-        name: "App Quản lý nhân sự",
-        code: "DOC002",
-        pmName: "Trần Thị B",
-        status: "COMPLETED",
-        progress: 1.0,
-        phases: [
-          Phase(
-            name: "Triển khai",
-            status: "COMPLETED",
-            tasks: [
-              Task(name: "Cài đặt app", status: "DONE", assignee: "Phạm Văn C"),
-              Task(name: "Đào tạo nhân sự", status: "DONE", assignee: "Nguyễn Thị D"),
-            ],
-          ),
-        ],
-      ),
-      Project(
-        name: "Website bán hàng",
-        code: "DOC003",
-        pmName: "Phạm Văn C",
-        status: "NEW",
-        progress: 0.1,
-        phases: [],
-      ),
-      Project(
-        name: "CRM nâng cao",
-        code: "DOC004",
-        pmName: "Lê Thị D",
-        status: "IN_PROGRESS",
-        progress: 0.45,
-        phases: [
-          Phase(
-            name: "Tích hợp hệ thống",
-            status: "IN_PROGRESS",
-            tasks: [
-              Task(name: "Tích hợp API", status: "IN_PROGRESS", assignee: null),
-              Task(name: "Test tích hợp", status: "NEW", assignee: "Trần Văn E"),
-            ],
-          ),
-        ],
-      ),
-    ];
-
-    applyFilter();
-  }
-
-  void applyFilter() {
-    setState(() {
-      filteredProjects = allProjects.where((project) {
-        final matchesSearch = project.name.toLowerCase().contains(
-              searchTerm.toLowerCase(),
-            );
-        final matchesStatus =
-            selectedStatus == null || project.status == selectedStatus;
-        return matchesSearch && matchesStatus;
-      }).toList();
-    });
-  }
-
-  Color getStatusColor(String status) {
-    switch (status) {
-      case 'COMPLETED':
-        return Colors.green;
-      case 'IN_PROGRESS':
-        return Colors.orange;
-      case 'NEW':
-        return Colors.grey;
-      default:
-        return Colors.blueGrey;
+    try {
+      _role = context.read<AuthProvider>().account?.role ?? '';
+    } catch (_) {
+      _role = '';
     }
+    _fetch();
   }
 
-  String getStatusDisplayName(String status) {
-    switch (status) {
-      case 'COMPLETED':
-        return 'Hoàn thành';
-      case 'IN_PROGRESS':
-        return 'Đang làm';
-      case 'NEW':
-        return 'Mới';
-      default:
-        return status;
+  Future<void> _fetch() async {
+    setState(() => _isLoading = true);
+    try {
+      if (_isEmpOrHod) {
+        // EMP/HOD: luôn lấy danh sách từ /projects/kanban rồi lọc cục bộ
+        _projectsBase = await ProjectService.getKanbanVisible();
+        _applyLocalFilters();
+      } else {
+        // ADMIN/MANAGER/PM:
+        // - có searchTerm -> gọi /projects/search
+        // - có statusFilter -> gọi /projects/filter
+        // - mặc định -> /projects
+        if (searchTerm != null && searchTerm!.isNotEmpty) {
+          _projects = await ProjectService.search(searchTerm!.trim());
+        } else if (statusFilter != null && statusFilter!.isNotEmpty) {
+          _projects = await ProjectService.filter(status: statusFilter);
+        } else {
+          _projects = await ProjectService.getAllVisible();
+        }
+      }
+    } catch (e) {
+      debugPrint('Lỗi fetch projects: $e');
+      _projects = [];
+      _projectsBase = [];
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  void _applyLocalFilters() {
+    // áp dụng search/status trên _projectsBase cho EMP/HOD
+    Iterable<ProjectModel> data = _projectsBase;
+
+    if (statusFilter != null && statusFilter!.isNotEmpty) {
+      final st = ProjectStatusX.fromString(statusFilter!);
+      data = data.where((p) => p.status == st);
+    }
+    if (searchTerm != null && searchTerm!.isNotEmpty) {
+      final kw = searchTerm!.toLowerCase();
+      data = data.where((p) => p.name.toLowerCase().contains(kw));
+    }
+
+    _projects = data.toList();
+  }
+
+  Color _statusColor(ProjectStatus stt) {
+    switch (stt) {
+      case ProjectStatus.COMPLETED:
+        return Colors.green;
+      case ProjectStatus.IN_PROGRESS:
+        return Colors.orange;
+      case ProjectStatus.PLANNING:
+        return Colors.blueGrey;
+      case ProjectStatus.CANCELED:
+        return Colors.red;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Danh sách Dự án")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Search + Filter
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    decoration: const InputDecoration(
-                      labelText: '🔍 Tìm kiếm dự án',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (val) {
-                      searchTerm = val;
-                      applyFilter();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                DropdownButton<String?>(
-                  hint: const Text("Lọc trạng thái"),
-                  value: selectedStatus,
-                  items: [null, 'NEW', 'IN_PROGRESS', 'COMPLETED'].map((status) {
-                    return DropdownMenuItem(
-                      value: status,
-                      child: Text(
-                        status == null ? "Tất cả" : getStatusDisplayName(status),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedStatus = value;
-                    });
-                    applyFilter();
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Project List
-            Expanded(
-              child: filteredProjects.isEmpty
-                  ? const Center(child: Text("Không có dự án nào."))
-                  : ListView.builder(
-                      itemCount: filteredProjects.length,
-                      itemBuilder: (context, index) {
-                        final project = filteredProjects[index];
-                        return Card(
-                          elevation: 3,
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ProjectDetailPage(project: project),
-                                ),
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    project.name,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text("📄 Mã công văn: ${project.code}"),
-                                      ),
-                                      Expanded(
-                                        child: Text("👤 PM: ${project.pmName}"),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    "📌 Trạng thái: ${getStatusDisplayName(project.status)}",
-                                    style: TextStyle(
-                                      color: getStatusColor(project.status),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  LinearProgressIndicator(
-                                    value: project.progress,
-                                    color: getStatusColor(project.status),
-                                    backgroundColor: Colors.grey.shade200,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text("${(project.progress * 100).toStringAsFixed(0)}%"),
-                                ],
-                              ),
+      appBar: AppBar(title: Text('project_list.title'.tr())),
+      body: Column(
+        children: [
+          _filterBar(),
+          const Divider(height: 1),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _fetch,
+                    child: _projects.isEmpty
+                        ? ListView(
+                            children: [
+                              const SizedBox(height: 160),
+                              Center(child: Text('project_list.empty'.tr())),
+                            ],
+                          )
+                        : ListView.builder(
+                            itemCount: _projects.length,
+                            itemBuilder: (_, i) => _ProjectCard(
+                              project: _projects[i],
+                              statusColor: _statusColor(_projects[i].status),
+                              onTap: () async {
+                                // ⬇️ Chờ màn chi tiết trả cờ "dirty" để biết có cần reload list không
+                                final dirty = await Navigator.pushNamed(
+                                  context,
+                                  '/projects/detail',
+                                  arguments: _projects[i], // truyền nguyên model
+                                );
+                                if (dirty == true && mounted) {
+                                  // có thay đổi ở màn trong -> reload danh sách
+                                  _fetch();
+                                }
+                              },
                             ),
                           ),
-                        );
-                      },
-                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          // Search
+          Expanded(
+            child: TextField(
+              controller: _searchCtrl,
+              decoration: InputDecoration(
+                labelText: _isEmpOrHod
+                    ? 'project_list.search.placeholder_local'.tr()
+                    : 'project_list.search.placeholder_remote'.tr(),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () {
+                    searchTerm = _searchCtrl.text.trim();
+                    if (_isEmpOrHod) {
+                      _applyLocalFilters();
+                      setState(() {});
+                    } else {
+                      _fetch();
+                    }
+                  },
+                ),
+              ),
+              onSubmitted: (v) {
+                searchTerm = v.trim();
+                if (_isEmpOrHod) {
+                  _applyLocalFilters();
+                  setState(() {});
+                } else {
+                  _fetch();
+                }
+              },
             ),
-          ],
+          ),
+          const SizedBox(width: 12),
+          // Status filter
+          DropdownButton<String?>(
+            hint: Text('project_list.filter.status'.tr()),
+            value: statusFilter,
+            items: [null, ...ProjectStatus.values.map((e) => e.name)]
+                .map((value) => DropdownMenuItem<String?>(
+                      value: value,
+                      child: Text(
+                        value == null
+                            ? 'common.all'.tr()
+                            : ProjectStatusX.fromString(value).displayName,
+                      ),
+                    ))
+                .toList(),
+            onChanged: (val) {
+              setState(() {
+                statusFilter = val;
+                if (val != null) {
+                  _searchCtrl.clear();
+                  searchTerm = null;
+                }
+              });
+              if (_isEmpOrHod) {
+                _applyLocalFilters();
+                setState(() {});
+              } else {
+                _fetch();
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectCard extends StatelessWidget {
+  final ProjectModel project;
+  final Color statusColor;
+  final VoidCallback onTap;
+
+  const _ProjectCard({
+    required this.project,
+    required this.statusColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 3,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      project.name,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  if (project.repoLink != null)
+                    IconButton(
+                      onPressed: () {
+                        // TODO: mở repoLink bằng url_launcher nếu muốn
+                      },
+                      icon: const Icon(Icons.link),
+                      tooltip: 'project_card.repo_tooltip'.tr(),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 12,
+                runSpacing: 4,
+                children: [
+                  if (project.documentCode != null)
+                    Text('📄 ${'project_card.document_code'.tr()}: ${project.documentCode}'),
+                  if (project.pmName != null)
+                    Text('👤 ${'project_card.pm'.tr()}: ${project.pmName}'),
+                  Text(
+                    '📌 ${'project_card.status'.tr()}: ${project.status.displayName}',
+                    style: TextStyle(
+                        color: statusColor, fontWeight: FontWeight.w600),
+                  ),
+                  if (project.deadline != null)
+                    Text(
+                      '🗓️ ${'project_card.deadline'.tr()}: '
+                      '${DateFormat('dd/MM/yyyy').format(project.deadline!)}',
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                value: project.progressRatio,
+                backgroundColor: Colors.grey.shade200,
+                color: statusColor,
+                minHeight: 8,
+                borderRadius: const BorderRadius.all(Radius.circular(4)),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${project.doneTask}/${project.totalTask} ${'common.tasks'.tr()} • ${project.progress}%',
+              ),
+            ],
+          ),
         ),
       ),
     );

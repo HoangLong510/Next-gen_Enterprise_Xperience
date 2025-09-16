@@ -1,0 +1,57 @@
+{
+  "create-task": "Create Task",
+  "task-name": "Task Name",
+  "task-description": "Description",
+  "task-size": "Size",
+  "task-deadline": "Deadline",
+  "assign-to": "Assign To",
+  "cancel": "Cancel",
+  "create": "Create",
+  "no-options": "No options",
+  "no-name": "(No name)",
+  "update-task": "Update Task",
+  "save-changes": "Save changes",
+  "view-assignment-history": "View Assignment History",
+
+  "assignment-history": "Assignment History",
+  "no-history-available": "No history available.",
+  "changed-assignee": "changed assignee",
+  "from": "from",
+  "none": "(none)",
+  "to-sep": "→",
+  "close": "Close",
+
+  "submit-evidence-title": "Submit evidence for review",
+  "view-evidence-title": "Task evidence",
+  "assignee": "Assignee",
+
+  "branch-name-prefix": "Branch name (prefix)",
+  "branch-placeholder": "feature/login",
+  "create-branch": "Create Branch",
+  "creating": "Creating...",
+  "branch-name-required": "Please enter a branch name.",
+  "branch-created-success": "Branch created: {{branch}}. Push commits & open a PR to auto-detect merge.",
+  "branch-created-failed": "Failed to create branch.",
+  "branch-created-label": "Branch created",
+  "pr": "PR",
+  "merged-at": "Merged at",
+
+  "uploaded-evidence": "Uploaded evidence",
+  "loading": "Loading...",
+  "view": "View",
+  "no-evidence": "No evidence yet.",
+  "add-evidence": "Add evidence",
+  "choose-files": "Choose files",
+  "no-file-selected": "No file selected.",
+  "submit-evidence": "Submit evidence",
+  "labels": {
+    "project": "Project"
+  },
+  "noAvailableProjects": "No available projects",
+  "loadingTasks": "Loading tasks...",
+  "errors": {
+    "noPermissionChangeCompleted": "You don't have permission to change tasks in/from Completed.",
+    "cannotMoveToInReviewFromDoneOrCanceled": "Cannot move to In Review from Completed or Canceled.",
+    "cannotMoveToInProgressNextPhaseNotPlanning": "Cannot move back to In Progress because the next phase is not an empty Planning phase."
+  }
+}

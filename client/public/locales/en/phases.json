@@ -3,8 +3,10 @@
   "update-phase": "Update Phase",
   "phase-name": "Phase Name",
   "phase-deadline": "Phase Deadline",
+  "phase-status": "Phase Status",
   "cancel": "Cancel",
   "create": "Create",
   "update": "Update",
-  "confirm": "Confirm"
+  "confirm": "Confirm",
+  "note": "Note"
 }
