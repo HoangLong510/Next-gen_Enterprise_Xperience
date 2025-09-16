@@ -1,0 +1,89 @@
+{
+  "new-project-created": "New project created",
+  "project.created": "The document '{{documentTitle}}' has been successfully turned into a project by the PM",
+
+  "financial-document-signed": "Financial document signed",
+  "document.financial.signed": "You have received a financial document '{{documentTitle}}' signed by the director, please start the related project",
+
+  "document-signed": "Document signed",
+  "document.signed": "The document '{{documentTitle}}' has been signed by the director, please proceed with processing",
+
+  "document-processing-result": "Document processing result",
+  "document.processed": "The document '{{documentTitle}}' has been processed",
+
+  "new-project-document-requires-signature": "New project document requires signature",
+  "document.project.requires-signature": "You have a new project document that requires your signature",
+
+  "assigned-as-project-manager": "Assigned as Project Manager",
+  "document.pm.assigned.for": "You have been assigned as project manager for the document '{{documentTitle}}'",
+  "document.pm.changed.you-are-no-longer": "You are no longer the PM for the document '{{documentTitle}}'",
+
+  "new-financial-document-requires-signature": "New financial document requires signature",
+  "document.financial.requires-signature": "You have a new financial document that requires your signature",
+
+  "new-financial-document-to-process": "New financial document to process",
+  "document.financial.to-process": "You have been assigned to process the financial document '{{documentTitle}}'",
+
+  "new-document-requires-processing": "New document requires processing",
+  "document.requires-processing": "Document '{{documentTitle}}' requires processing",
+
+  "manager-added-revision-note": "Manager added a revision note",
+  "document.manager.note.added": "Document '{{documentTitle}}' has a new manager note by {{managerName}}",
+
+  "document-revised": "Document revised",
+  "document.revised": "Document '{{documentTitle}}' was revised by {{actorName}}",
+  "document.revised.pm-changed": "Document '{{documentTitle}}' was revised by {{actorName}}, PM changed",
+
+  "leave-request-result": "Leave request result",
+  "leave.result": "Your leave request was {{action}} by {{approver}}",
+
+  "new-leave-request-for-approval": "New leave request for approval",
+  "leave.new": "Leave request from {{requester}}",
+
+  "reminder-missing-check-out": "Reminder: missing check-out",
+  "attendance.missing.checkout.lastMonth": "You did not check out on {{date}} from last month, please update before salary processing",
+  "attendance.missing.checkout.yesterday": "You did not check out on {{date}}, please submit justification or contact HR",
+  "attendance.missing.checkout.today": "You have not checked out today ({{date}}), please update",
+  "attendance.missing.checkout.generic": "You did not check out on {{date}}, please update",
+
+  "attendance-justification-approved": "Attendance justification approved",
+  "attendance.justification.approved": "Your missing check-out justification has been approved. HR note: {{hrNote}}",
+  "attendance-justification-rejected": "Attendance justification rejected",
+  "attendance.justification.rejected": "Your missing check-out justification was rejected. HR note: {{hrNote}}",
+
+  "employee-submitted-attendance-note": "Employee submitted attendance note",
+  "attendance.note.submitted": "Employee {{employee}} submitted a justification note for {{date}}, please review",
+
+  "cash-advance-awaiting-chief-review": "Cash advance awaiting chief review",
+  "cash.advance.awaiting.chief": "You have {{count}} cash advance request(s) awaiting review",
+
+  "cash-advance-awaiting-final-approval": "Cash advance awaiting final approval",
+  "cash.advance.awaiting.director": "You have {{count}} cash advance request(s) awaiting final approval",
+
+  "cash-advance-approved-by-chief": "Cash advance approved by chief",
+  "cash.advance.approved.by": "Your cash advance #{{id}} was approved by {{approver}}",
+
+  "cash-advance-final-approved": "Cash advance finally approved",
+  "cash.advance.final.approved.by": "Your cash advance #{{id}} was finally approved by {{approver}}",
+
+  "cash-advance-rejected": "Cash advance rejected",
+  "cash.advance.rejected.by": "Your cash advance #{{id}} was rejected by {{actor}}. Note: {{note}}",
+
+  "added-to-project": "Added to project",
+  "project.member.added": "You have been added to project {{projectName}}",
+
+  "removed-from-project": "Removed from project",
+  "project.member.removed": "You have been removed from project {{projectName}}",
+
+  "assigned-to-task": "Assigned to task",
+  "task.assigned": "You have been assigned to task '{{taskName}}'",
+
+  "task-updated": "Task updated",
+  "task.updated": "Task '{{taskName}}' was updated to status {{status}}",
+
+  "no-notifications": "There are no notifications.",
+  "all-notifications": "All notifications",
+  "unread-count": "{{count}} unread notifications",
+  "from": "From",
+  "see-details": "See details"
+}

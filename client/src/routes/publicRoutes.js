@@ -7,7 +7,6 @@ import DepartmentPage from "~/pages/departments";
 import ContractList from "~/pages/contracts";
 import FaceCameraVerify from "~/pages/attendance/FaceCameraVerify";
 import MissingCheckOutList from "~/pages/attendance/MissingCheckOutList";
-import MissingCheckOutReview from "~/pages/attendance/MissingCheckOutReview";
 import AttendanceList from "~/pages/attendance/AttendanceList";
 import AttendanceDetail from "~/pages/attendance/AttendanceDetail";
 import BankAndTopupPage from "~/pages/bank/BankAndTopupPage";
@@ -57,11 +56,6 @@ const publicRoutes = [
   {
     path: "/attendance/missing-checkout",
     component: MissingCheckOutList,
-    layout: DefaultLayout,
-  },
-  {
-    path: "/attendance/missing-checkout-review",
-    component: MissingCheckOutReview,
     layout: DefaultLayout,
   },
   {

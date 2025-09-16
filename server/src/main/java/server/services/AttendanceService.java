@@ -41,7 +41,6 @@ public class AttendanceService {
     private final UploadFileService uploadFileService;
     private final RestTemplate restTemplate = new RestTemplate();
     private final NotificationService notificationService;
-    // Optional: NotificationService để nhắc nhở, inject vào nếu có
 
     // --- 1. Check-in ---
     public boolean hasCheckedInToday(Account account) {
@@ -214,7 +213,6 @@ public class AttendanceService {
     }
 
     // --- 6. Scheduled: Nhắc checkout 17h mỗi ngày ---
-    // Chỉ sử dụng khi bạn cấu hình @EnableScheduling ở Spring Boot main
     @Scheduled(cron = "0 0 17 * * *")
     public void remindCheckOut() {
         LocalDate today = LocalDate.now();
@@ -261,7 +259,6 @@ public class AttendanceService {
 
         for (Attendance att : missingRecords) {
             notificationService.createNotification(NotificationType.ATTENDANCE, att.getId(), false);
-            // Có thể thêm gửi mail hoặc tin nhắn cho nhân viên
         }
     }
     public List<Attendance> getMissingCheckOutRecords(LocalDateTime from, LocalDateTime to) {
@@ -296,7 +293,6 @@ public class AttendanceService {
 
         Attendance saved = attendanceRepository.save(att);
 
-        // Gửi thông báo kết quả HR giải trình
         notificationService.createNotification(NotificationType.ATTENDANCE, attendanceId, true);
 
         return saved;
@@ -314,7 +310,6 @@ public class AttendanceService {
         att.setCheckOutEmployeeNote(note);
         Attendance saved = attendanceRepository.save(att);
 
-        // Gửi thông báo cho HR
         notificationService.notifyHROnNoteSubmission(attendanceId);
 
         return saved;

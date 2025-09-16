@@ -41,6 +41,7 @@ import { useParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setPopup } from "~/libs/features/popup/popupSlice";
 import { useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -87,6 +88,7 @@ export default function AttendanceDetail() {
   const [resolveApproved, setResolveApproved] = useState(true);
   const [resolveNote, setResolveNote] = useState("");
   const [resolveTouched, setResolveTouched] = useState(false);
+  const { t } = useTranslation("attendance_page");
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -99,6 +101,11 @@ export default function AttendanceDetail() {
     };
     fetchDetail();
   }, [id]);
+
+  const getStatusLabel = (status) => {
+  if (!status) return "";
+  return t(status.toLowerCase());
+};
 
   const openResolveDialog = (approved) => {
     if (!attendance.checkOutEmployeeNote) {
@@ -190,7 +197,7 @@ export default function AttendanceDetail() {
         <Box textAlign="center">
           <Cancel sx={{ fontSize: 48, color: "error.main", mb: 2 }} />
           <Typography variant="h6" color="error" align="center">
-            No timekeeping data found
+            {t("noData")}
           </Typography>
         </Box>
       </Box>
@@ -227,7 +234,7 @@ export default function AttendanceDetail() {
             }}
           >
             <AccessTime sx={{ fontSize: "inherit" }} />
-            Attendance Details
+            {t("title")} {t("details")}
           </Typography>
         </Box>
 
@@ -258,7 +265,7 @@ export default function AttendanceDetail() {
                   <Login />
                 </Box>
                 <Typography variant="h6" fontWeight={600} color="success.dark">
-                  Check-in Time
+                  {t("checkInTime")}
                 </Typography>
               </Box>
 
@@ -278,7 +285,7 @@ export default function AttendanceDetail() {
                     color="success.dark"
                     sx={{ mb: 1, fontWeight: 500 }}
                   >
-                    Check-in Image:
+                    {t("checkInImage")}:
                   </Typography>
                   <CustomAvatar
                     src={attendance.checkInImagePath}
@@ -327,7 +334,7 @@ export default function AttendanceDetail() {
                   <Logout />
                 </Box>
                 <Typography variant="h6" fontWeight={600} color="info.dark">
-                  Check-out Time
+                  {t("checkOutTime")}
                 </Typography>
               </Box>
 
@@ -339,7 +346,7 @@ export default function AttendanceDetail() {
               >
                 {attendance.checkOutTime
                   ? formatDate(attendance.checkOutTime)
-                  : "Not Checked Out"}
+                  : t("notCheckedOut")}
               </Typography>
 
               {attendance.checkOutImagePath && (
@@ -402,13 +409,13 @@ export default function AttendanceDetail() {
                   fontWeight={600}
                   color="secondary.dark"
                 >
-                  Status
+                  {t("status")}:
                 </Typography>
               </Box>
 
               <Chip
                 icon={getStatusIcon(attendance.status)}
-                label={attendance.status}
+                label={getStatusLabel(attendance.status)}
                 color={getStatusColor(attendance.status)}
                 sx={{
                   fontSize: "1rem",
@@ -461,7 +468,7 @@ export default function AttendanceDetail() {
                       fontWeight={600}
                       color="warning.dark"
                     >
-                      Face Match
+                      {t("faceMatch")}
                     </Typography>
                   </Box>
 
@@ -485,10 +492,10 @@ export default function AttendanceDetail() {
                       }
                     >
                       {attendance.faceMatch === true
-                        ? "Matched"
+                        ? t("matched")
                         : attendance.faceMatch === false
-                        ? "Not Matched"
-                        : "Unknown"}
+                        ? t("notMatched")
+                        : t("unknown")}
                     </Typography>
                   </Box>
                 </CardContent>
@@ -532,7 +539,7 @@ export default function AttendanceDetail() {
                       fontWeight={600}
                       color="primary.dark"
                     >
-                      Location Check
+                      {t("locationCheck")}
                     </Typography>
                   </Box>
 
@@ -563,16 +570,16 @@ export default function AttendanceDetail() {
                       }
                     >
                       {attendance.locationValid === true
-                        ? "Valid"
+                        ? t("valid")
                         : attendance.locationValid === false
-                        ? "Invalid"
-                        : "Unknown"}
+                        ? t("invalid")
+                        : t("unknown")}
                     </Typography>
                   </Box>
 
                   {attendance.distanceKm != null && (
                     <Typography variant="body1" color="primary.dark">
-                      Distance to Office:{" "}
+                      {t("distanceToOffice")}:{" "}
                       <Typography component="span" fontWeight={600}>
                         {attendance.distanceKm.toFixed(2)} km
                       </Typography>
@@ -609,7 +616,7 @@ export default function AttendanceDetail() {
                   <Description />
                 </Box>
                 <Typography variant="h6" fontWeight={600} color="grey.700">
-                  Explanation Note
+                  {t("note")}
                 </Typography>
               </Box>
 
@@ -618,7 +625,7 @@ export default function AttendanceDetail() {
                 color="text.primary"
                 sx={{ lineHeight: 1.6 }}
               >
-                {attendance.checkOutEmployeeNote || "No explanation provided."}
+                {attendance.checkOutEmployeeNote || t("noExplanation")}
               </Typography>
 
               {attendance.status === "MISSING_CHECKOUT" &&
@@ -634,7 +641,7 @@ export default function AttendanceDetail() {
                           setIsEditingNote(true);
                         }}
                       >
-                        Edit Note
+                        {t("editNoteLabel")}
                       </Button>
                     ) : (
                       // Nếu chưa có ghi chú thì cho nhập luôn
@@ -653,7 +660,7 @@ export default function AttendanceDetail() {
                           onClick={handleSubmitNote}
                           disabled={submitting}
                         >
-                          {submitting ? "Submitting..." : "Submit Note"}
+                          {submitting ? t("processing") : t("submitNote")}
                         </Button>
                       </Box>
                     )}
@@ -678,7 +685,7 @@ export default function AttendanceDetail() {
                         disabled={submitting}
                         onClick={handleSubmitNote}
                       >
-                        {submitting ? "Submitting..." : "Lưu"}
+                        {submitting ? t("processing") : t("editNoteLabel")}
                       </Button>
                       <Button
                         variant="outlined"
@@ -699,7 +706,11 @@ export default function AttendanceDetail() {
                       disabled={submitting}
                       onClick={() => openResolveDialog(true)}
                     >
-                      {submitting ? "Processing..." : "Approve"}
+                      {submitting
+                        ? t("saving")
+                        : resolveApproved
+                        ? t("approve")
+                        : t("reject")}
                     </Button>
                     <Button
                       variant="outlined"
@@ -747,7 +758,7 @@ export default function AttendanceDetail() {
           maxWidth="sm"
         >
           <DialogTitle>
-            {resolveApproved ? "Approve explanation" : "Reject explanation"}
+            {resolveApproved ? t("approveExplanation") : t("rejectExplanation")}
           </DialogTitle>
           <DialogContent>
             <TextField
@@ -765,7 +776,7 @@ export default function AttendanceDetail() {
               error={!resolveApproved && resolveTouched && !resolveNote.trim()}
               helperText={
                 !resolveApproved && resolveTouched && !resolveNote.trim()
-                  ? "Please enter a reason to reject."
+                  ? t("reasonRequired")
                   : " "
               }
             />

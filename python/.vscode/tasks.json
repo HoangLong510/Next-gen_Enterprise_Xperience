@@ -1,0 +1,18 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Flask App",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "& 'C:/Users/ADMIN/venv310/Scripts/Activate.ps1'; python app.py"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
