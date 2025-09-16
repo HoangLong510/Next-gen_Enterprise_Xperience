@@ -562,6 +562,23 @@ public class ProjectService {
 
     /* ==================== HIDDEN FLAGS ==================== */
 
+
+        List<Project> projects = projectQuery.getAllVisible().stream()
+                .filter(pr -> pr.getStatus() != ProjectStatus.CANCELED)
+                .filter(pr -> pr.getPhases() != null && pr.getPhases().stream()
+                        .anyMatch(p -> p != null
+                                && p.getStatus() == PhaseStatus.IN_PROGRESS
+                                && p.getTasks() != null
+                                && p.getTasks().stream().anyMatch(t ->
+                                t != null
+                                        && t.getAssignee().getAccount() != null
+                                        && t.getAssignee().getAccount().getId().equals(me.getId())
+                                        && t.getStatus() != TaskStatus.CANCELED)))
+                .collect(Collectors.toList());
+
+        List<ProjectDto> dtos = projects.stream().map(this::toDto).collect(Collectors.toList());
+        return ApiResponse.success(dtos, "kanban-projects");
+
     public void updateHiddenFlags() {
         List<Project> completedProjects = projectQuery.getDoneProjects();
         for (Project project : completedProjects) {
@@ -578,5 +595,6 @@ public class ProjectService {
                 }
             }
         }
+
     }
 }

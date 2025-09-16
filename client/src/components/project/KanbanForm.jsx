@@ -1,4 +1,3 @@
-// src/components/project/KanbanForm.jsx
 "use client";
 
 
@@ -92,8 +91,10 @@ import {
 import {
   getAccountFullNameAndTitle,
   formatNumber,
-  numToVietnameseWords,
+  numToWords,
 } from "~/utils/money";
+import { translateReason } from "~/utils/translateApi";
+import dayjs from "dayjs";
 
 function trimCanvasSafe(src) {
   if (!src) return null;
@@ -174,7 +175,7 @@ export default function KanbanForm() {
   const [advanceOpen, setAdvanceOpen] = useState(false);
   const [advanceTask, setAdvanceTask] = useState(null);
   const [recipient, setRecipient] = useState(
-    "Ban lãnh đạo Công ty Next-Gen Enterprise Experience"
+    "Board of Directors of Next-Gen Enterprise Experience Company"
   );
   const [advanceDeadline, setAdvanceDeadline] = useState(null);
   const sigRef = useRef(null);
@@ -548,13 +549,16 @@ n
     // COMPLETED/CANCELED -> IN_PROGRESS: check phase sau
     if (toCol === "IN_PROGRESS" && ["COMPLETED", "CANCELED"].includes(fromCol)) {
       if (blockToInProgress(fromCol, task.phaseId)) {
+
         dispatch(setPopup({ type: "warning", message: tTasks("errors.cannotMoveToInProgressNextPhaseNotPlanning") }));
+
         setAllowedDropSet(new Set());
         return;
       }
     }
 
     if (fromCol !== toCol && blockAllChange(task.phaseId)) {
+
       if (!(toCol === "CANCELED" && !isStaffMode)) {
         dispatch(setPopup({ type: "warning", message: tProj("errors.phaseLockedEditing") }));
         setAllowedDropSet(new Set());
@@ -684,41 +688,49 @@ const advanceOptions = useMemo(() => {
 
   const handleSubmitAdvance = async () => {
     try {
-      if (!advanceTask?.id) return setAdvanceError("Bạn chưa chọn task.");
+      if (!advanceTask?.id)
+        return setAdvanceError("You have not selected a task.");
       const amountNum = Number(advanceAmount || 0);
       if (!amountNum || amountNum <= 0)
-        return setAdvanceError("Số tiền tạm ứng phải > 0.");
+        return setAdvanceError("Advance amount must be > 0.");
       if (!advanceReason?.trim())
-        return setAdvanceError("Vui lòng nhập lý do tạm ứng.");
+        return setAdvanceError("Reason for advance is required.");
       if (!advanceDeadline)
-        return setAdvanceError("Vui lòng chọn thời hạn thanh toán.");
+        return setAdvanceError("Please choose a payment term.");
       if (!sigRef?.current || sigRef.current.isEmpty())
-        return setAdvanceError("Vui lòng ký vào ô chữ ký.");
+        return setAdvanceError("Please sign in the signature box.");
 
       setAdvanceBusy(true);
       setAdvanceError("");
 
       const signatureDataUrl = getSignatureDataUrl(sigRef);
       if (!signatureDataUrl) {
-        setAdvanceError("Không lấy được chữ ký. Vui lòng ký lại.");
+        setAdvanceError("Could not get signature. Please re-sign.");
         return;
       }
+
+      const translatedReason = await translateReason(advanceReason.trim());
+
+      function formatVietnameseDate(date) {
+        return dayjs(date).format("[ngày] DD [tháng] MM [năm] YYYY");
+      }
+      const formattedDeadline = formatVietnameseDate(advanceDeadline);
+
       const payload = {
         taskId: advanceTask.id,
-        unitName: "Next-Gen Enterprise Experience",
-        departmentOrAddress: "181 Cao Thắng, Phường 12, Quận 10, Hồ Chí Minh",
+        unitName: "Công ty Cổ phần Trải nghiệm Doanh nghiệp Next-Gen",
+        departmentOrAddress: "181 Cao Thắng, Phường 12, Quận 10, TP.HCM",
         recipient,
         amount: amountNum,
-        amountText: numToVietnameseWords(amountNum),
-        reason: advanceReason.trim(),
-        repaymentDeadline: advanceDeadline,
+        amountText: numToWords(amountNum),
+        reason: translatedReason,
+        repaymentDeadlineStr: formattedDeadline,
         signatureDataUrl,
       };
-
+      console.log(payload);
       const res = await createCashAdvanceApi(payload);
-      console.log(payload)
       if (res?.status !== 200) {
-        setAdvanceError(res?.message || "Gửi đề nghị thất bại.");
+        setAdvanceError(res?.message || "Sending proposal failed.");
         return;
       }
 
@@ -731,11 +743,14 @@ const advanceOptions = useMemo(() => {
       sigRef?.current?.clear();
       await refreshMeta();
       dispatch(
-        setPopup({ type: "success", message: "Đã gửi đề nghị tạm ứng." })
+        setPopup({
+          type: "success",
+          message: "The advance request has been sent.",
+        })
       );
     } catch (e) {
       console.error(e);
-      setAdvanceError("Có lỗi khi gửi. Vui lòng thử lại.");
+      setAdvanceError("There was an error sending. Please try again.");
     } finally {
       setAdvanceBusy(false);
     }
@@ -833,14 +848,13 @@ const advanceOptions = useMemo(() => {
             sx={{ flexGrow: 1, minWidth: { xs: 280, sm: 420, md: 560 } }}
           />
 
-          {/* Filter Project (chỉ hiện cho EMP/HOD ở trang Tasks) */}
           {isStaffTasksPage && (
             <FormControl
               size="small"
               sx={{
                 width: { xs: 320, sm: 360, md: 420 },
                 minWidth: 280,
-                ml: "auto", // đẩy sát bên phải
+                ml: "auto",
               }}
             >
               <InputLabel id="project-filter-label">Project</InputLabel>
@@ -915,7 +929,7 @@ const advanceOptions = useMemo(() => {
             startIcon={<RequestQuote />}
             onClick={() => setAdvanceOpen(true)}
           >
-            Gửi đơn tạm ứng
+            Send advance application
           </Button>
         </Paper>
 
@@ -1067,7 +1081,7 @@ const advanceOptions = useMemo(() => {
           onUploading={() => {}}
           onUploaded={async (files) => {
             await uploadEvidence(pendingTask.id, files);
-            await refreshMeta(); // không auto đổi trạng thái
+            await refreshMeta();
           }}
           projectPmId={projectInfo?.pmId ?? selectedProjectInfo?.pmId}
           repoLinked={projectInfo?.repoLink ?? selectedProjectInfo?.repoLink}
@@ -1085,28 +1099,31 @@ const advanceOptions = useMemo(() => {
             setAdvanceReason("");
             setAdvanceDeadline(null);
             setAdvanceError("");
-            setRecipient("Ban lãnh đạo Công ty Next-Gen Enterprise Experience");
+            setRecipient(
+              "Board of Directors of Next-Gen Enterprise Experience Company"
+            );
             sigRef?.current?.clear();
           }}
           maxWidth="md"
           fullWidth
         >
-          <DialogTitle>Đề nghị tạm ứng (Mẫu số 03-TT)</DialogTitle>
+          <DialogTitle>
+            Request for advance payment (Form No. 03-TT)
+          </DialogTitle>
 
           <DialogContent dividers>
             <Stack spacing={2}>
               {advanceError && <Alert severity="error">{advanceError}</Alert>}
 
-              {/* Thông tin cố định */}
               <Paper variant="outlined" sx={{ p: 2, bgcolor: "#fafafa" }}>
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={6}>
                     <Typography variant="body2">
-                      <strong>Đơn vị:</strong> Next-Gen Enterprise Experience
+                      <strong>Unit:</strong> Next-Gen Enterprise Experience
                     </Typography>
                     <Typography variant="body2">
-                      <strong>Bộ phận (hoặc Địa chỉ):</strong> 181 Cao Thắng,
-                      Phường 12, Quận 10, Hồ Chí Minh
+                      <strong>Department (or Address):</strong> 181 Cao Thang,
+                      Ward 12, District 10, Ho Chi Minh
                     </Typography>
                   </Grid>
                   <Grid
@@ -1116,7 +1133,7 @@ const advanceOptions = useMemo(() => {
                     sx={{ textAlign: { xs: "left", md: "right" } }}
                   >
                     <Typography variant="body2">
-                      <em>Mẫu số 03-TT (TT 133/2016/TT-BTC)</em>
+                      <em>Form No. 03-TT (TT 133/2016/TT-BTC)</em>
                     </Typography>
                   </Grid>
                 </Grid>
@@ -1131,28 +1148,26 @@ const advanceOptions = useMemo(() => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Chọn Task để tạm ứng"
-                    placeholder="Gõ tên task..."
+                    label="Select Task to advance"
+                    placeholder="Type the task name..."
                   />
                 )}
               />
 
-              {/* Kính gửi */}
               <TextField
-                label="Kính gửi"
+                label="Dear"
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
                 fullWidth
               />
 
-              {/* Họ tên + chức vụ auto từ account */}
               {(() => {
                 const { fullName, title } = getAccountFullNameAndTitle(account);
                 return (
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={6}>
                       <TextField
-                        label="Tên tôi là"
+                        label="My name is"
                         value={fullName}
                         fullWidth
                         disabled
@@ -1160,7 +1175,7 @@ const advanceOptions = useMemo(() => {
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <TextField
-                        label="Chức vụ"
+                        label="Position"
                         value={title}
                         fullWidth
                         disabled
@@ -1174,7 +1189,7 @@ const advanceOptions = useMemo(() => {
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <TextField
-                    label="Đề nghị tạm ứng (VNĐ)"
+                    label="Advance request (VND)"
                     type="number"
                     fullWidth
                     value={advanceAmount}
@@ -1190,26 +1205,23 @@ const advanceOptions = useMemo(() => {
                 >
                   <Typography variant="body2">
                     {Number(advanceAmount) > 0
-                      ? `Bằng chữ: ${numToVietnameseWords(
-                          Number(advanceAmount)
-                        )}`
-                      : "Bằng chữ sẽ hiển thị ở đây"}
+                      ? `In words: ${numToWords(Number(advanceAmount))}`
+                      : "Text will appear here"}
                   </Typography>
                 </Grid>
               </Grid>
 
-              {/* Lý do & Thời hạn thanh toán */}
               <TextField
-                label="Lý do tạm ứng"
+                label="Reason for advance"
                 multiline
                 minRows={2}
                 value={advanceReason}
                 onChange={(e) => setAdvanceReason(e.target.value)}
-                placeholder="Ví dụ: Mua vật tư cho task, chi phí đi lại,..."
+                placeholder="For example: Buying materials for tasks, travel expenses,..."
                 fullWidth
               />
               <TextField
-                label="Thời hạn thanh toán"
+                label="Payment term"
                 type="date"
                 InputLabelProps={{ shrink: true }}
                 value={advanceDeadline || ""}
@@ -1220,7 +1232,7 @@ const advanceOptions = useMemo(() => {
               {/* Ký */}
               <Box>
                 <Typography fontWeight={600} mb={1}>
-                  Người đề nghị tạm ứng – Ký tên
+                  Person requesting advance payment - Sign
                 </Typography>
                 <Paper
                   variant="outlined"
@@ -1239,20 +1251,17 @@ const advanceOptions = useMemo(() => {
                 </Paper>
                 <Stack direction="row" spacing={1} mt={1}>
                   <Button onClick={() => sigRef?.current?.clear()}>
-                    Xóa chữ ký
+                    Delete signature
                   </Button>
                   <Button
                     onClick={() =>
                       sigRef?.current?.fromData(sigRef?.current?.toData())
                     }
                   >
-                    Làm mịn nét
+                    Smoothing strokes
                   </Button>
                 </Stack>
               </Box>
-
-              {/* Gợi ý chữ ký khác (tùy chọn) */}
-              {/* Có thể dùng getMySignatureSampleApi/saveMySignatureSampleApi như module nghỉ phép của bạn */}
             </Stack>
           </DialogContent>
 
@@ -1270,14 +1279,14 @@ const advanceOptions = useMemo(() => {
               }}
               color="inherit"
             >
-              Hủy
+              Cancel
             </Button>
             <Button
               variant="contained"
               disabled={advanceBusy}
               onClick={handleSubmitAdvance}
             >
-              Gửi kế toán
+              Send to accountant
             </Button>
           </DialogActions>
         </Dialog>

@@ -237,6 +237,7 @@ public class FundTransactionService {
 
         return new FundTransactionResponseDTO(
                 t.getId(),
+                t.getFund().getId(),
                 t.getType(),
                 t.getAmount(),
                 t.getNote(),

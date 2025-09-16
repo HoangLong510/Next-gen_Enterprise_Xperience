@@ -153,7 +153,6 @@ public class ProjectController {
         return projectService.getProjectRepo(id, request);
     }
 
-    // Lấy danh sách Project cho Kanban Board (Employee)
     @GetMapping("/kanban")
     public ApiResponse<List<ProjectDto>> getKanbanProjects(HttpServletRequest request) {
         return projectService.getKanbanProjects(request);

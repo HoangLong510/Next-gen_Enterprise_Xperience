@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile/models/fund.dart';
 import 'package:mobile/screens/fund/fund_detail_page.dart';
+import 'package:mobile/screens/fund/fund_create_page.dart';
 import 'package:mobile/screens/transaction/transaction_create_page.dart';
 import 'package:mobile/services/fund_service.dart';
 
@@ -49,6 +50,20 @@ class _FundListPageState extends State<FundListPage> {
           },
         ),
         actions: [
+          // Nút tạo quỹ
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: "Create Fund",
+            onPressed: () async {
+              final created = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const FundCreatePage()),
+              );
+              if (created == true) {
+                _loadFunds(); // refresh list sau khi tạo
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: "Reload",
@@ -145,8 +160,17 @@ class _FundListPageState extends State<FundListPage> {
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: OutlinedButton.icon(
-                                  onPressed: () {
-                                    _scaffoldKey.currentState?.openEndDrawer();
+                                  onPressed: () async {
+                                    final created = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            CreateTransactionPage(fundId: fund.id),
+                                      ),
+                                    );
+                                    if (created == true) {
+                                      _loadFunds(); // refresh list sau khi tạo transaction
+                                    }
                                   },
                                   icon: const Icon(Icons.attach_money),
                                   label: const Text("Create Transaction"),
@@ -176,17 +200,6 @@ class _FundListPageState extends State<FundListPage> {
             ],
           );
         },
-      ),
-      endDrawer: Drawer(
-        child: Navigator(
-          onGenerateRoute: (settings) {
-            return MaterialPageRoute(
-              builder: (context) => const CreateTransactionPage(
-                fundId: 0, // Will be replaced by actual fundId
-              ),
-            );
-          },
-        ),
       ),
     );
   }

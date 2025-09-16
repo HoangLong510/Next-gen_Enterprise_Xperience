@@ -2,11 +2,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile/services/transaction_service.dart';
+import 'package:mobile/models/api_response.dart'; // 👈 import ApiResponse
 
 class CreateTransactionPage extends StatefulWidget {
   final int fundId; // Accept fundId parameter
 
-  const CreateTransactionPage({Key? key, required this.fundId}) : super(key: key);
+  const CreateTransactionPage({Key? key, required this.fundId})
+      : super(key: key);
 
   @override
   _CreateTransactionPageState createState() => _CreateTransactionPageState();
@@ -19,11 +21,11 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
   String? _note;
   File? _file;
 
-  // Using ImagePicker to select the file
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery); // Use .camera to capture image
+    final pickedFile =
+        await _picker.pickImage(source: ImageSource.gallery); // or .camera
     if (pickedFile != null) {
       setState(() {
         _file = File(pickedFile.path);
@@ -32,36 +34,45 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
   }
 
   void _submitTransaction() async {
-  if (_formKey.currentState!.validate()) {
-    try {
-      // Print the transaction details for debugging
-      print("Submitting Transaction: fundId: ${widget.fundId}, type: $_type, amount: $_amount, note: $_note, file: $_file");
+    if (_formKey.currentState!.validate()) {
+      try {
+        print(
+            "Submitting Transaction: fundId=${widget.fundId}, type=$_type, amount=$_amount, note=$_note, file=$_file");
 
-      // Call the service to create the transaction
-      final responseMessage = await TransactionService.createTransaction(
-        fundId: widget.fundId, 
-        type: _type!,
-        amount: _amount!,
-        note: _note,
-        file: _file,
-      );
+        // Call service
+        final ApiResponse response =
+            await TransactionService.createTransaction(
+          fundId: widget.fundId,
+          type: _type!,
+          amount: _amount!,
+          note: _note,
+          file: _file,
+        );
 
-      // Show the response message from the API
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(responseMessage)));
-    } catch (e) {
-      // Print the error for debugging
-      print("Error creating transaction: $e");
-
-      // Show an error message with the exception
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to create transaction: $e')));
+        if (response.status == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.message ?? "Transaction created")),
+          );
+          Navigator.pop(context, true); // quay về list
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(response.message ?? "Failed with ${response.status}")),
+          );
+        }
+      } catch (e) {
+        print("Error creating transaction: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create transaction: $e')),
+        );
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Create Transaction')),
+      appBar: AppBar(title: const Text('Create Transaction')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -70,7 +81,8 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
             children: [
               DropdownButtonFormField<String>(
                 value: _type,
-                decoration: InputDecoration(labelText: 'Transaction Type'),
+                decoration:
+                    const InputDecoration(labelText: 'Transaction Type'),
                 items: ['INCREASE', 'DECREASE']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -87,20 +99,22 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
                 },
               ),
               TextFormField(
-                decoration: InputDecoration(labelText: 'Amount'),
+                decoration: const InputDecoration(labelText: 'Amount'),
                 keyboardType: TextInputType.number,
                 onChanged: (value) {
                   _amount = double.tryParse(value);
                 },
                 validator: (value) {
-                  if (value == null || value.isEmpty || double.tryParse(value) == null) {
+                  if (value == null ||
+                      value.isEmpty ||
+                      double.tryParse(value) == null) {
                     return 'Please enter a valid amount';
                   }
                   return null;
                 },
               ),
               TextFormField(
-                decoration: InputDecoration(labelText: 'Note'),
+                decoration: const InputDecoration(labelText: 'Note'),
                 onChanged: (value) {
                   _note = value;
                 },
@@ -108,7 +122,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _pickImage,
-                child: Text('Pick an image'),
+                child: const Text('Pick an image'),
               ),
               if (_file != null) ...[
                 const SizedBox(height: 20),
@@ -117,7 +131,7 @@ class _CreateTransactionPageState extends State<CreateTransactionPage> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _submitTransaction,
-                child: Text('Submit Transaction'),
+                child: const Text('Submit Transaction'),
               ),
             ],
           ),

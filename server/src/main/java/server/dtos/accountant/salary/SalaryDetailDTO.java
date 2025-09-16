@@ -11,7 +11,8 @@ import java.time.LocalDateTime;
 @Builder
 public class SalaryDetailDTO {
     private Long id;
-    private EmployeeBasicInfoDTO  employee;
+    private String code;
+    private EmployeeBasicInfoDTO employee;
 
     private Long baseSalary;
     private Integer workingDays;
@@ -20,6 +21,8 @@ public class SalaryDetailDTO {
     private Long allowanceLunch;
     private Long allowancePhone;
     private Long allowanceResponsibility;
+    private Long otherAllowance;
+    private Long otherDeduction;
 
     private Long totalSalary;
 
@@ -27,6 +30,7 @@ public class SalaryDetailDTO {
     private Long deductionBhyt;
     private Long deductionBhtn;
 
+    private Long personalIncomeTax;
     private Long total;
 
     private Integer month;
@@ -36,7 +40,7 @@ public class SalaryDetailDTO {
     private String createdBy;
     private String createdByAvatar;
     private LocalDateTime updatedAt;
-
+    private Integer standardWorkingDays;
     private SalaryStatus status;
     private PaymentMethod paymentMethod;
     private String fileUrl;

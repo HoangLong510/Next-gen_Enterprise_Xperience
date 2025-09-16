@@ -3,7 +3,9 @@ package server.services;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.util.ByteArrayDataSource;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
 import server.models.enums.ContractType;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -793,6 +795,55 @@ public class EmailService {
         );
         mailSender.send(msg);
     }
+    public void sendSalarySlipEmail(String toEmail,
+                                   String employeeName,
+                                   byte[] pdf,
+                                   int year,
+                                   int month,
+                                   String fileName) throws MessagingException {
 
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+        helper.setTo(toEmail);
+        helper.setSubject("Salary Slip for " + month + "/" + year);
+        helper.setText("Dear " + employeeName + ",\n\n"
+                + "Your salary slip for " + month + "/" + year + " has been approved and attached.\n\n"
+                + "Best regards,\nAccounting Department");
+
+        helper.addAttachment(fileName, new ByteArrayResource(pdf));
+
+        mailSender.send(message);
+    }
+
+    @Async
+    public void sendCashAdvanceApprovedEmail(
+            String toEmail,
+            String employeeName,
+            byte[] attachment,
+            String fileName
+    ) throws MessagingException, UnsupportedEncodingException {
+
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+        // Thymeleaf context
+        Context context = new Context();
+        context.setVariable("employeeName", employeeName);
+        context.setVariable("paymentUrl", "http://localhost:3000/payment-request");
+
+        String htmlContent = templateEngine.process("email/cash-advance-approved.html", context);
+
+        helper.setFrom(new InternetAddress("no-reply@example.com", app_name));
+        helper.setTo(toEmail);
+        helper.setSubject("Notification: Your cash advance request has been approved by the Director");
+        helper.setText(htmlContent, true);
+
+        if (attachment != null && fileName != null) {
+            helper.addAttachment(fileName, new ByteArrayResource(attachment));
+        }
+
+        mailSender.send(message);
+    }
 
 }

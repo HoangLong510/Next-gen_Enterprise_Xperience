@@ -1,5 +1,4 @@
-import React from "react";
-
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Typography,
@@ -18,15 +17,22 @@ import {
   Chip,
 } from "@mui/material";
 import { useParams } from "react-router-dom";
-import { useEffect, useState, useMemo } from "react";
 import DownloadIcon from "@mui/icons-material/Download";
 import {
   getSalaryByIdApi,
   getSalaryHistoryByEmployeeApi,
 } from "~/services/accountant/salary.service";
 import { fetchAccountDataApi } from "~/services/auth.service";
-
 import { formatCurrency } from "~/utils/function";
+
+const COLS = 15; // tổng số cột của bảng
+
+const totalDeductionOf = (row) =>
+  (row?.deductionBhxh || 0) +
+  (row?.deductionBhyt || 0) +
+  (row?.deductionBhtn || 0) +
+  (row?.personalIncomeTax || 0) +
+  (row?.otherDeduction || 0);
 
 export default function SalaryDetail() {
   const { id } = useParams();
@@ -39,6 +45,7 @@ export default function SalaryDetail() {
   useEffect(() => {
     fetchDetailAndHistory();
     fetchCurrentUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchCurrentUser = async () => {
@@ -53,7 +60,7 @@ export default function SalaryDetail() {
   const fetchDetailAndHistory = async () => {
     try {
       const res = await getSalaryByIdApi(id);
-      const current = res.data.data;
+      const current = res.data;
       setSalary(current);
 
       if (current?.employee?.code) {
@@ -98,10 +105,12 @@ export default function SalaryDetail() {
       acc.allowanceLunch += cur.allowanceLunch || 0;
       acc.allowancePhone += cur.allowancePhone || 0;
       acc.allowanceResponsibility += cur.allowanceResponsibility || 0;
-      acc.totalSalary += cur.totalSalary || 0;
       acc.deductionBhxh += cur.deductionBhxh || 0;
       acc.deductionBhyt += cur.deductionBhyt || 0;
       acc.deductionBhtn += cur.deductionBhtn || 0;
+      acc.personalIncomeTax += cur.personalIncomeTax || 0;
+      acc.otherDeduction += cur.otherDeduction || 0;
+      acc.totalDeduction += totalDeductionOf(cur);
       acc.total += cur.total || 0;
       acc.workingDays += cur.workingDays || 0;
       acc.totalPaid += cur.status === "PAID" ? cur.total || 0 : 0;
@@ -113,10 +122,12 @@ export default function SalaryDetail() {
       allowanceLunch: 0,
       allowancePhone: 0,
       allowanceResponsibility: 0,
-      totalSalary: 0,
       deductionBhxh: 0,
       deductionBhyt: 0,
       deductionBhtn: 0,
+      personalIncomeTax: 0,
+      otherDeduction: 0,
+      totalDeduction: 0,
       total: 0,
       workingDays: 0,
       totalPaid: 0,
@@ -127,10 +138,14 @@ export default function SalaryDetail() {
     <Box sx={{ width: "100%", mx: "auto", my: 4 }}>
       <Typography variant="h5" fontWeight="bold" gutterBottom>
         {selectedId === "ALL"
-          ? "All Payslips"
-          : `Payslip for ${selectedSalary?.month || "-"}/${
-              selectedSalary?.year || "-"
-            }`}
+          ? `All Payslips for ${salary?.employee?.name || ""} (${
+              salary?.employee?.code || ""
+            })`
+          : `Payslip for ${selectedSalary?.employee?.position || "-"} - ${
+              selectedSalary?.employee?.name || "-"
+            } (${selectedSalary?.employee?.code || "-"}) | Month ${
+              selectedSalary?.month || "-"
+            }/${selectedSalary?.year || "-"}`}
       </Typography>
 
       <FormControl fullWidth sx={{ mb: 3 }}>
@@ -153,6 +168,7 @@ export default function SalaryDetail() {
         <TableContainer>
           <Table size="small">
             <TableHead>
+              {/* Row 1 */}
               <TableRow sx={{ backgroundColor: "primary.main" }}>
                 <TableCell rowSpan={2} sx={{ color: "white" }}>
                   Position
@@ -167,10 +183,13 @@ export default function SalaryDetail() {
                   Actual Salary
                 </TableCell>
 
+                {/* Group: Allowances */}
                 <TableCell colSpan={3} align="center" sx={{ color: "white" }}>
                   ALLOWANCES
                 </TableCell>
-                <TableCell colSpan={4} align="center" sx={{ color: "white" }}>
+
+                {/* Group: Deductions */}
+                <TableCell colSpan={5} align="center" sx={{ color: "white" }}>
                   DEDUCTIONS
                 </TableCell>
 
@@ -183,25 +202,25 @@ export default function SalaryDetail() {
                 <TableCell rowSpan={2} sx={{ color: "white" }}>
                   Status
                 </TableCell>
-                <TableCell colSpan={2} align="center" sx={{ color: "white" }}>
-                  Created By
-                </TableCell>
               </TableRow>
 
               <TableRow sx={{ backgroundColor: "primary.main" }}>
-                <TableCell sx={{ color: "white" }}>Lunch</TableCell>
-                <TableCell sx={{ color: "white" }}>Phone</TableCell>
-                <TableCell sx={{ color: "white" }}>Responsibility</TableCell>
+                <TableCell sx={{ color: "lightgreen" }}>Lunch</TableCell>
+                <TableCell sx={{ color: "lightgreen" }}>Phone</TableCell>
+                <TableCell sx={{ color: "lightgreen" }}>
+                  Responsibility
+                </TableCell>
 
-                <TableCell sx={{ color: "white" }}>Social Insurance</TableCell>
-                <TableCell sx={{ color: "white" }}>Health Insurance</TableCell>
-                <TableCell sx={{ color: "white" }}>Unemployment Ins.</TableCell>
-                <TableCell sx={{ color: "white" }}>Total Deduction</TableCell>
-
-                <TableCell sx={{ color: "white" }}>User</TableCell>
-                <TableCell sx={{ color: "white" }}>Created At</TableCell>
+                <TableCell sx={{ color: "orange" }}>Social Insurance</TableCell>
+                <TableCell sx={{ color: "orange" }}>Health Insurance</TableCell>
+                <TableCell sx={{ color: "orange" }}>
+                  Unemployment Ins.
+                </TableCell>
+                <TableCell sx={{ color: "orange" }}>Income Tax</TableCell>
+                <TableCell sx={{ color: "orange" }}>Total Deduction</TableCell>
               </TableRow>
             </TableHead>
+
             <TableBody>
               {selectedId === "ALL" &&
                 Object.entries(
@@ -214,7 +233,7 @@ export default function SalaryDetail() {
                 ).map(([monthYear, list]) => (
                   <React.Fragment key={monthYear}>
                     <TableRow sx={{ backgroundColor: "#f0f4ff" }}>
-                      <TableCell colSpan={16}>
+                      <TableCell colSpan={COLS}>
                         <Typography
                           variant="subtitle1"
                           fontWeight="bold"
@@ -233,6 +252,7 @@ export default function SalaryDetail() {
                         <TableCell>
                           {formatCurrency(item.actualSalary)}
                         </TableCell>
+
                         <TableCell>
                           {formatCurrency(item.allowanceLunch)}
                         </TableCell>
@@ -242,9 +262,7 @@ export default function SalaryDetail() {
                         <TableCell>
                           {formatCurrency(item.allowanceResponsibility)}
                         </TableCell>
-                        <TableCell>
-                          {formatCurrency(item.totalSalary)}
-                        </TableCell>
+
                         <TableCell>
                           {formatCurrency(item.deductionBhxh)}
                         </TableCell>
@@ -254,6 +272,13 @@ export default function SalaryDetail() {
                         <TableCell>
                           {formatCurrency(item.deductionBhtn)}
                         </TableCell>
+                        <TableCell>
+                          {formatCurrency(item.personalIncomeTax)}
+                        </TableCell>
+                        <TableCell>
+                          {formatCurrency(totalDeductionOf(item))}
+                        </TableCell>
+
                         <TableCell>{formatCurrency(item.total)}</TableCell>
                         <TableCell>{item.paymentMethod}</TableCell>
                         <TableCell>
@@ -273,19 +298,6 @@ export default function SalaryDetail() {
                             size="small"
                           />
                         </TableCell>
-                        <TableCell>{item.createdBy}</TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {new Date(item.createdAt).toLocaleDateString(
-                              "en-US"
-                            )}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {new Date(item.createdAt).toLocaleTimeString(
-                              "en-US"
-                            )}
-                          </Typography>
-                        </TableCell>
                       </TableRow>
                     ))}
                   </React.Fragment>
@@ -301,6 +313,7 @@ export default function SalaryDetail() {
                   <TableCell>
                     {formatCurrency(selectedSalary.actualSalary)}
                   </TableCell>
+
                   <TableCell>
                     {formatCurrency(selectedSalary.allowanceLunch)}
                   </TableCell>
@@ -310,9 +323,7 @@ export default function SalaryDetail() {
                   <TableCell>
                     {formatCurrency(selectedSalary.allowanceResponsibility)}
                   </TableCell>
-                  <TableCell>
-                    {formatCurrency(selectedSalary.totalSalary)}
-                  </TableCell>
+
                   <TableCell>
                     {formatCurrency(selectedSalary.deductionBhxh)}
                   </TableCell>
@@ -322,6 +333,13 @@ export default function SalaryDetail() {
                   <TableCell>
                     {formatCurrency(selectedSalary.deductionBhtn)}
                   </TableCell>
+                  <TableCell>
+                    {formatCurrency(selectedSalary.personalIncomeTax)}
+                  </TableCell>
+                  <TableCell>
+                    {formatCurrency(totalDeductionOf(selectedSalary))}
+                  </TableCell>
+
                   <TableCell>{formatCurrency(selectedSalary.total)}</TableCell>
                   <TableCell>{selectedSalary.paymentMethod}</TableCell>
                   <TableCell>
@@ -341,21 +359,9 @@ export default function SalaryDetail() {
                       size="small"
                     />
                   </TableCell>
-                  <TableCell>{selectedSalary.createdBy}</TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {new Date(selectedSalary.createdAt).toLocaleDateString(
-                        "en-US"
-                      )}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {new Date(selectedSalary.createdAt).toLocaleTimeString(
-                        "en-US"
-                      )}
-                    </Typography>
-                  </TableCell>
                 </TableRow>
               )}
+
               {selectedId === "ALL" && (
                 <TableRow sx={{ backgroundColor: "#e3f2fd" }}>
                   <TableCell>
@@ -364,22 +370,29 @@ export default function SalaryDetail() {
                   <TableCell>{formatCurrency(totals.baseSalary)}</TableCell>
                   <TableCell>{totals.workingDays}</TableCell>
                   <TableCell>{formatCurrency(totals.actualSalary)}</TableCell>
+
                   <TableCell>{formatCurrency(totals.allowanceLunch)}</TableCell>
                   <TableCell>{formatCurrency(totals.allowancePhone)}</TableCell>
                   <TableCell>
                     {formatCurrency(totals.allowanceResponsibility)}
                   </TableCell>
-                  <TableCell>{formatCurrency(totals.totalSalary)}</TableCell>
+
                   <TableCell>{formatCurrency(totals.deductionBhxh)}</TableCell>
                   <TableCell>{formatCurrency(totals.deductionBhyt)}</TableCell>
                   <TableCell>{formatCurrency(totals.deductionBhtn)}</TableCell>
+                  <TableCell>
+                    {formatCurrency(totals.personalIncomeTax)}
+                  </TableCell>
+                  <TableCell>{formatCurrency(totals.totalDeduction)}</TableCell>
+
                   <TableCell>{formatCurrency(totals.total)}</TableCell>
-                  <TableCell colSpan={4}></TableCell>
+                  <TableCell colSpan={2}></TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
         </TableContainer>
+
         {selectedId === "ALL" && (
           <Box sx={{ mt: 2, textAlign: "right" }}>
             <Typography
