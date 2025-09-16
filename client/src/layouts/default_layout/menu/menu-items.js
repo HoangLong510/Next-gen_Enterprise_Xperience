@@ -9,7 +9,8 @@ import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import DescriptionIcon from "@mui/icons-material/Description";
 import WorkIcon from "@mui/icons-material/Work";
 import PunchClockIcon from "@mui/icons-material/PunchClock";
-import GavelIcon from "@mui/icons-material/Gavel"; // thêm cho Contracts
+import GavelIcon from "@mui/icons-material/Gavel";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 export const menuItems = [
   {
@@ -55,6 +56,12 @@ export const menuItems = [
         icon: PunchClockIcon,
         href: "/attendance/list",
         roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR"],
+      },
+      {
+        label: "Missing Checkout",
+        icon: WarningAmberIcon,
+        href: "/attendance/missing-checkout",
+        roles: ["HR"],
       },
     ],
   },
@@ -106,7 +113,7 @@ export const menuItems = [
         label: "Dispatches",
         icon: AssignmentIcon,
         href: "/management/documents",
-        roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
+        roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT","SECRETARY"],
       },
       {
         label: "Tasks",

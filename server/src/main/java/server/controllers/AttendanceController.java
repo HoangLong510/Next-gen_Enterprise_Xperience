@@ -150,6 +150,7 @@ public class AttendanceController {
     }
 
     @GetMapping("/missing-checkout")
+    @PreAuthorize("hasAuthority('HR')")
     public ResponseEntity<List<Attendance>> getMissingCheckOut(
             @RequestParam String fromDate,
             @RequestParam String toDate

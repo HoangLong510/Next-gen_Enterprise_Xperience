@@ -1,177 +1,331 @@
-import React, { useEffect, useState } from "react";
+"use client"
+
+import { useEffect, useState } from "react"
 import {
   Box,
   Button,
   TextField,
   Typography,
-  List,
-  ListItem,
-  ListItemText,
   Stack,
   CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-} from "@mui/material";
-import { getMissingCheckOutApi, submitMissingCheckOutNoteApi } from "~/services/attendance.service";
-import { useDispatch } from "react-redux";
-import { setPopup } from "~/libs/features/popup/popupSlice";
+  Card,
+  CardContent,
+  Chip,
+  Avatar,
+  Divider,
+  Paper,
+} from "@mui/material"
+import {
+  Search as SearchIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
+  Person as PersonIcon,
+  Schedule as ScheduleIcon,
+  Note as NoteIcon,
+} from "@mui/icons-material"
+import { getMissingCheckOutApi, resolveMissingCheckOutApi } from "~/services/attendance.service"
+import { useDispatch } from "react-redux"
+import { setPopup } from "~/libs/features/popup/popupSlice"
+import { useTranslation } from "react-i18next"
 
 export default function MissingCheckOutList() {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch()
+  const { t } = useTranslation("attendance_page")
 
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [fromDate, setFromDate] = useState("")
+  const [toDate, setToDate] = useState("")
+  const [records, setRecords] = useState([])
+  const [loading, setLoading] = useState(false)
 
-  const [openDialog, setOpenDialog] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState(null);
-  const [note, setNote] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    const fetchAllMissing = async () => {
-      setLoading(true);
-      try {
-        const data = await getMissingCheckOutApi("2000-01-01", "2099-12-31");
-        setRecords(data);
-      } catch {
-        dispatch(setPopup({ type: "error", message: "Failed to load missing check-out records." }));
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAllMissing();
-  }, [dispatch]);
+  const [openDialog, setOpenDialog] = useState(false)
+  const [selectedRecord, setSelectedRecord] = useState(null)
+  const [hrNote, setHrNote] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [approve, setApprove] = useState(true)
 
   const fetchRecords = async () => {
-    if (!fromDate || !toDate) {
-      dispatch(setPopup({ type: "error", message: "Please select both from and to dates." }));
-      return;
-    }
-    setLoading(true);
+    setLoading(true)
     try {
-      const data = await getMissingCheckOutApi(fromDate, toDate);
-      setRecords(data);
+      const data = await getMissingCheckOutApi(fromDate || "2000-01-01", toDate || "2099-12-31")
+      setRecords(data || [])
     } catch {
-      dispatch(setPopup({ type: "error", message: "Failed to load missing check-out records." }));
+      dispatch(setPopup({ type: "error", message: t("submitFailed") }))
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const openNoteDialog = (record) => {
-    setSelectedRecord(record);
-    setNote(record.checkOutNote || "");
-    setOpenDialog(true);
-  };
+  useEffect(() => {
+    fetchRecords()
+  }, [])
+
+  const openReviewDialog = (record, isApprove) => {
+    setSelectedRecord(record)
+    setApprove(isApprove)
+    setHrNote("")
+    setOpenDialog(true)
+  }
 
   const closeDialog = () => {
-    setOpenDialog(false);
-    setSelectedRecord(null);
-    setNote("");
-  };
-
-  const handleSubmitNote = async () => {
-  if (!note.trim()) {
-    dispatch(setPopup({ type: "error", message: "Note cannot be empty." }));
-    return;
+    setOpenDialog(false)
+    setSelectedRecord(null)
+    setHrNote("")
   }
-  setSubmitting(true);
-  try {
-    await submitMissingCheckOutNoteApi(selectedRecord.id, note.trim());
-    dispatch(setPopup({ type: "success", message: "Note submitted successfully." }));
-    closeDialog();
 
-    // 👉 Chỉ gọi lại fetch nếu người dùng đã chọn khoảng ngày
-    if (fromDate && toDate) {
-      await fetchRecords();
-    } else {
-      // Nếu không chọn khoảng ngày → chỉ cập nhật state tại chỗ
-      const updated = records.map((r) =>
-        r.id === selectedRecord.id ? { ...r, checkOutNote: note.trim() } : r
-      );
-      setRecords(updated);
+  const handleResolve = async () => {
+    if (!selectedRecord) return
+    if (!approve && !hrNote.trim()) {
+      dispatch(setPopup({ type: "error", message: t("reasonRequired") }))
+      return
     }
-  } catch (error) {
-    dispatch(setPopup({ type: "error", message: error || "Failed to submit note." }));
-  } finally {
-    setSubmitting(false);
+    setSubmitting(true)
+    try {
+      await resolveMissingCheckOutApi(selectedRecord.id, hrNote.trim(), approve)
+      dispatch(
+        setPopup({
+          type: "success",
+          message: approve ? t("approveSuccess") : t("rejectSuccess"),
+        }),
+      )
+      closeDialog()
+      fetchRecords()
+    } catch (error) {
+      dispatch(setPopup({ type: "error", message: error || t("submitFailed") }))
+    } finally {
+      setSubmitting(false)
+    }
   }
-};
 
   return (
-    <Box sx={{ maxWidth: 800, mx: "auto", mt: 4, p: 3, border: "1px solid #ccc", borderRadius: 2 }}>
-      <Typography variant="h5" mb={2}>Danh sách thiếu check-out</Typography>
+    <Box sx={{ maxWidth: "1600px", mx: "auto", mt: 3, p: 3 }}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 4,
+          mb: 4,
+          bgcolor: "primary.main",
+          color: "white",
+          borderRadius: 3,
+        }}
+      >
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+          }}
+        >
+          <ScheduleIcon sx={{ fontSize: 40 }} />
+          {t("missingCheckoutReview")}
+        </Typography>
+      </Paper>
 
-      <Stack direction="row" spacing={2} mb={3}>
-        <TextField
-          label="Từ ngày"
-          type="date"
-          value={fromDate}
-          onChange={(e) => setFromDate(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ flex: 1 }}
-        />
-        <TextField
-          label="Đến ngày"
-          type="date"
-          value={toDate}
-          onChange={(e) => setToDate(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ flex: 1 }}
-        />
-        <Button variant="contained" onClick={fetchRecords}>Tìm</Button>
-      </Stack>
-
-      {loading ? (
-        <Box textAlign="center"><CircularProgress /></Box>
-      ) : records.length === 0 ? (
-        <Typography textAlign="center" color="text.secondary">Không có bản ghi nào</Typography>
-      ) : (
-        <List>
-          {records.map((att) => (
-            <ListItem
-              key={att.id}
-              divider
-              secondaryAction={
-                <Button variant="outlined" onClick={() => openNoteDialog(att)}>Giải trình</Button>
-              }
+      {/* Bộ lọc */}
+      <Card elevation={2} sx={{ mb: 4, borderRadius: 2 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Stack direction={{ xs: "column", md: "row" }} spacing={3} alignItems="end">
+            <TextField
+              label={t("fromDate")}
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ flex: 1 }}
+              variant="outlined"
+            />
+            <TextField
+              label={t("toDate")}
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ flex: 1 }}
+              variant="outlined"
+            />
+            <Button
+              variant="contained"
+              onClick={fetchRecords}
+              startIcon={<SearchIcon />}
+              sx={{
+                px: 4,
+                py: 1.5,
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: 500,
+              }}
             >
-              <ListItemText
-                primary={`Ngày check-in: ${new Date(att.checkInTime).toLocaleDateString()}`}
-                secondary={`Trạng thái: ${att.status}`}
-              />
-            </ListItem>
+              {t("search")}
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      {/* Danh sách */}
+      {loading ? (
+        <Card elevation={1} sx={{ p: 6, textAlign: "center", borderRadius: 2 }}>
+          <CircularProgress size={48} sx={{ mb: 2 }} />
+          <Typography variant="h6" color="text.secondary">
+            {t("loading")}
+          </Typography>
+        </Card>
+      ) : records.length === 0 ? (
+        <Card elevation={1} sx={{ p: 6, textAlign: "center", borderRadius: 2 }}>
+          <ScheduleIcon sx={{ fontSize: 64, color: "text.disabled", mb: 2 }} />
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            {t("noData")}
+          </Typography>
+          <Typography variant="body2" color="text.disabled">
+            {t("noRecordsFound")}
+          </Typography>
+        </Card>
+      ) : (
+        <Stack spacing={2}>
+          {records.map((att, index) => (
+            <Card key={att.id} elevation={1} sx={{ borderRadius: 2 }}>
+              <CardContent sx={{ p: 3 }}>
+                <Stack
+                  direction={{ xs: "column", md: "row" }}
+                  spacing={3}
+                  alignItems={{ xs: "stretch", md: "center" }}
+                >
+                  <Box sx={{ flex: 1 }}>
+                    <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                      <Avatar sx={{ bgcolor: "primary.main" }}>
+                        <PersonIcon />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                          {`${att.account?.employee?.firstName || ""} ${att.account?.employee?.lastName || ""}`.trim() ||
+                            t("unknownEmployee")}
+                        </Typography>
+                        <Chip label={`#${index + 1}`} size="small" color="primary" variant="outlined" />
+                      </Box>
+                    </Stack>
+
+                    <Stack spacing={1.5}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <ScheduleIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                        <Typography variant="body2" color="text.secondary">
+                          <strong>{t("checkInTime")}:</strong>{" "}
+                          {new Date(att.checkInTime).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+                        <NoteIcon sx={{ fontSize: 18, color: "text.secondary", mt: 0.2 }} />
+                        <Box>
+                          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                            {t("employeeNote")}:
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              mt: 0.5,
+                              p: 1.5,
+                              bgcolor: "grey.50",
+                              borderRadius: 1,
+                              fontStyle: att.checkOutEmployeeNote ? "normal" : "italic",
+                              color: att.checkOutEmployeeNote ? "text.primary" : "text.disabled",
+                            }}
+                          >
+                            {att.checkOutEmployeeNote || t("noExplanation")}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Stack>
+                  </Box>
+
+                  <Divider orientation={{ xs: "horizontal", md: "vertical" }} flexItem />
+
+                  <Stack direction={{ xs: "row", md: "column" }} spacing={1.5} sx={{ minWidth: { md: 140 } }}>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<CheckCircleIcon />}
+                      onClick={() => openReviewDialog(att, true)}
+                      sx={{ borderRadius: 2, textTransform: "none", fontWeight: 500, flex: { xs: 1, md: "none" } }}
+                    >
+                      {t("approve")}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      startIcon={<CancelIcon />}
+                      onClick={() => openReviewDialog(att, false)}
+                      sx={{ borderRadius: 2, textTransform: "none", fontWeight: 500, flex: { xs: 1, md: "none" } }}
+                    >
+                      {t("reject")}
+                    </Button>
+                  </Stack>
+                </Stack>
+              </CardContent>
+            </Card>
           ))}
-        </List>
+        </Stack>
       )}
 
+      {/* Dialog */}
       <Dialog open={openDialog} onClose={closeDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Giải trình thiếu check-out</DialogTitle>
-        <DialogContent>
-          <Typography gutterBottom>
-            Ngày check-in: {selectedRecord && new Date(selectedRecord.checkInTime).toLocaleDateString()}
-          </Typography>
+        <DialogTitle sx={{ pb: 1, bgcolor: "primary.main", color: "white" }}>
+          {approve ? <CheckCircleIcon /> : <CancelIcon />}
+          {approve ? t("approveExplanation") : t("rejectExplanation")}
+        </DialogTitle>
+
+        <DialogContent sx={{ pt: 3 }}>
+          <Card variant="outlined" sx={{ mb: 3, borderRadius: 2 }}>
+            <CardContent>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                {t("checkInTime")}
+              </Typography>
+              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                {selectedRecord && new Date(selectedRecord.checkInTime).toLocaleDateString()}
+              </Typography>
+            </CardContent>
+          </Card>
+
           <TextField
-            label="Ghi chú giải trình"
+            label={t("hrNote")}
             multiline
             fullWidth
-            minRows={3}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            sx={{ mt: 2 }}
+            minRows={4}
+            value={hrNote}
+            onChange={(e) => setHrNote(e.target.value)}
+            required={!approve}
+            variant="outlined"
+            placeholder={approve ? t("optionalNote") : t("reasonRequired")}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={closeDialog}>Hủy</Button>
-          <Button variant="contained" disabled={submitting} onClick={handleSubmitNote}>
-            {submitting ? "Đang gửi..." : "Gửi ghi chú"}
+
+        <DialogActions sx={{ p: 3, pt: 2 }}>
+          <Button onClick={closeDialog} sx={{ borderRadius: 2, textTransform: "none" }}>
+            {t("cancel")}
+          </Button>
+          <Button
+            variant="contained"
+            disabled={submitting}
+            onClick={handleResolve}
+            color="primary"
+            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 500, minWidth: 120 }}
+          >
+            {submitting ? (
+              <>
+                <CircularProgress size={16} sx={{ mr: 1 }} />
+                {t("processing")}
+              </>
+            ) : approve ? (
+              t("approve")
+            ) : (
+              t("reject")
+            )}
           </Button>
         </DialogActions>
       </Dialog>
     </Box>
-  );
+  )
 }

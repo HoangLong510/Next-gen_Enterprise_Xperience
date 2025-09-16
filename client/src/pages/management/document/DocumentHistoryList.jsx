@@ -22,34 +22,36 @@ import {
   Pagination,
   Tooltip,
   Typography,
+  alpha,
+  useTheme,
 } from "@mui/material";
-import { Search, Clear, South, North, Refresh } from "@mui/icons-material";
+import { Search, Clear, South, North, Refresh, History } from "@mui/icons-material";
 import { useParams } from "react-router-dom";
 import { fetchDocumentHistoriesPageApi } from "~/services/document.service";
 
 const formatDate = (d) => (d ? new Date(d).toLocaleString() : "-");
 
 export default function DocumentHistoryList() {
-  const { id } = useParams(); // documentId
+  const theme = useTheme();
+  const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
 
-  // server-side paging/sort/filter
-  const [page, setPage] = useState(1); // BE nhận 1-based
+  const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
 
-  const [keyword, setKeyword] = useState("");     // ô nhập
-  const [searchTerm, setSearchTerm] = useState(""); // apply khi bấm search
-  const [sortDir, setSortDir] = useState("desc"); // asc | desc (BE dùng làm direction)
+  const [keyword, setKeyword] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortDir, setSortDir] = useState("desc");
 
   const payload = useMemo(
     () => ({
       pageNumber: page,
       pageSize,
-      sortBy: sortDir,     // BE sort theo "version" với direction này
-      searchTerm,          // nếu BE chưa hỗ trợ sẽ bị ignore
+      sortBy: sortDir,
+      searchTerm,
     }),
     [page, pageSize, sortDir, searchTerm]
   );
@@ -85,17 +87,85 @@ export default function DocumentHistoryList() {
     setSearchTerm("");
   };
 
+  // 🔹 helper đổi màu action
+  const actionColor = (a) => {
+    switch ((a || "").toUpperCase()) {
+      case "CREATED":
+        return "success";
+      case "APPROVED":
+        return "info";
+      case "REJECTED":
+        return "error";
+      default:
+        return "default";
+    }
+  };
+
+  const statusColor = (s) => {
+    switch ((s || "").toUpperCase()) {
+      case "APPROVED":
+        return "success";
+      case "REJECTED":
+        return "error";
+      default:
+        return "default";
+    }
+  };
+
   return (
-    <Box sx={{ maxWidth: 1200, mx: "auto", p: { xs: 2, md: 3 } }}>
-      <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>
-        Document Histories
-      </Typography>
+    <Box sx={{ maxWidth: 1400, mx: "auto", p: { xs: 2, md: 4 } }}>
+      {/* Header */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 4,
+          mb: 4,
+          borderRadius: 4,
+          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={2}
+          sx={{ position: "relative", zIndex: 1 }}
+        >
+          <History sx={{ color: "white", fontSize: 36 }} />
+          <Box>
+            <Typography
+              variant="h4"
+              sx={{ fontWeight: 800, color: "white", mb: 0.5 }}
+            >
+              Document Histories
+            </Typography>
+            <Typography sx={{ color: alpha("#fff", 0.85), fontWeight: 500 }}>
+              Track all changes, approvals and rejections of this document
+            </Typography>
+          </Box>
+        </Stack>
+      </Paper>
 
       {/* Filter bar */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems="center">
+      <Paper
+        elevation={0}
+        sx={{
+          p: 3,
+          mb: 3,
+          borderRadius: 3,
+          background: alpha(theme.palette.background.paper, 0.8),
+          border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+        }}
+      >
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={2}
+          alignItems="center"
+        >
           <TextField
             fullWidth
+            size="small"
             label="Search"
             placeholder="Search note/title/actor…"
             value={keyword}
@@ -106,82 +176,103 @@ export default function DocumentHistoryList() {
                 <InputAdornment position="end">
                   {keyword && (
                     <Tooltip title="Clear">
-                      <IconButton onClick={clearSearch}><Clear /></IconButton>
+                      <IconButton onClick={clearSearch}>
+                        <Clear />
+                      </IconButton>
                     </Tooltip>
                   )}
                   <Tooltip title="Search">
-                    <IconButton onClick={handleSearch}><Search /></IconButton>
+                    <IconButton onClick={handleSearch}>
+                      <Search />
+                    </IconButton>
                   </Tooltip>
                 </InputAdornment>
               ),
             }}
           />
 
-          <FormControl sx={{ minWidth: 140 }}>
+          <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel id="sort-label">Sort by Version</InputLabel>
             <Select
               labelId="sort-label"
-              label="Sort by Version"
               value={sortDir}
+              label="Sort by Version"
               onChange={(e) => {
                 setSortDir(e.target.value);
                 setPage(1);
               }}
             >
               <MenuItem value="desc">
-                <South fontSize="small" sx={{ mr: 1 }} />
-                Descending
+                <South fontSize="small" sx={{ mr: 1 }} /> Descending
               </MenuItem>
               <MenuItem value="asc">
-                <North fontSize="small" sx={{ mr: 1 }} />
-                Ascending
+                <North fontSize="small" sx={{ mr: 1 }} /> Ascending
               </MenuItem>
             </Select>
           </FormControl>
 
-          <FormControl sx={{ minWidth: 120 }}>
-            <InputLabel id="rows-label">Rows</InputLabel>
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel id="rows-label">Rows per page</InputLabel>
             <Select
               labelId="rows-label"
-              label="Rows"
               value={pageSize}
+              label="Rows per page"
               onChange={(e) => {
                 setPageSize(Number(e.target.value));
                 setPage(1);
               }}
             >
               {[5, 10, 20, 50].map((n) => (
-                <MenuItem key={n} value={n}>{n}/page</MenuItem>
+                <MenuItem key={n} value={n}>
+                  {n} / page
+                </MenuItem>
               ))}
             </Select>
           </FormControl>
 
-          <Box sx={{ flex: 1 }} />
+          <Box flex={1} />
 
-          <Tooltip title="Refresh">
-            <span>
-              <Button variant="outlined" onClick={loadData} startIcon={<Refresh />}>
-                Refresh
-              </Button>
-            </span>
-          </Tooltip>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={loadData}
+          >
+            Refresh
+          </Button>
         </Stack>
       </Paper>
 
       {/* Table */}
-      <Paper sx={{ p: 0, overflow: "hidden" }}>
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: 3,
+          overflow: "hidden",
+          border: `1px solid ${alpha(theme.palette.primary.main, 0.08)}`,
+        }}
+      >
         <TableContainer sx={{ maxHeight: 560 }}>
           <Table stickyHeader size="small">
             <TableHead>
-              <TableRow>
-                <TableCell width={90}>Version</TableCell>
-                <TableCell width={180}>Time</TableCell>
-                <TableCell width={140}>Action</TableCell>
-                <TableCell width={220}>Created By</TableCell>
-                <TableCell width={240}>Title</TableCell>
-                <TableCell width={140}>Type</TableCell>
-                <TableCell width={140}>Status</TableCell>
-                <TableCell>Manager Note</TableCell>
+              <TableRow
+                sx={{
+                  background: alpha(theme.palette.primary.main, 0.08),
+                }}
+              >
+                {[
+                  "Version",
+                  "Time",
+                  "Action",
+                  "Created By",
+                  "Title",
+                  "Type",
+                  "Status",
+                  "Manager Note",
+                ].map((h) => (
+                  <TableCell key={h} sx={{ fontWeight: 700 }}>
+                    {h}
+                  </TableCell>
+                ))}
               </TableRow>
             </TableHead>
 
@@ -195,12 +286,23 @@ export default function DocumentHistoryList() {
               ) : rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                    No data
+                    <Typography>No history found</Typography>
                   </TableCell>
                 </TableRow>
               ) : (
                 rows.map((h) => (
-                  <TableRow key={h.id ?? `${h.version}-${h.createdAt}`}>
+                  <TableRow
+                    key={h.id ?? `${h.version}-${h.createdAt}`}
+                    hover
+                    sx={{
+                      "&:hover": {
+                        background: alpha(
+                          theme.palette.primary.main,
+                          0.04
+                        ),
+                      },
+                    }}
+                  >
                     <TableCell>
                       <Chip size="small" label={h.version ?? "-"} />
                     </TableCell>
@@ -209,15 +311,7 @@ export default function DocumentHistoryList() {
                       <Chip
                         size="small"
                         label={h.action ?? "-"}
-                        color={
-                          (h.action || "").toUpperCase() === "CREATED"
-                            ? "success"
-                            : (h.action || "").toUpperCase() === "APPROVED"
-                            ? "info"
-                            : (h.action || "").toUpperCase() === "REJECTED"
-                            ? "error"
-                            : "default"
-                        }
+                        color={actionColor(h.action)}
                         variant="outlined"
                       />
                     </TableCell>
@@ -233,23 +327,13 @@ export default function DocumentHistoryList() {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        size="small"
-                        label={h.type ?? "-"}
-                        variant="outlined"
-                      />
+                      <Chip size="small" label={h.type ?? "-"} variant="outlined" />
                     </TableCell>
                     <TableCell>
                       <Chip
                         size="small"
                         label={h.status ?? "-"}
-                        color={
-                          (h.status || "").toUpperCase() === "APPROVED"
-                            ? "success"
-                            : (h.status || "").toUpperCase() === "REJECTED"
-                            ? "error"
-                            : "default"
-                        }
+                        color={statusColor(h.status)}
                         variant="outlined"
                       />
                     </TableCell>
@@ -271,8 +355,10 @@ export default function DocumentHistoryList() {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            px: 2,
-            py: 1.5,
+            px: 3,
+            py: 2,
+            borderTop: `1px solid ${alpha(theme.palette.grey[300], 0.4)}`,
+            background: alpha(theme.palette.background.paper, 0.7),
           }}
         >
           <Typography variant="body2" color="text.secondary">
