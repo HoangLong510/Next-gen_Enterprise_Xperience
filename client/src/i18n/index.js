@@ -11,7 +11,7 @@ i18n
 	.use(initReactI18next)
 	.init({
 		// ngôn ngữ mặc định
-		fallbackLng: "en",ns: ["popup", "messages"],  
+		fallbackLng: "en",ns: ["popup", "messages", "project", "tasks","errors","task"],  
     	defaultNS: "popup", 
 
 		detection: {

@@ -2,7 +2,7 @@ package server.dtos;
 
 import lombok.Data;
 import server.models.enums.DocumentType;
-import server.models.enums.ProjectPriority;
+
 
 import java.time.LocalDate;
 
@@ -16,6 +16,10 @@ public class DocumentRequestDto {
     private String projectName;
     private String projectDescription;
     private LocalDate projectDeadline;
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
     private Long pmId;
     private String fundName;
     private Double fundBalance;

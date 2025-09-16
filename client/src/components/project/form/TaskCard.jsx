@@ -1,16 +1,25 @@
-// src/components/project/form/TaskCard.jsx
 import React from "react";
 import { Card, CardContent, Typography, Chip, Stack, Box } from "@mui/material";
 import { CalendarToday } from "@mui/icons-material";
+import { useTranslation } from "react-i18next";
 import { formatStatus, getStatusColor, isOverdue } from "~/utils/project.utils";
 
-const CARD_HEIGHT = 128;      // giữ đồng đều theo trục dọc
-const TITLE_CLAMP = 2;
+const CARD_HEIGHT = 128;
 
-export default function TaskCard({ project, onTitleClick }) {
+export default function TaskCard({ project, onTitleClick, disabled = false }) {
+  const { t } = useTranslation("project", { useSuspense: false });
   if (!project) return null;
 
+  const safeT = React.useCallback(
+    (key, opts, fallback) => {
+      const v = t(key, opts);
+      return v && v !== key ? v : fallback;
+    },
+    [t]
+  );
+
   const handleTitleClick = (e) => {
+    if (disabled) return;
     e.stopPropagation();
     onTitleClick?.(project);
   };
@@ -19,35 +28,48 @@ export default function TaskCard({ project, onTitleClick }) {
   const overdue = isOverdue(project.deadline);
   const statusColorKey = getStatusColor(project.status);
 
+  const statusLabel = React.useMemo(() => {
+    return safeT(`statusLabel.${project.status}`, undefined, formatStatus(project.status));
+  }, [project.status, safeT]);
+
+  const sizeLabel = project.size
+    ? safeT("sizeLabel", { value: project.size }, `Size: ${project.size}`)
+    : null;
+
+  const deadlineLabel = safeT("deadlineLabel", undefined, "Deadline");
+  const deadlineTitle = project.deadline ? `${deadlineLabel}: ${project.deadline}` : "";
+
   return (
     <Card
       elevation={0}
       sx={{
         width: "100%",
-        maxWidth: "100%",          // ⬅️ không cho nở ngang
+        maxWidth: "100%",
         height: CARD_HEIGHT,
         borderRadius: 2,
         border: "1px solid",
         borderColor: "divider",
         transition: "box-shadow .2s ease, transform .2s ease",
-        "&:hover": { boxShadow: 4, transform: "translateY(-1px)" },
+        ...(disabled
+          ? { opacity: 0.7, cursor: "not-allowed" }
+          : { "&:hover": { boxShadow: 4, transform: "translateY(-1px)" } }),
         display: "flex",
-        boxSizing: "border-box",   // ⬅️ ổn định kích thước
+        boxSizing: "border-box",
         overflow: "hidden",
       }}
     >
       <CardContent
         sx={{
-          p: 3,
+          p: 2,
           pt: 2.5,
           display: "flex",
           flexDirection: "column",
           gap: 1,
           width: "100%",
-          minWidth: 0,             // ⬅️ cho phép con co giãn đúng
+          minWidth: 0,
         }}
       >
-        {/* Header: Grid giữ chip cố định bên phải, title chiếm phần còn lại */}
+        {/* Header */}
         <Box
           sx={{
             display: "grid",
@@ -64,27 +86,23 @@ export default function TaskCard({ project, onTitleClick }) {
             onClick={handleTitleClick}
             onMouseDown={stopForDnd}
             onPointerDown={stopForDnd}
+            noWrap
             sx={{
-              cursor: "pointer",
-              "&:hover": { textDecoration: "underline" },
+              cursor: disabled ? "not-allowed" : "pointer",
+              ...(disabled ? {} : { "&:hover": { textDecoration: "underline" } }),
               lineHeight: 1.35,
-              display: "-webkit-box",
-              WebkitBoxOrient: "vertical",
-              WebkitLineClamp: TITLE_CLAMP,    // 2 dòng
               overflow: "hidden",
               textOverflow: "ellipsis",
               minWidth: 0,
-              // ⬇️ bẻ từ an toàn khi chuỗi không có khoảng trắng
               wordBreak: "break-word",
               overflowWrap: "anywhere",
-              whiteSpace: "normal",
             }}
           >
             {project.name}
           </Typography>
 
           <Chip
-            label={formatStatus(project.status)}
+            label={statusLabel}
             size="small"
             color={statusColorKey}
             sx={{ pointerEvents: "none", justifySelf: "end" }}
@@ -96,12 +114,7 @@ export default function TaskCard({ project, onTitleClick }) {
         {/* Meta */}
         <Stack direction="row" alignItems="center" spacing={1.25} flexWrap="wrap" minWidth={0}>
           {project.size && (
-            <Chip
-              label={`Size: ${project.size}`}
-              size="small"
-              variant="outlined"
-              sx={{ pointerEvents: "none" }}
-            />
+            <Chip label={sizeLabel} size="small" variant="outlined" sx={{ pointerEvents: "none" }} />
           )}
 
           {project.deadline && (
@@ -111,7 +124,7 @@ export default function TaskCard({ project, onTitleClick }) {
                 variant="caption"
                 color={overdue ? "error.main" : "text.secondary"}
                 noWrap
-                title={`Deadline: ${project.deadline}`}
+                title={deadlineTitle}
               >
                 {project.deadline}
               </Typography>

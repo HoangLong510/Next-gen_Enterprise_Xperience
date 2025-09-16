@@ -1,50 +1,51 @@
 {
-	"username-is-required": "Tên đăng nhập là bắt buộc",
-	"username-must-be-between-5-and-30-characters": "Tên đăng nhập phải từ 5 đến 30 ký tự",
-	"username-must-start-with-a-lowercase-letter-and-contain-only-lowercase-letters-and-numbers": "Tên đăng nhập phải bắt đầu bằng chữ thường và chỉ chứa chữ thường hoặc số",
-	"username-does-not-exist": "Tên đăng nhập không tồn tại",
-	"username-already-exists": "Tên đăng nhập đã tồn tại",
-	"account-is-disabled": "Tài khoản bị khóa",
+  "username-is-required": "Tên đăng nhập là bắt buộc",
+  "username-must-be-between-5-and-30-characters": "Tên đăng nhập phải từ 5 đến 30 ký tự",
+  "username-must-start-with-a-lowercase-letter-and-contain-only-lowercase-letters-and-numbers": "Tên đăng nhập phải bắt đầu bằng chữ thường và chỉ chứa chữ thường hoặc số",
+  "username-does-not-exist": "Tên đăng nhập không tồn tại",
+  "username-already-exists": "Tên đăng nhập đã tồn tại",
+  "account-is-disabled": "Tài khoản bị khóa",
 
-	"password-is-required": "Mật khẩu là bắt buộc",
-	"password-does-not-match": "Mật khẩu không đúng",
-	"password-must-be-between-6-and-30-characters": "Mật khẩu phải từ 6 đến 30 ký tự",
+  "password-is-required": "Mật khẩu là bắt buộc",
+  "password-does-not-match": "Mật khẩu không đúng",
+  "password-must-be-between-6-and-30-characters": "Mật khẩu phải từ 6 đến 30 ký tự",
 
-	"do-not-set-the-same-password-as-the-old-one": "Không đặt mật khẩu giống như mật khẩu cũ",
+  "do-not-set-the-same-password-as-the-old-one": "Không đặt mật khẩu giống như mật khẩu cũ",
 
-	"confirm-password-is-required": "Xác nhận mật khẩu là bắt buộc",
-	"confirm-password-does-not-match": "Xác nhận mật khẩu không khớp",
+  "confirm-password-is-required": "Xác nhận mật khẩu là bắt buộc",
+  "confirm-password-does-not-match": "Xác nhận mật khẩu không khớp",
 
-	"first-name-is-required": "Họ là bắt buộc",
-	"first-name-must-be-between-2-and-30-characters": "Họ phải từ 2 đến 30 ký tự",
-	"first-name-must-contain-only-letters-and-spaces": "Họ chỉ được chứa chữ cái và dấu cách",
+  "first-name-is-required": "Họ là bắt buộc",
+  "first-name-must-be-between-2-and-30-characters": "Họ phải từ 2 đến 30 ký tự",
+  "first-name-must-contain-only-letters-and-spaces": "Họ chỉ được chứa chữ cái và dấu cách",
 
-	"last-name-is-required": "Tên là bắt buộc",
-	"last-name-must-be-between-2-and-30-characters": "Tên phải từ 2 đến 30 ký tự",
-	"last-name-must-contain-only-letters-and-spaces": "Tên chỉ được chứa chữ cái và dấu cách",
+  "last-name-is-required": "Tên là bắt buộc",
+  "last-name-must-be-between-2-and-30-characters": "Tên phải từ 2 đến 30 ký tự",
+  "last-name-must-contain-only-letters-and-spaces": "Tên chỉ được chứa chữ cái và dấu cách",
 
-	"email-is-required": "Email là bắt buộc",
-	"email-already-exists": "Email đã tồn tại",
-	"email-does-not-exist": "Email không tồn tại",
-	"invalid-email-address": "Địa chỉ email không hợp lệ",
+  "email-is-required": "Email là bắt buộc",
+  "email-already-exists": "Email đã tồn tại",
+  "email-does-not-exist": "Email không tồn tại",
+  "invalid-email-address": "Địa chỉ email không hợp lệ",
 
-	"phone-is-required": "Số điện thoại là bắt buộc",
-	"phone-already-exists": "Số điện thoại đã tồn tại",
-	"phone-does-not-exist": "Số điện thoại không tồn tại",
-	"invalid-phone-number": "Số điện thoại không hợp lệ",
+  "phone-is-required": "Số điện thoại là bắt buộc",
+  "phone-already-exists": "Số điện thoại đã tồn tại",
+  "phone-does-not-exist": "Số điện thoại không tồn tại",
+  "invalid-phone-number": "Số điện thoại không hợp lệ",
 
-	"address-is-required": "Địa chỉ là bắt buộc",
+  "address-is-required": "Địa chỉ là bắt buộc",
 
-	"gender-is-required": "Giới tính là bắt buộc",
-	"invalid-gender": "Giới tính không hợp lệ",
+  "gender-is-required": "Giới tính là bắt buộc",
+  "invalid-gender": "Giới tính không hợp lệ",
 
-	"date-of-birth-cannot-be-null": "Ngày sinh không được bỏ trống",
-	"date-of-birth-must-be-in-the-past": "Ngày sinh phải là ngày quá khứ",
+  "date-of-birth-cannot-be-null": "Ngày sinh không được bỏ trống",
+  "date-of-birth-must-be-in-the-past": "Ngày sinh phải là ngày quá khứ",
 
-	"invalid-image-type": "Loại hình ảnh không hợp lệ, chỉ hỗ trợ các tệp JPG, PNG, GIF",
-	"file-is-empty": "Tập tin trống",
-	"file-too-large": "Tệp quá lớn, chỉ hỗ trợ các tệp có kích thước dưới 5mb",
+  "invalid-image-type": "Loại hình ảnh không hợp lệ, chỉ hỗ trợ các tệp JPG, PNG, GIF",
+  "file-is-empty": "Tập tin trống",
+  "file-too-large": "Tệp quá lớn, chỉ hỗ trợ các tệp có kích thước dưới 5mb",
 
+<<<<<<< Updated upstream
 	"department-already-exists": "Phòng ban đã tồn tại",
 	"hod-id-not-found": "Không thể tìm thấy trưởng phòng này",
 	"hod-role-is-invalid": "Vai trò của trưởng phòng không hợp lệ",
@@ -61,4 +62,39 @@
 	"deadline-before-previous-phase": "Hạn không được trước phase liền trước",
 	"deadline-after-project-deadline": "Hạn không được vượt quá hạn của dự án",
 	"invalid-role": "Vai trò không hợp lệ"
+=======
+  "department-already-exists": "Phòng ban đã tồn tại",
+  "hod-id-not-found": "Không thể tìm thấy trưởng phòng này",
+  "hod-role-is-invalid": "Vai trò của trưởng phòng không hợp lệ",
+  "the-hod-has-a-department": "Trưởng phòng này đã có phòng ban khác",
+  "department-name-is-required": "Tên phòng ban là bắt buộc",
+  "department-description-is-required": "Mô tả của phòng ban là bắt buộc",
+  "hod-is-required": "Trưởng phòng là bắt buộc",
+
+  "phase-name-is-required": "Tên phase là bắt buộc",
+  "phase-name-must-be-at-least-3-characters": "Tên phase tối thiểu 3 ký tự",
+  "phase-name-must-be-at-most-100-characters": "Tên phase tối đa 100 ký tự",
+  "deadline-is-required": "Hạn phase là bắt buộc",
+  "invalid-date-format": "Định dạng ngày không hợp lệ",
+  "deadline-before-today": "Hạn không được trước hôm nay",
+  "deadline-before-previous-phase": "Hạn không được trước phase liền trước",
+  "deadline-after-project-deadline": "Hạn không được vượt quá hạn của dự án",
+
+  "deadline-after-phase-deadline": "Hạn chót không được sau hạn chót của giai đoạn",
+  "deadline-before-task-deadline": "Hạn chót không được trước hạn chót muộn nhất của công việc",
+  "deadline-after-next-phase-deadline": "Hạn chót không được sau hạn chót của phase kế tiếp",
+  "deadline-cannot-be-in-the-past": "Hạn chót không được ở trong quá khứ",
+
+  "task-name-is-required": "Tên công việc là bắt buộc",
+  "task-name-must-be-at-least-3-characters": "Tên công việc tối thiểu 3 ký tự",
+  "task-name-must-be-at-most-100-characters": "Tên công việc tối đa 100 ký tự",
+
+  "description-is-required": "Mô tả là bắt buộc",
+  "description-must-be-at-least-10-characters": "Mô tả tối thiểu 10 ký tự",
+  "description-must-be-at-most-1000-characters": "Mô tả tối đa 1000 ký tự",
+
+  "size-is-required": "Kích thước là bắt buộc",
+  "invalid-size": "Kích thước không hợp lệ",
+  "assignee-is-required": "Người được giao là bắt buộc"
+>>>>>>> Stashed changes
 }

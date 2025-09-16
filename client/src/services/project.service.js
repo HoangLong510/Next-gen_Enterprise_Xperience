@@ -1,49 +1,82 @@
 // ~/services/project.service.js
 import api from "~/utils/axios.js";
 
-// 📋 Get all visible projects (không bao gồm completed ẩn)
+/* =========================
+   PROJECTS: list (visible)
+   NOTE: returns Axios Promise (caller unwraps)
+   ========================= */
 export const getAllProjects = () => api.get("/projects");
 
-// ✅ Get all completed projects
+/* =========================
+   PROJECTS: list (completed)
+   NOTE: returns Axios Promise (caller unwraps)
+   ========================= */
 export const getDoneProjects = () => api.get("/projects/done");
 
-// 🔍 Search projects theo từ khoá (tên hoặc mã tài liệu)
+/* =========================
+   PROJECTS: search by keyword
+   returns: Project[]
+   ========================= */
 export const searchProjects = async (keyword) => {
   try {
     const res = await api.get("/projects/search", { params: { keyword } });
-    return res.data.data;     // ← unwrap thành mảng project
+    return res.data.data; // unwrap to array
   } catch (error) {
     if (error.response) return error.response.data;
     return { status: 500, message: "server-is-busy" };
   }
 };
 
-// 🧩 Filter theo status — bỏ phần priority vì backend không xử lý nữa
+/* =========================
+   PROJECTS: filter by status
+   returns: Project[]
+   ========================= */
 export const filterProjects = async (status) => {
   const params = {};
   if (status && status !== "ALL") params.status = status;
 
   const res = await api.get("/projects/filter", { params });
-  return res.data.data; // ✅ chỉ trả về mảng project
+  return res.data.data; // unwrap to array
 };
 
-// ➡️ Lấy danh sách Project cho Kanban Board (Employee)
+/* =========================
+   PROJECTS: repo info
+   returns: { status, message, data: { repoLink, owner, name, defaultBranch } }
+   ========================= */
+export const getProjectRepo = async (id) => {
+  try {
+    const res = await api.get(`/projects/${id}/repo`);
+    return res.data;
+  } catch (error) {
+    // e.g. 204 "no-repo-linked", 401 "please-login-github-to-continue"
+    return handleApiError(error);
+  }
+};
+
+/* =========================
+   KANBAN: projects for staff board
+   NOTE: returns Axios Promise (caller unwraps)
+   ========================= */
 export const getKanbanProjects = () => api.get("/projects/kanban");
 
-// 🆕 Create project
+/* =========================
+   PROJECTS: create
+   returns: { status, message, data? }
+   ========================= */
 export const createProjectFromDocument = async (data) => {
   try {
     const res = await api.post("/projects", data);
     return res.data;
   } catch (error) {
-    if (error.response) {
-      return error.response.data;
-    }
+    if (error.response) return error.response.data;
     return { status: 500, message: "server-is-busy" };
   }
 };
 
-// ✏️ Update project
+/* =========================
+   PROJECTS: update
+   returns: { status, message, data? }
+   ========================= */
 export const updateProject = async (id, dto) => {
   try {
     const res = await api.put(`/projects/${id}`, dto, {
@@ -51,22 +84,28 @@ export const updateProject = async (id, dto) => {
     });
     return res.data;
   } catch (error) {
-    console.error("❌ Lỗi API:", error);
+    console.error("API error:", error);
     return { status: 500, message: "server-error" };
   }
 };
 
-// 📄 Get project detail by ID
+/* =========================
+   PROJECTS: detail
+   returns: { status, data }
+   ========================= */
 export const getProjectDetail = async (id) => {
   try {
     const res = await api.get(`/projects/${id}`);
-    return res.data; // ✅ trả về object chứa thông tin project
+    return res.data;
   } catch (error) {
     return handleApiError(error);
   }
 };
 
-// ❌ Cancel project
+/* =========================
+   PROJECTS: delete/cancel
+   returns: { status, message }
+   ========================= */
 export const deleteProject = async (id) => {
   try {
     const res = await api.delete(`/projects/${id}`);
@@ -76,7 +115,11 @@ export const deleteProject = async (id) => {
   }
 };
 
-// 🔗 Link GitHub repo
+/* =========================
+   PROJECTS: link GitHub repo
+   body: { repoUrl }
+   returns: { status, message }
+   ========================= */
 export const linkRepoToProject = async (id, dto) => {
   try {
     const res = await api.post(`/projects/${id}/repo`, dto);
@@ -86,11 +129,14 @@ export const linkRepoToProject = async (id, dto) => {
   }
 };
 
-// 🔧 Handle API error chuẩn
+/* =========================
+   Shared: API error handler
+   ========================= */
 const handleApiError = (error) => {
   if (error.response) return error.response.data;
   return { status: 500, message: "server-is-busy" };
 };
+<<<<<<< Updated upstream
 
 export const createQuickTask = async (projectId, name) => {
   try {
@@ -165,3 +211,5 @@ export const uploadPublicImageApi = async (file) => {
     return { status: 500, message: "server-is-busy" };
   }
 };
+=======
+>>>>>>> Stashed changes

@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+<<<<<<< Updated upstream
     <!-- Mạng (tải ảnh QR, gọi API) -->
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -27,6 +28,28 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
+=======
+    <!-- ✅ KHAI BÁO QUYỀN (đặt trong <manifest> nhưng ngoài <application>) -->
+    <!-- Quyền camera để chụp ảnh -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Quyền đọc ảnh trên Android 13+ (API 33+) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- Nếu bạn có chọn/quay video thì bật thêm dòng sau:
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    -->
+
+    <!-- Quyền đọc bộ nhớ cho Android 12 trở xuống -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <!-- ⬇️ PHẦN ỨNG DỤNG -->
+    <application
+        android:label="NEX"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher">
+>>>>>>> Stashed changes
 
         <activity
             android:name=".MainActivity"
@@ -38,6 +61,13 @@
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
 
+<<<<<<< Updated upstream
+=======
+            <!-- Specifies an Android theme to apply to this Activity as soon as
+                 the Android process has started. This theme is visible to the user
+                 while the Flutter UI initializes. After that, this theme continues
+                 to determine the Window background behind the Flutter UI. -->
+>>>>>>> Stashed changes
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />
@@ -48,13 +78,22 @@
             </intent-filter>
         </activity>
 
+<<<<<<< Updated upstream
         <!-- Flutter plugin registry -->
+=======
+        <!-- Don't delete the meta-data below.
+             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+>>>>>>> Stashed changes
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
 
+<<<<<<< Updated upstream
     <!-- Package visibility cho ProcessTextPlugin (Flutter) -->
+=======
+    <!-- Giữ nguyên phần queries mặc định của Flutter (dành cho ProcessTextPlugin) -->
+>>>>>>> Stashed changes
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT" />
