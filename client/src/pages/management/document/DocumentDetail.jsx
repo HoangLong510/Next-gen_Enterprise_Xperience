@@ -363,7 +363,8 @@ export default function DocumentDetail() {
 
                   {/* Nút xem lịch sử công văn */}
                   {(account?.role === "ADMIN" ||
-                    account?.role === "MANAGER") && (
+                    account?.role === "MANAGER" ||
+                    account?.role === "SECRETARY") && (
                     <Button
                       variant="outlined"
                       startIcon={<HistoryIcon />}
@@ -498,18 +499,19 @@ export default function DocumentDetail() {
                       {doc.managerNote}
                     </Box>
 
-                    {/* Nếu ADMIN và doc đang NEW thì hiện nút chỉnh sửa */}
-                    {account?.role === "ADMIN" && doc.status === "NEW" && (
-                      <Button
-                        variant="contained"
-                        color="warning"
-                        component={Link}
-                        to={`/management/documents/${doc.id}/update`}
-                        sx={{ textTransform: "none", borderRadius: 2 }}
-                      >
-                        Chỉnh sửa theo ghi chú
-                      </Button>
-                    )}
+                    {(account?.role === "ADMIN" ||
+                      account?.role === "SECRETARY") &&
+                      doc.status === "NEW" && (
+                        <Button
+                          variant="contained"
+                          color="warning"
+                          component={Link}
+                          to={`/management/documents/${doc.id}/update`}
+                          sx={{ textTransform: "none", borderRadius: 2 }}
+                        >
+                          Chỉnh sửa theo ghi chú
+                        </Button>
+                      )}
                   </CardContent>
                 </Card>
               )}

@@ -395,7 +395,7 @@ export default function DocumentList() {
               </Typography>
             </Box>
 
-            {(account.role === "ADMIN" || account.role === "MANAGER") && (
+            {(account.role === "ADMIN" || account.role === "MANAGER" || account.role === "SECRETARY") && (
               <Button
                 variant="contained"
                 startIcon={<Add />}
