@@ -66,22 +66,29 @@ export const getDaysOverdue = (deadlineStr) => {
 
 /**
  * Trả về màu chip theo status
- */
-export const getStatusColor = (status) => {
-  switch ((status || "").toUpperCase()) {
+ */export const getStatusColor = (status) => {
+  switch (status?.toUpperCase()) {
     case "PLANNING":
-      return "warning";   // hoặc "info" tuỳ bạn muốn
-    case "IN_PROGRESS":
       return "info";
-    case "IN_REVIEW":
-      return "secondary"; // 👈 thêm màu cho In Review
-    case "COMPLETED":
+    case "IN_PROGRESS":
       return "success";
+    case "COMPLETED":
+      return "primary";
     case "CANCELED":
       return "error";
     default:
       return "default";
   }
 };
-
-
+export const getPriorityColor = (priority) => {
+  switch (priority) {
+    case "HIGH":
+      return "error";
+    case "MEDIUM":
+      return "warning";
+    case "LOW":
+      return "default";
+    default:
+      return "default";
+  }
+};

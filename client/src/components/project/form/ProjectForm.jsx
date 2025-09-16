@@ -38,14 +38,14 @@ export default function ProjectForm({
   minAllowedDeadline, // string YYYY-MM-DD | null
 }) {
   const dispatch = useDispatch();
-  const { t: tProject } = useTranslation("project");
-  const { t: tMsg } = useTranslation("messages"); // dùng cho message key từ BE (giữ nguyên behavior)
+  const { t } = useTranslation("popup");
+  const { t: tMsg } = useTranslation("messages");
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingPayload, setPendingPayload] = useState(null);
   const lastStatusRef = useRef(null);
 
-  // ❗ Client-side validation message đặt thành key để tra trong i18n
+  // ❗ BỎ test "not-in-past" – chỉ check khi submit nếu deadline bị đổi
   const schema = useMemo(
     () =>
       yup.object({
@@ -97,13 +97,12 @@ export default function ProjectForm({
         ])
       );
       clean.documentId = initialData?.document?.id ?? initialData?.documentId ?? 0;
-      clean.documentCode =
-        initialData?.document?.code ?? initialData?.documentCode ?? tProject("form.unknownDocumentCode", { defaultValue: "Unknown" });
+      clean.documentCode = initialData?.document?.code ?? initialData?.documentCode ?? "Mã không xác định";
       reset(clean);
     } else {
       reset(defaultValues);
     }
-  }, [initialData, reset, tProject]);
+  }, [initialData, reset]);
 
   const totalTask = initialData?.totalTask ?? 0;
   const doneTask = initialData?.doneTask ?? 0;
@@ -135,16 +134,6 @@ export default function ProjectForm({
     }
   };
 
-  // Ưu tiên dịch theo project.form.validation, fallback sang messages (từ BE), cuối cùng hiện string gốc
-  const translateFieldError = (msgKey) => {
-    if (!msgKey) return undefined;
-    const viaProject = tProject(`form.validation.${msgKey}`);
-    if (viaProject !== `form.validation.${msgKey}`) return viaProject;
-    const viaMessages = tMsg(msgKey);
-    if (viaMessages !== msgKey) return viaMessages;
-    return msgKey;
-  };
-
   const handleFormSubmit = async (data) => {
     if (!initialData?.id) {
       dispatch(setPopup({ type: "error", message: "project-not-found" }));
@@ -165,10 +154,8 @@ export default function ProjectForm({
       const today = dayjs().startOf("day");
       const vv = dayjs(newDl, "YYYY-MM-DD");
       if (vv.isBefore(today, "day")) {
-        const key = "deadline-cannot-be-in-the-past";
-        setError("deadline", { type: "manual", message: key });
-        // popup vẫn dùng messages để đồng bộ hệ thống
-        dispatch(setPopup({ type: "error", message: tMsg(key) }));
+        setError("deadline", { type: "manual", message: "deadline-cannot-be-in-the-past" });
+        dispatch(setPopup({ type: "error", message: tMsg("deadline-cannot-be-in-the-past") }));
         return;
       }
     }
@@ -194,7 +181,7 @@ export default function ProjectForm({
     <>
       <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
         <DialogTitle>
-          <Typography fontWeight={600}>{tProject("form.updateTitle")}</Typography>
+          <Typography fontWeight={600}>Update Project</Typography>
         </DialogTitle>
 
         <DialogContent>
@@ -205,11 +192,11 @@ export default function ProjectForm({
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label={tProject("form.labels.projectName")}
+                  label="Project Name"
                   size="small"
                   fullWidth
                   error={!!errors.name}
-                  helperText={translateFieldError(errors.name?.message)}
+                  helperText={errors.name?.message}
                   InputLabelProps={{ shrink: true }}
                 />
               )}
@@ -221,13 +208,13 @@ export default function ProjectForm({
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label={tProject("form.labels.description")}
+                  label="Description"
                   multiline
                   rows={3}
                   size="small"
                   fullWidth
                   error={!!errors.description}
-                  helperText={translateFieldError(errors.description?.message)}
+                  helperText={errors.description?.message}
                   InputLabelProps={{ shrink: true }}
                 />
               )}
@@ -249,24 +236,24 @@ export default function ProjectForm({
                     value={field.value}
                     onChange={handleChangeStatus}
                     select
-                    label={tProject("form.labels.status")}
+                    label="Status"
                     size="small"
                     fullWidth
                     error={!!errors.status}
                     helperText={
-                      translateFieldError(errors.status?.message) ||
-                      (hasTasks && field.value === "PLANNING" ? tProject("form.helper.cannotBackToPlanning") : "") ||
-                      (!canComplete && field.value === "COMPLETED" ? tProject("form.helper.cannotComplete") : "")
+                      (errors.status ? tMsg(errors.status.message) : undefined) ||
+                      (hasTasks && field.value === "PLANNING" ? "Không thể về Planning khi đã có task" : "") ||
+                      (!canComplete && field.value === "COMPLETED" ? "Chưa thể Completed vì còn task chưa xong" : "")
                     }
                   >
                     <MenuItem value="PLANNING" disabled={hasTasks}>
-                      {tProject("status.planning")}
+                      Planning
                     </MenuItem>
-                    <MenuItem value="IN_PROGRESS">{tProject("status.inProgress")}</MenuItem>
+                    <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
                     <MenuItem value="COMPLETED" disabled={!canComplete}>
-                      {tProject("status.completed")}
+                      Completed
                     </MenuItem>
-                    <MenuItem value="CANCELED">{tProject("status.canceled")}</MenuItem>
+                    <MenuItem value="CANCELED">Canceled</MenuItem>
                   </TextField>
                 );
               }}
@@ -279,16 +266,16 @@ export default function ProjectForm({
                 <TextField
                   {...field}
                   type="date"
-                  label={tProject("form.labels.deadline")}
+                  label="Deadline"
                   size="small"
                   fullWidth
                   error={!!errors.deadline}
                   helperText={
                     errors.deadline
-                      ? translateFieldError(errors.deadline.message)
-                      : minAllowedDeadline
-                      ? tProject("form.helper.minAllowed", { date: minAllowedDeadline })
-                      : undefined
+                      ? tMsg(errors.deadline.message)
+                      : (minAllowedDeadline
+                          ? `Minimum allowed: ${minAllowedDeadline}`
+                          : undefined)
                   }
                   InputLabelProps={{ shrink: true }}
                   inputProps={{ min: minDatePicker }}
@@ -297,12 +284,8 @@ export default function ProjectForm({
             />
 
             <TextField
-              value={
-                initialData?.document?.code ??
-                initialData?.documentCode ??
-                tProject("form.unknownDocumentCode", { defaultValue: "Unknown" })
-              }
-              label={tProject("form.labels.documentCode")}
+              value={initialData?.document?.code ?? initialData?.documentCode ?? "Mã không xác định"}
+              label="Document Code"
               size="small"
               fullWidth
               disabled
@@ -317,7 +300,7 @@ export default function ProjectForm({
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label={tProject("form.labels.pmName")}
+                  label="PM Name"
                   size="small"
                   fullWidth
                   disabled
@@ -331,27 +314,23 @@ export default function ProjectForm({
 
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={onClose} variant="outlined" color="inherit">
-            {tProject("form.buttons.cancel")}
+            Cancel
           </Button>
-          <Button
-            onClick={handleSubmit(handleFormSubmit)}
-            variant="contained"
-            sx={{ bgcolor: "#118D57", textTransform: "capitalize" }}
-          >
-            {tProject("form.buttons.update")}
+          <Button onClick={handleSubmit(handleFormSubmit)} variant="contained" sx={{ bgcolor: "#118D57", textTransform: "capitalize" }}>
+            Update
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Confirm chỉ bật khi bấm Update và status -> CANCELED */}
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-        <DialogTitle>{tProject("form.buttons.confirm")}</DialogTitle>
+        <DialogTitle>{t("confirm")}</DialogTitle>
         <DialogContent>
-          <Typography>{tProject("form.confirmCancelProjectMessage")}</Typography>
+          <Typography>{tMsg("confirm-cancel-project-message")}</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmOpen(false)} variant="outlined" color="inherit">
-            {tProject("form.buttons.close")}
+            {t("close")}
           </Button>
           <Button
             onClick={async () => {
@@ -365,7 +344,7 @@ export default function ProjectForm({
             variant="contained"
             color="error"
           >
-            {tProject("form.buttons.confirm")}
+            {t("confirm")}
           </Button>
         </DialogActions>
       </Dialog>
