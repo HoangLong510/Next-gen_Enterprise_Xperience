@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 
 class MobilePayActions extends StatelessWidget {
   const MobilePayActions({
@@ -74,10 +74,10 @@ class MobilePayActions extends StatelessWidget {
         options: Options(responseType: ResponseType.bytes),
       );
       final bytes = Uint8List.fromList(res.data!);
-      await ImageGallerySaver.saveImage(
-        bytes,
-        name: 'vietqr_${DateTime.now().millisecondsSinceEpoch}',
-      );
+      await ImageGallerySaverPlus.saveImage(
+   bytes,
+   name: 'vietqr_${DateTime.now().millisecondsSinceEpoch}',
+ );
     } catch (e) {
       if (kDebugMode) print('Save QR error: $e');
     }

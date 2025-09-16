@@ -1,6 +1,5 @@
 "use client";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+
 import React, { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
@@ -24,10 +23,7 @@ import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
 
-import {
-  listEvidence,
-  deleteEvidence,
-} from "~/services/task-evidence.service.js";
+import { listEvidence, deleteEvidence } from "~/services/task-evidence.service.js";
 import { createBranchForTask } from "~/services/task.service.js";
 import { startGithubLogin, getGithubTokenStatus } from "~/services/github.service"; // 👈 OAuth helpers
 import api from "~/utils/axios";
@@ -99,29 +95,7 @@ export default function TaskReviewDialog({
   const [githubConnected, setGithubConnected] = useState(false);
 
   const API_BASE = (api?.defaults?.baseURL || "").replace(/\/$/, "");
-  const ORIGIN = (() => {
-  try {
-    const u = new URL(API_BASE);
-    return `${u.protocol}//${u.host}`;
-  } catch {
-    return API_BASE.replace(/\/api(?:\/|$).*/, "");
-  }
-})();
-
-const normalizeUrl = (u = "") => {
-  if (!u) return "";
-  if (/^https?:\/\//i.test(u)) return encodeURI(u);
-  // Server serve /uploads nằm dưới context-path (/api) -> ghép API_BASE
-  if (u.startsWith("/uploads")) return encodeURI(`${API_BASE}${u}`);
-  const right = u.startsWith("/") ? u : `/${u}`;
-  return encodeURI(`${API_BASE}${right}`);
-};
-  const toUrl = (u = "") => {
-  if (!u) return "";
-  if (/^https?:\/\//i.test(u)) return u;
-  if (u.startsWith("/uploads")) return `${API_BASE}${u}`;
-  return `${API_BASE}${u.startsWith("/") ? "" : "/"}${u}`;
-};
+  const toUrl = (u) => (u?.startsWith("http") ? u : API_BASE + u);
 
   // Load evidence mỗi khi mở dialog / đổi task
   useEffect(() => {
@@ -293,10 +267,7 @@ const normalizeUrl = (u = "") => {
   };
 
   const prettyStatus = (s) =>
-    s
-      ?.toLowerCase()
-      .replace(/_/g, " ")
-      .replace(/^\w/, (c) => c.toUpperCase());
+    s?.toLowerCase().replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
   // ===== Quyền =====
   const isPM = useMemo(
@@ -305,10 +276,7 @@ const normalizeUrl = (u = "") => {
   );
 
   const isAssignee = useMemo(
-    () =>
-      !!task?.assigneeUsername &&
-      !!me?.username &&
-      task.assigneeUsername === me.username,
+    () => !!task?.assigneeUsername && !!me?.username && task.assigneeUsername === me.username,
     [task?.assigneeUsername, me?.username]
   );
 
@@ -317,6 +285,7 @@ const normalizeUrl = (u = "") => {
     () => ["COMPLETED", "CANCELED"].includes(task?.status),
     [task?.status]
   );
+
   // Khoá các vùng không liên quan đến evidence đối với EMP/HOD hoặc khi readOnly
   const lockNonEvidenceAreas = useMemo(
     () => readOnly || ["EMPLOYEE", "HOD"].includes(me?.role),
@@ -330,7 +299,8 @@ const normalizeUrl = (u = "") => {
     && !localBranch
     && isRepoLinked
     && !isBlockedByStatus
-    && !readOnly;
+    && !readOnly; // cho phép bấm; nếu chưa login sẽ chuyển qua flow login ngay
+
   const branchUrl = useMemo(() => {
     if (!repoLink || !localBranch) return null;
     const base = repoLink.replace(/\.git$/i, "");
@@ -386,6 +356,7 @@ const normalizeUrl = (u = "") => {
         <DialogTitle>
           {canUpload ? tTask("submit-evidence-title") : tTask("view-evidence-title")}
         </DialogTitle>
+
         <DialogContent dividers>
           <Stack spacing={2}>
             {/* ===== Thông tin Task ===== */}
@@ -449,6 +420,7 @@ const normalizeUrl = (u = "") => {
                 </Box>
               )}
             </Box>
+
             {/* ===== Nút Save cho phần info ===== */}
             {canEditInfo && (
               <Box sx={{ display: "flex", gap: 1 }}>
@@ -459,11 +431,11 @@ const normalizeUrl = (u = "") => {
                 >
                   {tTask("save-changes")}
                 </Button>
-
               </Box>
             )}
 
             <Divider />
+
             {/* ===== CREATE BRANCH ===== */}
             {showCreateBranchSection && (
               <Box
@@ -659,6 +631,7 @@ const normalizeUrl = (u = "") => {
                 </Typography>
               )}
             </Box>
+
             <Divider />
 
             {/* ===== Upload area ===== */}
@@ -755,6 +728,7 @@ const normalizeUrl = (u = "") => {
           </DialogActions>
         </Dialog>
       </Dialog>
+
       <AssignmentHistoryDialog
         open={openHistory}
         taskId={task?.id}

@@ -1,30 +1,27 @@
+<!-- android/app/src/main/AndroidManifest.xml -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Mạng (tải ảnh QR, gọi API) -->
     <uses-permission android:name="android.permission.INTERNET" />
-
-    <!-- Camera -->
     <uses-permission android:name="android.permission.CAMERA" />
-
-    <!-- Vị trí -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-
-    <!-- Lưu/đọc ảnh theo phiên bản Android -->
-    <!-- Android 13+ (API 33+): đọc ảnh trong MediaStore -->
+    <!-- Android 13+ -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <!-- Android 10–12 (API 29–32): đọc bộ nhớ ngoài -->
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
-    <!-- Android 9 trở xuống (API 28-): ghi bộ nhớ ngoài -->
-    <uses-permission
-        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
+    <!-- Android 10–12 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <!-- Android 9- -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT" />
+            <data android:mimeType="text/plain" />
+        </intent>
+    </queries>
 
     <application
-        android:label="NEX"
         android:name="${applicationName}"
+        android:label="NEX"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
 
@@ -48,7 +45,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Flutter plugin registry -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
@@ -61,4 +57,5 @@
             <data android:mimeType="text/plain" />
         </intent>
     </queries>
+
 </manifest>

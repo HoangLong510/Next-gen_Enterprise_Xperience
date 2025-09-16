@@ -3,9 +3,7 @@ import api from "~/utils/axios.js";
 
 // 🔍 Search available employees by name & role
 export const searchAvailableByNameAndRole = (projectId, keyword) =>
-  api.get(`/projects/${projectId}/employees/available/search`, {
-    params: { keyword },
-  });
+ api.get(`/projects/${projectId}/employees/available/search`, { params: { keyword } });
 
 // 📋 Get available employees (optionally filtered by keyword & department)
 export const getAvailableEmployees = (projectId, keyword, departmentId) =>

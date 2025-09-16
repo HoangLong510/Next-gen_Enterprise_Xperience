@@ -1,15 +1,11 @@
-// src/components/project/form/ProjectFormCreate.jsx
-"use client";
-
-import React, { useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  Button,
   Stack,
   TextField,
-  Button,
   Typography,
 } from "@mui/material";
 import { useDispatch } from "react-redux";
@@ -17,11 +13,11 @@ import { setPopup } from "~/libs/features/popup/popupSlice";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import { useEffect } from "react";
+import { createProjectFromDocument } from "~/services/project.service";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
-import { createProjectFromDocument } from "~/services/project.service";
 
-/* [SCHEMA] */
 const schema = yup.object({
   name: yup.string().required("project-name-is-required").min(3).max(100),
   description: yup.string().required("description-is-required").min(10).max(1000),
@@ -34,36 +30,39 @@ const schema = yup.object({
       const localToday = dayjs().format("YYYY-MM-DD");
       return value >= localToday;
     }),
+  // optional
 });
 
-/* [DEFAULTS] */
 const defaultValues = {
   name: "",
   description: "",
   deadline: dayjs().add(7, "day").format("YYYY-MM-DD"),
 };
 
-/* [COMPONENT] */
 export default function ProjectFormCreate({
-	open,
-	onClose,
-	onSubmit,
-	initialData = null,
-	document,
-	documentId,
-	pmName
+  open,
+  onClose,
+  onSubmit,
+  initialData = null,
+  document,
+  documentId,
+  pmName,
 }) {
   const dispatch = useDispatch();
   const { t: tProject } = useTranslation("project");
-  const { t: tMsg } = useTranslation("messages");
+  const { t: tMsg } = useTranslation("messages"); // popup message key từ BE (giữ nguyên)
 
   const {
     control,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm({ resolver: yupResolver(schema), defaultValues });
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues,
+  });
 
+  // helper: ưu tiên dịch qua project.form.validation -> fallback messages -> raw
   const translateFieldError = (msgKey) => {
     if (!msgKey) return undefined;
     const viaProject = tProject(`form.validation.${msgKey}`);
@@ -73,22 +72,28 @@ export default function ProjectFormCreate({
     return msgKey;
   };
 
+  // tính hôm nay theo local, dùng cho input min và clamp deadline
   const localToday = dayjs().format("YYYY-MM-DD");
 
-  /* [EFFECTS] */
   useEffect(() => {
+    // Ưu tiên document → initialData → defaultValues
     if (document) {
-      const data = {
+      let data = {
         name: document.projectName || "",
         description: document.projectDescription || "",
         deadline: document.projectDeadline
           ? dayjs(document.projectDeadline).format("YYYY-MM-DD")
           : dayjs().add(7, "day").format("YYYY-MM-DD"),
       };
-      if (data.deadline && data.deadline < localToday) data.deadline = localToday;
+      if (data.deadline && data.deadline < localToday) {
+        data.deadline = localToday;
+      }
       reset(data);
     } else if (initialData) {
-      const merged = { ...defaultValues, ...initialData };
+      const merged = {
+        ...defaultValues,
+        ...initialData,
+      };
       if (merged.deadline) {
         merged.deadline = dayjs(merged.deadline).format("YYYY-MM-DD");
         if (merged.deadline < localToday) merged.deadline = localToday;
@@ -101,31 +106,42 @@ export default function ProjectFormCreate({
     }
   }, [document, initialData, open, reset, localToday]);
 
-  /* [HANDLERS] */
   const handleFormSubmit = async (data) => {
     const payload = { ...data, documentId };
     const res = await createProjectFromDocument(payload);
 
     if (res?.status === 200 || res?.status === 201) {
-      dispatch(setPopup({ type: "success", message: res?.message || "project-created-successfully" }));
+      dispatch(
+        setPopup({
+          type: "success",
+          message: res?.message || "project-created-successfully",
+        })
+      );
       onSubmit?.();
       onClose();
     } else {
-      dispatch(setPopup({ type: "error", message: res?.message || "create-project-failed" }));
+      dispatch(
+        setPopup({
+          type: "error",
+          message: res?.message || "create-project-failed",
+        })
+      );
     }
   };
 
-  /* [RENDER] */
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        <Typography fontWeight={600}>{tProject("formCreate.title")}</Typography>
+        <Typography fontWeight={600}>
+          {tProject("formCreate.title")} {/* Create Project from Document */}
+        </Typography>
       </DialogTitle>
 
       <DialogContent>
         <Stack spacing={2} mt={1}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            {tProject("formCreate.pmLabel")} <strong>{pmName || document?.pmName || ""}</strong>
+            {tProject("formCreate.pmLabel")}{" "}
+            <strong>{pmName || document?.pmName || ""}</strong>
           </Typography>
 
           <Controller
@@ -187,11 +203,14 @@ export default function ProjectFormCreate({
         <Button onClick={onClose} variant="outlined" color="inherit">
           {tProject("form.buttons.cancel")}
         </Button>
-        <Button onClick={handleSubmit(handleFormSubmit)} variant="contained" sx={{ bgcolor: "#118D57" }}>
+        <Button
+          onClick={handleSubmit(handleFormSubmit)}
+          variant="contained"
+          sx={{ bgcolor: "#118D57" }}
+        >
           {tProject("formCreate.create")}
         </Button>
       </DialogActions>
     </Dialog>
   );
-
 }

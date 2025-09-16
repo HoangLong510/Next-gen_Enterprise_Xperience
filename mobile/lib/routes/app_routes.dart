@@ -4,12 +4,13 @@ import 'package:mobile/guards/role_guard.dart';
 // Attendance
 import 'package:mobile/screens/attendance/attendance_list_page.dart';
 import 'package:mobile/screens/attendance/attendance_details_page.dart';
-import 'package:mobile/screens/attendance/face_attendance_page.dart';
+import 'package:mobile/screens/attendance/face_attendance_page.dart' show CheckInCheckOutPage; // file này định nghĩa CheckInCheckOutPage
+
+// Bank
 import 'package:mobile/screens/bank/bank_and_topup_page.dart';
 
+// Auth / Core
 import 'package:mobile/screens/change_password.dart';
-
-// Core
 import 'package:mobile/screens/home_page.dart';
 import 'package:mobile/screens/login_page.dart';
 import 'package:mobile/screens/logout_page.dart';
@@ -25,7 +26,12 @@ import 'package:mobile/screens/dispatches/dispatch_create_page.dart';
 import 'package:mobile/screens/notifications/notification_list_page.dart';
 
 // Projects
-import 'package:mobile/screens/projects/project_list_page.dart'; 
+import 'package:mobile/screens/projects/project_list_page.dart';
+import 'package:mobile/screens/projects/project_detail_page.dart';
+import 'package:mobile/screens/projects/kanban_board_page.dart';
+import 'package:mobile/models/project_model.dart';
+
+// Leave Requests
 import 'package:mobile/screens/leave_requests/leave_request_page.dart';
 
 // Funds
@@ -36,6 +42,7 @@ import 'package:mobile/screens/fund/fund_update_page.dart';
 
 Route<dynamic> generateRoute(RouteSettings settings) {
   final name = settings.name;
+  // ignore: avoid_print
   print("Route: $name");
 
   // -------------------------
@@ -197,7 +204,43 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         allowRoles: [
           "ADMIN","MANAGER","PM","HOD","EMPLOYEE","HR","ACCOUNTANT",
         ],
-        child: const LeaveRequestPage(),
+        child: LeaveRequestPage(),
+      );
+
+    // Projects list (menu Utilities → Projects)
+    case "/utilities/projects":
+      return MaterialPageRoute(
+        builder: (_) => RoleGuard(
+          allowRoles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+          child: CustomLayout(child: ProjectListPage()),
+        ),
+      );
+
+    // Project detail (nhận ProjectModel từ arguments)
+    case "/projects/detail":
+      final project = settings.arguments as ProjectModel?;
+      if (project == null) return _errorPage("Thiếu ProjectModel (arguments).");
+      return _buildPage(
+        allowRoles: ["ADMIN","MANAGER","PM","ACCOUNTANT","HOD","EMPLOYEE"],
+        child: ProjectDetailPage(project: project),
+      );
+
+    // Kanban board
+    case "/projects/kanban":
+      final args = settings.arguments as Map<String, dynamic>? ?? {};
+      final projectId = args['projectId'] as int?;
+      if (projectId == null) return _errorPage("Thiếu projectId cho Kanban.");
+      return _buildPage(
+        allowRoles: ["ADMIN","MANAGER","PM","HOD","EMPLOYEE"],
+        child: KanbanBoardPage(
+          projectId: projectId,
+          projectName: args['projectName'] as String? ?? 'Kanban',
+          phaseName: args['phaseName'] as String?,
+          phaseId: args['phaseId'] as int?,
+          phaseTaskIds: (args['phaseTaskIds'] as List?)?.cast<int>(),
+          phaseCompleted: args['phaseCompleted'] as bool? ?? false,
+          projectPmId: args['projectPmId'] as int?,
+        ),
       );
 
     // Funds
@@ -217,7 +260,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case "/accountant/bank-topup":
       return _buildPage(
         allowRoles: ["ADMIN","ACCOUNTANT","CHIEFACCOUNTANT","CHIEF_ACCOUNTANT"],
-        child: const BankAndTopupPage(isAccountant: true),
+        child: BankAndTopupPage(isAccountant: true),
       );
 
     // Auth
@@ -226,12 +269,12 @@ Route<dynamic> generateRoute(RouteSettings settings) {
 
     case "/change-password":
       return MaterialPageRoute(
-        builder: (_) => const CustomLayout(child: ChangePasswordPage()),
+        builder: (_) => CustomLayout(child: ChangePasswordPage()),
       );
 
     case "/profile":
       return MaterialPageRoute(
-        builder: (_) => const CustomLayout(child: ProfilePage()),
+        builder: (_) => CustomLayout(child: ProfilePage()),
       );
 
     case "/logout":
@@ -246,8 +289,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
 
     default:
       return MaterialPageRoute(
-        builder: (_) =>
-            const Scaffold(body: Center(child: Text("404 - Not found"))),
+        builder: (_) => const Scaffold(body: Center(child: Text("404 - Not found"))),
       );
   }
 }
