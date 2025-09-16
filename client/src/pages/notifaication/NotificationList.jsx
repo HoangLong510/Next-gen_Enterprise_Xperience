@@ -33,6 +33,7 @@ import {
   markNotificationAsRead,
 } from "~/services/notification.service";
 import CustomAvatar from "~/components/custom-avatar";
+import { useTranslation } from "react-i18next";
 
 const getTypeIcon = (type) => {
   switch (type) {
@@ -97,6 +98,7 @@ export default function NotificationList() {
   const account = useSelector((state) => state.account.value);
   const navigate = useNavigate();
   const theme = useTheme();
+  const { t } = useTranslation("noti_page");
 
   useEffect(() => {
     async function loadNotifications() {
@@ -186,7 +188,7 @@ export default function NotificationList() {
           color="text.secondary"
           sx={{ fontSize: 22, fontWeight: 600 }}
         >
-          There are no notifications.
+          {t("no-notifications")}
         </Typography>
       </Box>
     );
@@ -222,7 +224,7 @@ export default function NotificationList() {
               <Notifications sx={{ fontSize: 32, color: "primary.main" }} />
             </Badge>
             <Typography variant="h4" fontWeight={700} color="primary.main">
-              All notifications
+              {t("all-notifications")}
             </Typography>
           </Box>
           {unreadCount > 0 && (
@@ -375,7 +377,7 @@ export default function NotificationList() {
                     color={noti.read ? "text.primary" : "primary.main"}
                     sx={{ mb: 1, lineHeight: 1.3 }}
                   >
-                    {noti.title}
+                    {t(noti.title)}
                   </Typography>
 
                   <Typography
@@ -391,7 +393,7 @@ export default function NotificationList() {
                       mb: 2,
                     }}
                   >
-                    {noti.content}
+                    {t(noti.content)}
                   </Typography>
 
                   <Stack
@@ -423,7 +425,7 @@ export default function NotificationList() {
                         handleItemClick(noti);
                       }}
                     >
-                      See details
+                      {t("see-details")}
                     </Button>
                   </Stack>
                 </Box>

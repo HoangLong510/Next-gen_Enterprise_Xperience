@@ -23,33 +23,37 @@ public class ProjectController {
 
     private final ProjectService projectService;
 
+
     private final QuickTaskService quickTaskService;
     private final UploadFileService uploadFileService;
 
 
     // ✅ Lấy tất cả dự án đang hoạt động (theo role, EMP/HOD dùng rule mới)
     @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
+
     @GetMapping
     public ApiResponse<List<ProjectDto>> getAllVisible(HttpServletRequest request) {
         return projectService.getAllVisible(request);
     }
-
-    // ✅ Lấy chi tiết dự án (EMP/HOD chỉ thấy task của mình)
-    @PreAuthorize("@projectService.hasProjectAccess(#id, authentication.name)")
+    @PreAuthorize("""
+      hasAnyAuthority('ADMIN','MANAGER') or
+      (hasAuthority('PM') and @projectService.isProjectManager(#id, authentication.name))
+    """)
+    // Lấy chi tiết dự án
     @GetMapping("/{id}")
-    public ApiResponse<ProjectDto> getProjectDetail(@PathVariable Long id, HttpServletRequest request) {
-        return projectService.getProjectDetail(id, request);
+    public ApiResponse<ProjectDto> getProjectDetail(@PathVariable Long id) {
+        return projectService.getProjectDetail(id);
     }
 
-    // ✅ Lấy các dự án đã hoàn tất (EMP/HOD sẽ bị lọc rỗng theo rule mới)
-    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
+    // Lấy các dự án đã hoàn tất
     @GetMapping("/done")
-    public ApiResponse<List<ProjectDto>> getDoneProjects(HttpServletRequest request) {
-        return projectService.getDoneProjects(request);
+    public ApiResponse<List<ProjectDto>> getDoneProjects() {
+        return projectService.getDoneProjects();
     }
 
-    // ✅ Tìm kiếm dự án theo từ khoá (lọc theo role)
-    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
+    // Tìm kiếm dự án theo từ khoá
+// ProjectController.java
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM')")
     @GetMapping("/search")
     public ApiResponse<List<ProjectDto>> search(
             HttpServletRequest request,
@@ -58,18 +62,16 @@ public class ProjectController {
         return projectService.search(request, keyword);
     }
 
-    // ✅ Lọc dự án theo trạng thái (lọc theo role)
-    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
+    // Lọc dự án theo trạng thái và độ ưu tiên
     @GetMapping("/filter")
     public ApiResponse<List<ProjectDto>> filter(
-            HttpServletRequest request,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String priority
     ) {
-        return projectService.filter(request, status, priority);
+        return projectService.filter(status, priority);
     }
 
-    // ✅ Tạo mới dự án
+    // Tạo mới dự án từ tài liệu được duyệt
     @PostMapping
     public ApiResponse<?> createProject(
             @RequestBody @Valid CreateProjectDto dto,
@@ -77,8 +79,6 @@ public class ProjectController {
     ) {
         return projectService.createProject(dto, request);
     }
-
-
     @PreAuthorize("""
   hasAnyAuthority('ADMIN','MANAGER') or
   (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))
@@ -128,13 +128,13 @@ public class ProjectController {
         return projectService.updateProject(id, dto);
     }
 
-    // ✅ Xoá/huỷ dự án
+    // Xoá hoặc huỷ dự án
     @DeleteMapping("/{id}")
     public ApiResponse<?> deleteProject(@PathVariable Long id) {
         return projectService.deleteProject(id);
     }
 
-    // ✅ Gắn GitHub repository cho dự án
+    // Gắn GitHub repository cho dự án
     @PostMapping("/{id}/repo")
     public ApiResponse<?> linkRepo(
             @PathVariable Long id,
@@ -143,19 +143,18 @@ public class ProjectController {
     ) {
         return projectService.linkRepo(id, dto, request);
     }
-
-    // ✅ Lấy repo info (ADMIN/MANAGER hoặc PM)
+    // ProjectController.java
     @PreAuthorize("""
-      hasAnyAuthority('ADMIN','MANAGER') or
-      (hasAuthority('PM') and @projectService.isProjectManager(#id, authentication.name))
-    """)
+  hasAnyAuthority('ADMIN','MANAGER') or
+  (hasAuthority('PM') and @projectService.isProjectManager(#id, authentication.name))
+""")
+
     @GetMapping("/{id}/repo")
     public ApiResponse<?> getProjectRepo(@PathVariable Long id, HttpServletRequest request) {
         return projectService.getProjectRepo(id, request);
     }
 
-    // ✅ Lấy danh sách Project cho Kanban Board
-    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
+    // Lấy danh sách Project cho Kanban Board (Employee)
     @GetMapping("/kanban")
     public ApiResponse<List<ProjectDto>> getKanbanProjects(HttpServletRequest request) {
         return projectService.getKanbanProjects(request);

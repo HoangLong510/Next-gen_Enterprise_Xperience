@@ -18,14 +18,12 @@ public class Task {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String name;
-
-
     @Column(columnDefinition = "TEXT")
-    private String description; // Mô tả task
-    @Enumerated(EnumType.STRING) // 👈 mới thêm
-    private TaskSize size;        // 👈 mới thêm
+    private String description; 
+    @Enumerated(EnumType.STRING) 
+    private TaskSize size;        
+
     private LocalDate deadline;
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)

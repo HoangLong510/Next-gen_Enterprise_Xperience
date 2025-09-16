@@ -21,7 +21,6 @@ void main() async {
       supportedLocales: const [Locale('en'), Locale('vi')],
       path: 'assets/translations',
       fallbackLocale: const Locale('en'),
-      useOnlyLangCode: true,
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => authProvider),

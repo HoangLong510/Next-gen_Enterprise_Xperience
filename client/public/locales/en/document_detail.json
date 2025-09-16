@@ -1,0 +1,22 @@
+{
+  "status": "Status",
+  "createdBy": "Created by",
+  "pm": "Project Manager",
+  "createdAt": "Created at",
+  "new": "New",
+  "in_progress": "In progress",
+  "completed": "Completed",
+  "rejected": "Rejected",
+  "downloadWord": "Download Word file",
+  "viewHistory": "View document history",
+  "sign": "Sign document",
+  "createProject": "Create Project",
+  "managerNote": "Note for secretary",
+  "sendNote": "Send note",
+  "latestNote": "Latest note from Manager",
+  "editByNote": "Edit document by note",
+  "detailInfo": "Detail Information",
+  "contentDetail": "Content Detail",
+  "previewWord": "Word preview",
+  "action":"Action"
+}

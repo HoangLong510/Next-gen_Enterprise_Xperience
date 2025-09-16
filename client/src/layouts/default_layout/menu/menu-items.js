@@ -4,12 +4,14 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import FilePresentIcon from "@mui/icons-material/FilePresent";
+
+import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import DescriptionIcon from "@mui/icons-material/Description";
 import WorkIcon from "@mui/icons-material/Work";
 import PunchClockIcon from "@mui/icons-material/PunchClock";
 import GavelIcon from "@mui/icons-material/Gavel"; // thêm cho Contracts
-
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 
 export const menuItems = [
@@ -58,7 +60,12 @@ export const menuItems = [
         icon: PunchClockIcon,
         href: "/attendance/list",
         roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR"],
-
+      },
+      {
+        label: "Missing Checkout",
+        icon: WarningAmberIcon,
+        href: "/attendance/missing-checkout",
+        roles: ["HR"],
       },
     ],
   },
@@ -69,7 +76,7 @@ export const menuItems = [
         label: "Fund",
         icon: AssignmentIndIcon,
         href: "/finance/fund",
-        roles: ["ADMIN", "MANAGER", "HOD", "ACCOUNTANT"],
+        roles: ["ADMIN", "MANAGER", "ACCOUNTANT"],
       },
       {
         label: "Salary",
@@ -101,19 +108,19 @@ export const menuItems = [
         roles: ["ADMIN", "MANAGER", "HOD", "EMPLOYEE"],
       },
       {
-        // Mở cho tất cả để HOD/EMPLOYEE đi theo đường Projects
         label: "Projects",
         icon: WorkIcon,
         href: "/management/projects",
+
         roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
       },
       {
-        label: "Dispatches", // = Documents
+        label: "Dispatches",
         icon: AssignmentIcon,
         href: "/management/documents",
-        roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
+
+        roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT","SECRETARY"],
       },
-      // ⛔ ĐÃ BỎ "Tasks" KHỎI MENU NHƯ YÊU CẦU
       {
         label: "Leave Request",
         icon: DescriptionIcon,
@@ -125,7 +132,6 @@ export const menuItems = [
         icon: GavelIcon,
         href: "/contracts",
         roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "ACCOUNTANT", "HR", "SECRETARY", "CHIEFACCOUNTANT"],
-
       },
     ],
   },

@@ -138,7 +138,7 @@ public class DocumentController {
 
     // --- SECRETARY chỉnh sửa khi NEW (tự động snapshot vào history)
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','SECRETARY')")
     public ResponseEntity<?> updateDocument(@PathVariable Long id, @RequestBody DocumentRequestDto req) throws IOException {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         var user = (UserDetails) auth.getPrincipal();

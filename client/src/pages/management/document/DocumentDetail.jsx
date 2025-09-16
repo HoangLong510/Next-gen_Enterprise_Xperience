@@ -41,6 +41,7 @@ import {
 } from "~/services/document.service";
 import SignatureCanvas from "react-signature-canvas";
 import ProjectFormCreate from "~/components/project/form/ProjectFormCreate";
+import { useTranslation } from "react-i18next";
 
 export default function DocumentDetail() {
   const { id } = useParams();
@@ -54,6 +55,7 @@ export default function DocumentDetail() {
   const signaturePadRef = useRef(null);
   const account = useSelector((state) => state.account.value);
   const dispatch = useDispatch();
+  const { t } = useTranslation("document_detail");
 
   // NOTE của giám đốc
   const [managerNote, setManagerNote] = useState("");
@@ -277,7 +279,7 @@ export default function DocumentDetail() {
                     color="primary.dark"
                     fontSize={18}
                   >
-                    📄 Xem trước công văn (bản Word)
+                    📄 {t("previewWord")}
                   </Typography>
                 </Box>
                 <Box
@@ -302,7 +304,7 @@ export default function DocumentDetail() {
                   color="primary.main"
                   sx={{ mb: 2 }}
                 >
-                  📝 Nội dung chi tiết
+                  📝 {t("contentDetail")}
                 </Typography>
                 <Box
                   sx={{
@@ -333,7 +335,7 @@ export default function DocumentDetail() {
                   color="primary.main"
                   sx={{ mb: 3 }}
                 >
-                  🔧 Thao tác
+                  🔧 {t("action")}
                 </Typography>
                 <Stack
                   direction={{ xs: "column", sm: "row" }}
@@ -355,7 +357,7 @@ export default function DocumentDetail() {
                         py: 1.5,
                       }}
                     >
-                      {downloading ? "Downloading..." : "Download Word file"}
+                      {downloading ? t("downloading") : t("downloadWord")}
                     </Button>
                   )}
 
@@ -375,7 +377,7 @@ export default function DocumentDetail() {
                         py: 1.5,
                       }}
                     >
-                      View document history
+                      {t("viewHistory")}
                     </Button>
                   )}
 
@@ -519,13 +521,13 @@ export default function DocumentDetail() {
                   color="primary.main"
                   sx={{ mb: 3 }}
                 >
-                  ℹ️ Thông tin chi tiết
+                  ℹ️ {t("detailInfo")}
                 </Typography>
                 <Grid container spacing={3}>
                   <Grid item xs={12} sm={6} md={3}>
                     <InfoRow
                       icon={<Person />}
-                      label="Created by"
+                      label={t("createdBy")}
                       value={doc.createdBy}
                       theme={theme}
                       color={theme.palette.success.main}
@@ -534,7 +536,7 @@ export default function DocumentDetail() {
                   <Grid item xs={12} sm={6} md={3}>
                     <InfoRow
                       icon={<Work />}
-                      label="Project Manager"
+                      label={t("pm")}
                       value={doc.pmName}
                       theme={theme}
                       color={theme.palette.info.main}
@@ -543,7 +545,7 @@ export default function DocumentDetail() {
                   <Grid item xs={12} sm={6} md={3}>
                     <InfoRow
                       icon={<CalendarToday />}
-                      label="Created at"
+                      label={t("createdAt")}
                       value={new Date(doc.createdAt).toLocaleString()}
                       theme={theme}
                       color={theme.palette.warning.main}
@@ -553,7 +555,7 @@ export default function DocumentDetail() {
                     <InfoRow
                       icon={<InfoOutlined />}
                       label="Status"
-                      value={doc.status}
+                      value={t(doc.status?.toLowerCase())}
                       theme={theme}
                       color={theme.palette.error.main}
                     />

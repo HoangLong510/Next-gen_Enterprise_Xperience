@@ -7,7 +7,6 @@
   "logout-successful": "Tài khoản đã đăng xuất thành công",
   "validation-errors": "Có một số trường bạn nhập không hợp lệ. Xin vui lòng thử lại",
   "login-successfully": "Bạn đã đăng nhập thành công!",
-
   "failed-to-register-user": "Đăng ký người dùng thất bại. Xin vui lòng thử lại sau",
   "registered-successfully": "Đăng ký người dùng thành công. Vui lòng đăng nhập để tiếp tục",
   "employee-created-successfully": "Đã tạo nhân viên thành công",
@@ -58,17 +57,13 @@
   "document-already-linked": "Tài liệu này đã được liên kết với dự án khác",
   "only-project-manager-can-link-repo": "Chỉ quản lý dự án mới có thể liên kết kho GitHub",
   "repo-linked-successfully": "Liên kết kho GitHub thành công",
-
   "phase-created-successfully": "Tạo giai đoạn thành công",
   "phase-started-successfully": "Bắt đầu giai đoạn thành công",
   "phase-completed-successfully": "Hoàn thành giai đoạn thành công",
-
-
   "phase-created-successfully": "Tạo giai đoạn thành công",
   "phase-started-successfully": "Bắt đầu giai đoạn thành công",
   "phase-completed-successfully": "Hoàn thành giai đoạn thành công",
   "phase-updated-successfully": "Cập nhật giai đoạn thành công",
-
   "phase-already-started-or-completed": "Giai đoạn đã bắt đầu hoặc đã hoàn thành",
   "previous-phase-not-completed": "Giai đoạn trước chưa hoàn thành",
   "phase-not-in-progress": "Giai đoạn chưa ở trạng thái đang thực hiện",

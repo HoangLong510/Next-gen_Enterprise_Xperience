@@ -2,7 +2,7 @@ package server.dtos;
 
 import lombok.Data;
 import server.models.enums.DocumentType;
-
+import server.models.enums.ProjectPriority;
 
 import java.time.LocalDate;
 

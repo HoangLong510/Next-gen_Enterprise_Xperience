@@ -54,7 +54,6 @@
   "phase-created-successfully": "Phase created successfully",
   "phase-started-successfully": "Phase started successfully",
   "phase-completed-successfully": "Phase completed successfully",
-  "phase-updated-successfully": "Phase updated successfully",
   "phase-already-started-or-completed": "Phase already started or completed",
   "previous-phase-not-completed": "Previous phase is not completed yet",
   "phase-not-in-progress": "Phase is not in progress",
@@ -74,7 +73,6 @@
   "deadline-cannot-be-in-the-past": "Deadline cannot be in the past",
   "cannot-set-planning-when-has-tasks": "Cannot set Planning when project already has tasks.",
   "cannot-complete-project-while-some-tasks-not-completed": "Cannot complete project while some tasks are not completed.",
-
   "confirm-cancel-task-title": "Move task to CANCELED?",
   "confirm-cancel-task-message": "This may affect workflow and reporting. Are you sure you want to change the task status to CANCELED?",
   "confirm-delete-evidence-title": "Delete this evidence?",
@@ -101,4 +99,5 @@
   "Failed to create branch": "Failed to create branch",
   "Project not found for this task": "Project not found for this task",
   "Task not found": "Task not found"
+
 }

@@ -61,8 +61,6 @@ const roleRoutes = [
     roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
   },
 
-
-  // Projects — mở cho tất cả vai trò liên quan (ADMIN/MANAGER/PM/HOD/EMPLOYEE)
   {
     path: "/management/documents/:id/update",
     component: DocumentUpdate,
@@ -76,7 +74,6 @@ const roleRoutes = [
     layout: DefaultLayout,
     roles: ["MANAGER", "ADMIN"],
   },
-
   // Kanban (Project & Phase) — mở cho HOD/EMPLOYEE để họ xem/drag theo rule
   {
     path: "/projects/:id/kanban",

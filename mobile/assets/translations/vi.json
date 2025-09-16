@@ -1,189 +1,78 @@
 {
-  "server-is-busy": "Server đang gặp sự cố. Xin vui lòng thữ lại sau",
-  "please-login-to-continue": "Vui lòng đăng nhập để tiếp tục",
-  "you-do-not-have-permission-to-access-this-feature": "Bạn không có quyền truy cập vào tính năng này",
-  "access-denied": "Truy cập bị từ chối",
-  "invalid-access-token": "Thông tin xác thực không đúng, vui lòng đăng nhập lại",
-  "logout-successful": "Tài khoản đã đăng xuất thành công",
-  "validation-errors": "Có một số trường bạn nhập không hợp lệ. Xin vui lòng thữ lại",
-  "login-successfully": "Bạn đã đăng nhập thành công!",
-  "failed-to-register-user": "Đăng kí người dùng thất bại. Xin vui lòng thữ lại sau",
-  "registered-successfully": "Đăng kí người dùng thành công. Xin vui lòng đăng nhập để tiếp tục",
-  "employee-created-successfully": "Đã tạo nhân viên thành công",
-  "the-path-you-are-trying-to-access-is-invalid": "Đường dẫn bạn truy cập không hợp lệ",
-  "change-avatar-successfully": "Thay đổi ảnh đại diện thành công",
-  "error-uploading-file": "Có lỗi khi tải tệp lên, vui lòng thử tệp khác",
-  "invalid-image-type": "Loại hình ảnh không hợp lệ, chỉ hỗ trợ các tệp JPG, PNG, GIF",
-  "file-is-empty": "Tập tin trống",
-  "file-too-large": "Tệp quá lớn, chỉ hỗ trợ các tệp có kích thước dưới 5mb",
-  "new-password-same-as-old-password": "Bạn không thể đặt mật khẩu mới giống mật khẩu cũ",
-  "change-password-successfully": "Thay đổi mật khẩu thành công, vui lòng đăng nhập lại để tiếp tục",
-  "captcha-verification-failed": "Xác minh token thất bại",
-  "create-department-success": "Tạo phòng ban thành công",
-  "edit-department-success": "Chỉnh sửa phòng ban thành công",
-  "update-department-success": "Cập nhật phòng ban thành công",
+	"server-is-busy": "Server đang gặp sự cố. Xin vui lòng thữ lại sau",
+	"please-login-to-continue": "Vui lòng đăng nhập để tiếp tục",
+	"you-do-not-have-permission-to-access-this-feature": "Bạn không có quyền truy cập vào tính năng này",
+	"access-denied": "Truy cập bị từ chối",
+	"invalid-access-token": "Thông tin xác thực không đúng, vui lòng đăng nhập lại",
+	"logout-successful": "Tài khoản đã đăng xuất thành công",
+	"validation-errors": "Có một số trường bạn nhập không hợp lệ. Xin vui lòng thữ lại",
+	"login-successfully": "Bạn đã đăng nhập thành công!",
+	"failed-to-register-user": "Đăng kí người dùng thất bại. Xin vui lòng thữ lại sau",
+	"registered-successfully": "Đăng kí người dùng thành công. Xin vui lòng đăng nhập để tiếp tục",
+	"employee-created-successfully": "Đã tạo nhân viên thành công",
+	"the-path-you-are-trying-to-access-is-invalid": "Đường dẫn bạn truy cập không hợp lệ",
+	"change-avatar-successfully": "Thay đổi ảnh đại diện thành công",
+	"error-uploading-file": "Có lỗi khi tải tệp lên, vui lòng thử tệp khác",
+	"invalid-image-type": "Loại hình ảnh không hợp lệ, chỉ hỗ trợ các tệp JPG, PNG, GIF",
+	"file-is-empty": "Tập tin trống",
+	"file-too-large": "Tệp quá lớn, chỉ hỗ trợ các tệp có kích thước dưới 5mb",
+	"new-password-same-as-old-password": "Bạn không thể đặt mật khẩu mới giống mật khẩu cũ",
+	"change-password-successfully": "Thay đổi mật khẩu thành công, vui lòng đăng nhập lại để tiếp tục",
+	"captcha-verification-failed": "Xác minh token thất bại",
+	"create-department-success": "Tạo phòng ban thành công",
+	"edit-department-success": "Chỉnh sửa phòng ban thành công",
+	"update-department-success": "Cập nhật phòng ban thành công",
 
-  "username-is-required": "Tên đăng nhập là bắt buộc",
-  "username-must-be-between-5-and-30-characters": "Tên đăng nhập phải từ 5 đến 30 ký tự",
-  "username-must-start-with-a-lowercase-letter-and-contain-only-lowercase-letters-and-numbers": "Tên đăng nhập phải bắt đầu bằng chữ thường và chỉ chứa chữ thường hoặc số",
-  "username-does-not-exist": "Tên đăng nhập không tồn tại",
-  "username-already-exists": "Tên đăng nhập đã tồn tại",
-  "account-is-disabled": "Tài khoản bị khóa",
+	"username-is-required": "Tên đăng nhập là bắt buộc",
+	"username-must-be-between-5-and-30-characters": "Tên đăng nhập phải từ 5 đến 30 ký tự",
+	"username-must-start-with-a-lowercase-letter-and-contain-only-lowercase-letters-and-numbers": "Tên đăng nhập phải bắt đầu bằng chữ thường và chỉ chứa chữ thường hoặc số",
+	"username-does-not-exist": "Tên đăng nhập không tồn tại",
+	"username-already-exists": "Tên đăng nhập đã tồn tại",
+	"account-is-disabled": "Tài khoản bị khóa",
 
-  "password-is-required": "Mật khẩu là bắt buộc",
-  "password-does-not-match": "Mật khẩu không đúng",
-  "password-must-be-between-6-and-30-characters": "Mật khẩu phải từ 6 đến 30 ký tự",
+	"password-is-required": "Mật khẩu là bắt buộc",
+	"password-does-not-match": "Mật khẩu không đúng",
+	"password-must-be-between-6-and-30-characters": "Mật khẩu phải từ 6 đến 30 ký tự",
 
-  "do-not-set-the-same-password-as-the-old-one": "Không đặt mật khẩu giống như mật khẩu cũ",
+	"do-not-set-the-same-password-as-the-old-one": "Không đặt mật khẩu giống như mật khẩu cũ",
 
-  "confirm-password-is-required": "Xác nhận mật khẩu là bắt buộc",
-  "confirm-password-does-not-match": "Xác nhận mật khẩu không khớp",
+	"confirm-password-is-required": "Xác nhận mật khẩu là bắt buộc",
+	"confirm-password-does-not-match": "Xác nhận mật khẩu không khớp",
 
-  "first-name-is-required": "Họ là bắt buộc",
-  "first-name-must-be-between-2-and-30-characters": "Họ phải từ 2 đến 30 ký tự",
-  "first-name-must-contain-only-letters-and-spaces": "Họ chỉ được chứa chữ cái và dấu cách",
+	"first-name-is-required": "Họ là bắt buộc",
+	"first-name-must-be-between-2-and-30-characters": "Họ phải từ 2 đến 30 ký tự",
+	"first-name-must-contain-only-letters-and-spaces": "Họ chỉ được chứa chữ cái và dấu cách",
 
-  "last-name-is-required": "Tên là bắt buộc",
-  "last-name-must-be-between-2-and-30-characters": "Tên phải từ 2 đến 30 ký tự",
-  "last-name-must-contain-only-letters-and-spaces": "Tên chỉ được chứa chữ cái và dấu cách",
+	"last-name-is-required": "Tên là bắt buộc",
+	"last-name-must-be-between-2-and-30-characters": "Tên phải từ 2 đến 30 ký tự",
+	"last-name-must-contain-only-letters-and-spaces": "Tên chỉ được chứa chữ cái và dấu cách",
 
-  "email-is-required": "Email là bắt buộc",
-  "email-already-exists": "Email đã tồn tại",
-  "email-does-not-exist": "Email không tồn tại",
-  "invalid-email-address": "Địa chỉ email không hợp lệ",
+	"email-is-required": "Email là bắt buộc",
+	"email-already-exists": "Email đã tồn tại",
+	"email-does-not-exist": "Email không tồn tại",
+	"invalid-email-address": "Địa chỉ email không hợp lệ",
 
-  "phone-is-required": "Số điện thoại là bắt buộc",
-  "phone-already-exists": "Số điện thoại đã tồn tại",
-  "phone-does-not-exist": "Số điện thoại không tồn tại",
-  "invalid-phone-number": "Số điện thoại không hợp lệ",
+	"phone-is-required": "Số điện thoại là bắt buộc",
+	"phone-already-exists": "Số điện thoại đã tồn tại",
+	"phone-does-not-exist": "Số điện thoại không tồn tại",
+	"invalid-phone-number": "Số điện thoại không hợp lệ",
 
-  "address-is-required": "Địa chỉ là bắt buộc",
+	"address-is-required": "Địa chỉ là bắt buộc",
 
-  "gender-is-required": "Giới tính là bắt buộc",
-  "invalid-gender": "Giới tính không hợp lệ",
+	"gender-is-required": "Giới tính là bắt buộc",
+	"invalid-gender": "Giới tính không hợp lệ",
 
-  "date-of-birth-cannot-be-null": "Ngày sinh không được bỏ trống",
-  "date-of-birth-must-be-in-the-past": "Ngày sinh phải là ngày quá khứ",
+	"date-of-birth-cannot-be-null": "Ngày sinh không được bỏ trống",
+	"date-of-birth-must-be-in-the-past": "Ngày sinh phải là ngày quá khứ",
 
-  "department-already-exists": "Phòng ban đã tồn tại",
-  "hod-id-not-found": "Không thể tìm thấy trưởng phòng này",
-  "hod-role-is-invalid": "Vai trò của trưởng phòng không hợp lệ",
-  "the-hod-has-a-department": "Trưởng phòng này đã có phòng ban khác",
-  "department-name-is-required": "Tên phòng ban là bắt buộc",
-  "department-description-is-required": "Mô tả của phòng ban là bắt buộc",
-  "hod-is-required": "Trưởng phòng là bắt buộc",
+	"department-already-exists": "Phòng ban đã tồn tại",
+	"hod-id-not-found": "Không thể tìm thấy trưởng phòng này",
+	"hod-role-is-invalid": "Vai trò của trưởng phòng không hợp lệ",
+	"the-hod-has-a-department": "Trưởng phòng này đã có phòng ban khác",
+	"department-name-is-required": "Tên phòng ban là bắt buộc",
+	"department-description-is-required": "Mô tả của phòng ban là bắt buộc",
+	"hod-is-required": "Trưởng phòng là bắt buộc",
 
-  "Login": "Đăng nhập",
-  "Login with your account": "Đăng nhập bằng tài khoản của bạn",
-  "Username": "Tên đăng nhập",
-  "Password": "Mật khẩu",
-  "Accounts are provided by the administrator only": "Tài khoản được cung cấp bởi quản trị viên",
-  "Verifying": "Đang xác minh...",
-  "Language": "Ngôn ngữ",
-  "ViewProfile": "Xem hồ sơ",
-  "ChangePassword": "Đổi mật khẩu",
-  "Logout": "Đăng xuất",
-  "AreYouSureLogout": "Bạn có chắc chắn muốn đăng xuất?",
-  "Cancel": "Hủy",
-  "Confirm": "Xác nhận",
-
-  "project_list": {
-    "title": "Danh sách Dự án",
-    "empty": "Không có dự án nào.",
-    "search": {
-      "placeholder_local": "Tìm theo tên dự án (lọc cục bộ)",
-      "placeholder_remote": "Tìm kiếm dự án"
-    },
-    "filter": {
-      "status": "Trạng thái"
-    }
-  },
-  "project_card": {
-    "repo_tooltip": "Mở kho mã",
-    "document_code": "Công văn",
-    "pm": "PM",
-    "status": "Trạng thái",
-    "deadline": "Hạn chót"
-  },
-
-  "project_detail": {
-    "refresh_tooltip": "Làm mới",
-    "search_tasks_placeholder": "🔍 Tìm kiếm Task",
-    "phase_prefix": "Phase",
-    "phase_title": "Phase {index}: {name}",
-    "status_prefix": "Trạng thái: ",
-    "no_matching_tasks": "Không có task nào phù hợp.",
-    "header": {
-      "document_code": "Mã công văn",
-      "pm": "PM",
-      "status": "Trạng thái",
-      "deadline": "Deadline",
-      "progress_summary": "{progress}% ({done}/{total} tasks)"
-    },
-    "assignee": "Assignee"
-  },
-
-  "kanban": {
-    "title": "Kanban",
-    "refresh_tooltip": "Làm mới",
-    "search": { "placeholder": "🔍 Tìm kiếm Task" },
-    "status": {
-      "PLANNING": "Lập kế hoạch",
-      "IN_PROGRESS": "Đang làm",
-      "IN_REVIEW": "Chờ duyệt",
-      "COMPLETED": "Hoàn thành",
-      "CANCELED": "Đã hủy"
-    },
-    "snackbar": {
-      "invalid_transition": "Chuyển trạng thái không hợp lệ theo quyền hoặc quy trình.",
-      "need_evidence_for_in_review": "Cần upload bằng chứng trước khi chuyển sang Chờ duyệt.",
-      "moved_to": "Đã chuyển \"{name}\" sang {status}",
-      "update_status_failed": "Cập nhật trạng thái thất bại."
-    },
-    "dialog": {
-      "cancel_task": {
-        "title": "Xác nhận huỷ task",
-        "message": "Bạn có chắc muốn chuyển \"{name}\" sang trạng thái Đã hủy?\nThao tác này có thể ảnh hưởng đến timeline và báo cáo."
-      }
-    },
-    "sheet": {
-      "move_to_in_review": "Chuyển \"{name}\" → {status}",
-      "delete_all_tooltip": "Xóa tất cả",
-      "upload_btn": "Upload bằng chứng",
-      "uploading": "Đang upload...",
-      "confirm": "Xác nhận",
-      "empty": "Chưa có bằng chứng nào.",
-      "need_evidence_before_confirm": "Cần có bằng chứng trước khi xác nhận.",
-      "camera": "Chụp ảnh bằng camera",
-      "gallery": "Chọn từ thư viện ảnh",
-      "no_selection": "Không có ảnh nào được chọn.",
-      "uploaded": "Đã upload bằng chứng.",
-      "deleted": "Đã xóa bằng chứng.",
-      "cleared": "Đã xóa tất cả bằng chứng.",
-      "upload_failed_with_error": "Upload thất bại: {error}"
-    },
-    "card": {
-      "status": "Trạng thái",
-      "size": "Size",
-      "assignee": "Assignee",
-      "deadline": "Deadline",
-      "branch": "Branch",
-      "pr": "PR",
-      "merged": "Merged"
-    }
-  },
-
-  "common": {
-    "all": "Tất cả",
-    "tasks": "tasks"
-  },
-  "task_detail": {
-  "title": "Chi tiết Task",
-  "locked_snack": "Phase đã hoàn thành. Không thể thêm/xóa bằng chứng.",
-  "evidence": "Bằng chứng"
-}
-
-<<<<<<< Updated upstream
 	"Login": "Đăng nhập",
 	"Login with your account": "Đăng nhập bằng tài khoản của bạn",
 	"Username": "Tên đăng nhập",
@@ -200,6 +89,4 @@
 
 	"NewPassword": "Mật khẩu mới",
 	"ConfirmNewPassword": "Xác nhận mật khẩu mới"
-=======
->>>>>>> Stashed changes
 }

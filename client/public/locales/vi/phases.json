@@ -1,12 +1,10 @@
 {
+    "update-phase": "Cập nhật Phase",
   "create-phase": "Tạo phase",
-  "update-phase": "Cập nhật Phase",
   "phase-name": "Tên phase",
   "phase-deadline": "Hạn phase",
-  "phase-status": "Trạng thái phase",
   "cancel": "Hủy",
-  "create": "Tạo",
   "update": "Cập nhật",
-  "confirm": "Xác nhận",
-  "note": "Lưu ý"
+  "create": "Tạo",
+  "confirm": "Xác nhận"
 }

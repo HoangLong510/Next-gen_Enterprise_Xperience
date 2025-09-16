@@ -5,7 +5,7 @@ import lombok.*;
 import server.models.accountant.fund.Fund;
 import server.models.enums.DocumentStatus;
 import server.models.enums.DocumentType;
-
+import server.models.enums.ProjectPriority;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -21,10 +21,8 @@ public class Document {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     @Column(name = "code", unique = true, nullable = false, length = 50)
     private String code;
-
 
     private String title;
 
@@ -75,7 +73,6 @@ public class Document {
     private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
     private DocumentStatus status;
 
     @Enumerated(EnumType.STRING)

@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import server.models.Task;
-import server.models.enums.TaskStatus;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -13,15 +12,7 @@ import java.util.Optional;
 
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
-
     Task findByGithubBranch(String githubBranch);
-
-    /**
-     * Dùng cho các luồng thống kê/thông báo:
-     * - Lấy task cùng project có deadline sau 'date'
-     * - Loại CANCELED
-     * - (Có thể ẩn/không ẩn tuỳ luồng này; hiện chưa lọc hidden)
-     */
     @Query("""
            select t from Task t
            where t.phase.project.id = :projectId
@@ -30,8 +21,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
            """)
     List<Task> findTasksDeadlineAfter(@Param("projectId") Long projectId,
                                       @Param("date") LocalDate date);
-
-
     boolean existsByPhaseIdAndNameIgnoreCaseAndHiddenFalse(Long phaseId, String name);
 
     @Query("""
@@ -41,7 +30,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
         where t.id = :id
     """)
     Optional<Task> findWithPhaseAndProjectById(@Param("id") Long id);
-
     /**
      * ✅ TRUY VẤN CHO KANBAN:
      * - Lấy toàn bộ task của project (theo cột/phase bất kỳ)
@@ -78,5 +66,4 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     """)
     boolean existsLiveTaskInActivePhase(@Param("projectId") Long projectId,
                                         @Param("allowed") List<TaskStatus> allowed);
-
 }

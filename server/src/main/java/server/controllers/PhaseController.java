@@ -1,6 +1,5 @@
 package server.controllers;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,14 +22,12 @@ public class PhaseController {
 
     private final PhaseService phaseService;
 
-    /** ✅ Tạo phase cho project
-     *  ADMIN/MANAGER hoặc PM của project mới được tạo
-     */
+    // Tạo phase cho 1 project
     @PreAuthorize("""
       hasAnyAuthority('ADMIN','MANAGER') or
       (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))
     """)
-    @PostMapping("/project/{projectId}")
+    @PostMapping("/{projectId}/phases")
     public ApiResponse<PhaseDto> createPhase(
             @PathVariable Long projectId,
             @Valid @RequestBody CreatePhaseDto dto,
@@ -40,22 +37,17 @@ public class PhaseController {
         return phaseService.createPhase(projectId, dto);
     }
 
-    /** ✅ Lấy danh sách phases (không kèm tasks) theo project
-     *  EMPLOYEE/HOD được xem nếu có task trong project theo rule ProjectService
-     */
+    // Lấy phases (không kèm tasks) theo project
     @PreAuthorize("""
       hasAnyAuthority('ADMIN','MANAGER') or
-      (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name)) or
-      (hasAnyAuthority('EMPLOYEE','HOD') and @projectService.hasProjectAccess(#projectId, authentication.name))
+      (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))
     """)
     @GetMapping("/project/{projectId}")
     public ApiResponse<List<PhaseDto>> getPhasesByProject(@PathVariable Long projectId) {
         return phaseService.getPhasesByProject(projectId);
     }
 
-    /** ✅ Cập nhật phase
-     *  Chỉ ADMIN/MANAGER hoặc PM (của project chứa phase)
-     */
+    // Cập nhật phase theo phaseId
     @PreAuthorize("""
       hasAnyAuthority('ADMIN','MANAGER') or
       (hasAuthority('PM') and @phaseService.isProjectManagerOfPhase(#id, authentication.name))
@@ -70,26 +62,17 @@ public class PhaseController {
         return phaseService.updatePhase(id, dto);
     }
 
-    /** ✅ Lấy phases (kèm tasks) theo project
-     *  - ADMIN/MANAGER/PM: thấy tất cả task
-     *  - EMPLOYEE/HOD: chỉ thấy task của chính họ
-     */
+    // Lấy phases (kèm tasks) theo project
     @PreAuthorize("""
       hasAnyAuthority('ADMIN','MANAGER') or
-      (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name)) or
-      (hasAnyAuthority('EMPLOYEE','HOD') and @projectService.hasProjectAccess(#projectId, authentication.name))
+      (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))
     """)
     @GetMapping("/project/{projectId}/with-tasks")
-    public ApiResponse<List<PhaseDto>> getPhasesWithTasksByProject(
-            @PathVariable Long projectId,
-            HttpServletRequest request
-    ) {
-        return phaseService.getPhasesWithTasksByProject(projectId, request);
+    public ApiResponse<List<PhaseDto>> getPhasesWithTasksByProject(@PathVariable Long projectId) {
+        return phaseService.getPhasesWithTasksByProject(projectId);
     }
 
-    /** ❌ Lấy chi tiết phase theo phaseId
-     *  (EMP/HOD vẫn không được gọi trực tiếp để tránh lộ dữ liệu ngoài project)
-     */
+    // Lấy chi tiết phase theo phaseId
     @PreAuthorize("""
       hasAnyAuthority('ADMIN','MANAGER') or
       (hasAuthority('PM') and @phaseService.isProjectManagerOfPhase(#id, authentication.name))
@@ -103,7 +86,7 @@ public class PhaseController {
         return ResponseEntity.ok(resp);
     }
 
-    /** ✅ Start phase */
+    // Start phase (theo phaseId)
     @PreAuthorize("""
       hasAnyAuthority('ADMIN','MANAGER') or
       (hasAuthority('PM') and @phaseService.isProjectManagerOfPhase(#id, authentication.name))
@@ -113,7 +96,7 @@ public class PhaseController {
         return phaseService.startPhase(id);
     }
 
-    /** ✅ Complete phase */
+    // Complete phase (theo phaseId)
     @PreAuthorize("""
       hasAnyAuthority('ADMIN','MANAGER') or
       (hasAuthority('PM') and @phaseService.isProjectManagerOfPhase(#id, authentication.name))

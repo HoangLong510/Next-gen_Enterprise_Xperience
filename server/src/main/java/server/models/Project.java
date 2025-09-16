@@ -20,7 +20,6 @@ public class Project {
     private Long id;
 
     private String name;
-    @Column(columnDefinition = "TEXT")
     private String description;
 
     private LocalDate createdAt;
@@ -28,7 +27,6 @@ public class Project {
     private LocalDateTime completedAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
     private ProjectStatus status;
 
     @OneToOne
