@@ -4,7 +4,9 @@ package server.services;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import server.dtos.CreatePhaseDto;
 import server.dtos.PhaseDto;
 import server.dtos.TaskDto;
@@ -46,7 +48,7 @@ public class PhaseService {
         Integer maxSeq = phaseRepository.findMaxSequenceByProject(project.getId());
         int newSeq = (maxSeq == null ? 0 : maxSeq) + 1;
 
-<<<<<<< Updated upstream
+
         // phase sau phải có deadline >= phase trước
         if (newSeq > 1) {
             var prevOpt = phaseRepository.findByProjectIdAndSequence(project.getId(), newSeq - 1);
@@ -55,8 +57,8 @@ public class PhaseService {
                 if (dto.getDeadline().isBefore(prev.getDeadline())) {
                     return ApiResponse.badRequest("deadline-before-previous-phase");
                 }
-            }
-=======
+            }}
+
         // >= deadline phase trước (nếu có)
         if (newSeq > 1) {
             phaseRepository.findByProjectIdAndSequence(project.getId(), newSeq - 1)
@@ -65,7 +67,7 @@ public class PhaseService {
                             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "deadline-before-previous-phase");
                         }
                     });
->>>>>>> Stashed changes
+
         }
 
         // <= deadline project (nếu có)
@@ -184,12 +186,10 @@ public class PhaseService {
         return ApiResponse.success(null, "phase-completed");
     }
 
-<<<<<<< Updated upstream
-    // ====== Helper cho @PreAuthorize trong PhaseController ======
-    // PM của project theo projectId?
-=======
+
+
     // ================== PERMISSION HELPERS ==================
->>>>>>> Stashed changes
+
     public boolean isProjectManager(Long projectId, String username) {
         return projectRepository.findById(projectId)
                 .map(p -> {
@@ -208,10 +208,9 @@ public class PhaseService {
                 .orElse(false);
     }
 
-<<<<<<< Updated upstream
-=======
+
     // ================== UPDATE ==================
->>>>>>> Stashed changes
+
     @Transactional
     public ApiResponse<PhaseDto> updatePhase(Long id, UpdatePhaseDto dto) {
         var phaseOpt = phaseRepository.findById(id);
@@ -229,7 +228,7 @@ public class PhaseService {
 
             // >= deadline phase trước
             if (phase.getSequence() > 1) {
-<<<<<<< Updated upstream
+
                 var prevOpt = phaseRepository.findByProjectIdAndSequence(project.getId(), phase.getSequence() - 1);
                 if (prevOpt.isPresent()) {
                     var prev = prevOpt.get();
@@ -237,14 +236,14 @@ public class PhaseService {
                         return ApiResponse.badRequest("deadline-before-previous-phase");
                     }
                 }
-=======
+
                 phaseRepository.findByProjectIdAndSequence(project.getId(), phase.getSequence() - 1)
                         .ifPresent(prev -> {
                             if (dto.getDeadline().isBefore(prev.getDeadline())) {
                                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "deadline-before-previous-phase");
                             }
                         });
->>>>>>> Stashed changes
+
             }
 
             // ⭐ NEW: <= deadline phase kế tiếp (nếu có)
@@ -257,11 +256,11 @@ public class PhaseService {
 
             // <= deadline project
             if (project.getDeadline() != null && dto.getDeadline().isAfter(project.getDeadline())) {
-<<<<<<< Updated upstream
-                return ApiResponse.badRequest("deadline-after-project-deadline");
-=======
+
+
+
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "deadline-after-project-deadline");
->>>>>>> Stashed changes
+
             }
 
             phase.setDeadline(dto.getDeadline());
@@ -274,11 +273,9 @@ public class PhaseService {
 
             boolean hasTasks = phase.getTasks() != null && !phase.getTasks().isEmpty();
 
-<<<<<<< Updated upstream
-            // ⭐ COMPLETED -> IN_PROGRESS (chỉ khi còn deadline & phase sau đang PLANNING và chưa có task)
-=======
+
             // COMPLETED -> IN_PROGRESS: chỉ khi deadline chưa quá hạn & phase sau đang PLANNING và chưa có task
->>>>>>> Stashed changes
+
             if (current == PhaseStatus.COMPLETED && target == PhaseStatus.IN_PROGRESS) {
                 if (phase.getDeadline() != null && phase.getDeadline().isBefore(LocalDate.now())) {
                     return ApiResponse.badRequest("phase-deadline-passed");
@@ -295,11 +292,9 @@ public class PhaseService {
                 }
             }
 
-<<<<<<< Updated upstream
-            // ⭐ CANCELED -> IN_PROGRESS (chỉ khi phase sau đang PLANNING và chưa có task)
-=======
+
             // CANCELED -> IN_PROGRESS: chỉ khi phase sau đang PLANNING và chưa có task
->>>>>>> Stashed changes
+
             if (current == PhaseStatus.CANCELED && target == PhaseStatus.IN_PROGRESS) {
                 var nextOpt = phaseRepository.findByProjectIdAndSequence(
                         phase.getProject().getId(), phase.getSequence() + 1
@@ -316,56 +311,41 @@ public class PhaseService {
             // Các rule hiện hữu
             if (current == PhaseStatus.PLANNING) {
                 if (target == PhaseStatus.IN_PROGRESS && !hasTasks) {
-<<<<<<< Updated upstream
-                    return ApiResponse.badRequest("cannot-start-phase-without-tasks");
-=======
+
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "cannot-start-phase-without-tasks");
->>>>>>> Stashed changes
+
                 } else if (target == PhaseStatus.CANCELED
                         || target == PhaseStatus.PLANNING
                         || target == PhaseStatus.IN_PROGRESS) {
                     // ok
                 } else {
-<<<<<<< Updated upstream
-                    return ApiResponse.badRequest("invalid-status-transition-from-planning");
-=======
+
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid-status-transition-from-planning");
->>>>>>> Stashed changes
+
                 }
             } else if (current == PhaseStatus.CANCELED) {
                 if (hasTasks) {
                     if (target != PhaseStatus.IN_PROGRESS && target != PhaseStatus.CANCELED) {
-<<<<<<< Updated upstream
-                        return ApiResponse.badRequest("canceled-with-tasks-only-to-in-progress");
-                    }
-                } else {
-                    if (target != PhaseStatus.PLANNING && target != PhaseStatus.CANCELED) {
-                        return ApiResponse.badRequest("canceled-without-tasks-only-to-planning");
-=======
+
                         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "canceled-with-tasks-only-to-in-progress");
                     }
                 } else {
                     if (target != PhaseStatus.PLANNING && target != PhaseStatus.CANCELED) {
                         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "canceled-without-tasks-only-to-planning");
->>>>>>> Stashed changes
                     }
                 }
             } else if (current == PhaseStatus.IN_PROGRESS) {
                 if (target == PhaseStatus.PLANNING && hasTasks) {
-<<<<<<< Updated upstream
-                    return ApiResponse.badRequest("cannot-move-in-progress-to-planning-when-has-tasks");
-=======
+
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "cannot-move-in-progress-to-planning-when-has-tasks");
->>>>>>> Stashed changes
+
                 }
                 // cho -> CANCELED, -> COMPLETED
             } else if (current == PhaseStatus.COMPLETED) {
                 if (target != PhaseStatus.IN_PROGRESS && target != PhaseStatus.COMPLETED) {
-<<<<<<< Updated upstream
-                    return ApiResponse.badRequest("completed-can-only-go-to-in-progress");
-=======
+
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "completed-can-only-go-to-in-progress");
->>>>>>> Stashed changes
+
                 }
             }
 
@@ -380,11 +360,9 @@ public class PhaseService {
         return ApiResponse.success(toDto(saved), "phase-updated-successfully");
     }
 
-<<<<<<< Updated upstream
-    // ================== Mapping helpers ==================
-=======
+
     // ================== DTO HELPERS ==================
->>>>>>> Stashed changes
+
     private PhaseDto toDto(Phase phase) {
         PhaseDto dto = new PhaseDto();
         dto.setId(phase.getId());
@@ -425,11 +403,7 @@ public class PhaseService {
     private PhaseDto toDtoWithTasks(Phase phase, List<Task> tasks) {
         PhaseDto dto = toDto(phase);
 
-<<<<<<< Updated upstream
-        List<TaskDto> taskDtos = (phase.getTasks() == null)
-                ? List.of()
-                : phase.getTasks().stream().map(this::mapTask).toList();
-=======
+
         List<TaskDto> taskDtos = tasks.stream().map(task -> {
             TaskDto t = new TaskDto();
             t.setId(task.getId());
@@ -447,7 +421,7 @@ public class PhaseService {
             }
             return t;
         }).toList();
->>>>>>> Stashed changes
+
 
         dto.setTasks(taskDtos);
 

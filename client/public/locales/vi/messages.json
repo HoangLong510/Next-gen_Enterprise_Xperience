@@ -7,13 +7,9 @@
   "logout-successful": "Tài khoản đã đăng xuất thành công",
   "validation-errors": "Có một số trường bạn nhập không hợp lệ. Xin vui lòng thử lại",
   "login-successfully": "Bạn đã đăng nhập thành công!",
-<<<<<<< Updated upstream
-  "failed-to-register-user": "Đăng kí người dùng thất bại. Xin vui lòng thử lại sau",
-  "registered-successfully": "Đăng kí người dùng thành công. Xin vui lòng đăng nhập để tiếp tục",
-=======
+
   "failed-to-register-user": "Đăng ký người dùng thất bại. Xin vui lòng thử lại sau",
   "registered-successfully": "Đăng ký người dùng thành công. Vui lòng đăng nhập để tiếp tục",
->>>>>>> Stashed changes
   "employee-created-successfully": "Đã tạo nhân viên thành công",
   "the-path-you-are-trying-to-access-is-invalid": "Đường dẫn bạn truy cập không hợp lệ",
   "change-avatar-successfully": "Thay đổi ảnh đại diện thành công",
@@ -28,7 +24,6 @@
   "create-department-success": "Tạo phòng ban thành công",
   "edit-department-success": "Chỉnh sửa phòng ban thành công",
   "update-department-success": "Cập nhật phòng ban thành công",
-<<<<<<< Updated upstream
   "fund-created": "Tạo quỹ thành công.",
   "failed-to-create-fund": "Tạo quỹ thất bại.",
   "transaction-created": "Tạo giao dịch thành công.",
@@ -55,9 +50,6 @@
   "template-download-failed": "Tải xuống template thất bại",
   "import-employees-successfully": "Import nhân viên thành công",
   "import-employees-failed": "Import nhân viên thất bại",
-=======
-
->>>>>>> Stashed changes
   "project-created-successfully": "Tạo dự án thành công",
   "project-updated-successfully": "Cập nhật dự án thành công",
   "project-canceled-successfully": "Hủy dự án thành công",
@@ -66,67 +58,49 @@
   "document-already-linked": "Tài liệu này đã được liên kết với dự án khác",
   "only-project-manager-can-link-repo": "Chỉ quản lý dự án mới có thể liên kết kho GitHub",
   "repo-linked-successfully": "Liên kết kho GitHub thành công",
-<<<<<<< Updated upstream
+
   "phase-created-successfully": "Tạo giai đoạn thành công",
   "phase-started-successfully": "Bắt đầu giai đoạn thành công",
   "phase-completed-successfully": "Hoàn thành giai đoạn thành công",
-=======
+
 
   "phase-created-successfully": "Tạo giai đoạn thành công",
   "phase-started-successfully": "Bắt đầu giai đoạn thành công",
   "phase-completed-successfully": "Hoàn thành giai đoạn thành công",
   "phase-updated-successfully": "Cập nhật giai đoạn thành công",
->>>>>>> Stashed changes
+
   "phase-already-started-or-completed": "Giai đoạn đã bắt đầu hoặc đã hoàn thành",
   "previous-phase-not-completed": "Giai đoạn trước chưa hoàn thành",
   "phase-not-in-progress": "Giai đoạn chưa ở trạng thái đang thực hiện",
   "phase-not-found": "Không tìm thấy giai đoạn",
   "deadline-before-previous-phase": "Hạn chót trước hạn chót của giai đoạn trước",
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
   "task-created-successfully": "Tạo công việc thành công",
   "task-status-updated-successfully": "Cập nhật trạng thái công việc thành công",
   "task-not-found": "Không tìm thấy công việc",
   "deadline-before-today": "Hạn chót không được trước hôm nay",
   "deadline-after-phase-deadline": "Hạn chót không được sau hạn chót của giai đoạn",
   "deadline-after-project-deadline": "Hạn chót không được sau hạn chót của dự án",
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
   "confirm-cancel-project-message": "Bạn có chắc muốn hủy dự án này? Hành động này sẽ đánh dấu toàn bộ dự án là đã hủy.",
   "project-deadline-conflict": "Không thể cập nhật hạn chót của dự án. Có giai đoạn hoặc công việc có hạn chót sau ngày đã chọn.",
   "deadline-cannot-be-in-the-past": "Hạn chót không được ở trong quá khứ",
   "cannot-set-planning-when-has-tasks": "Không thể đổi về Planning khi dự án đã có công việc.",
   "cannot-complete-project-while-some-tasks-not-completed": "Không thể hoàn thành dự án khi vẫn còn công việc chưa hoàn thành.",
-<<<<<<< Updated upstream
   "updated-successfully": "Cập nhật thành công",
   "confirm-cancel-phase-title": "Chuyển Phase sang CANCELED?",
   "confirm-cancel-phase-message": "Hành động này có thể ảnh hưởng tới quy trình và báo cáo. Bạn có chắc muốn chuyển trạng thái sang CANCELED không?",
-=======
-
->>>>>>> Stashed changes
   "confirm-cancel-task-title": "Chuyển công việc sang CANCELED?",
   "confirm-cancel-task-message": "Hành động này có thể ảnh hưởng đến quy trình và báo cáo. Bạn có chắc muốn chuyển trạng thái công việc sang CANCELED không?",
   "confirm-delete-evidence-title": "Xóa evidence này?",
   "confirm-delete-evidence-message": "Hành động này sẽ xóa vĩnh viễn tệp minh chứng đã chọn. Bạn có chắc chắn?",
   "confirm-clear-evidence-title": "Xóa tất cả evidence?",
   "confirm-clear-evidence-message": "Hành động này sẽ xóa vĩnh viễn tất cả tệp minh chứng của công việc. Bạn có chắc chắn?",
-<<<<<<< Updated upstream
-  "clear-all-evidence": "Xóa tất cả evidence"
-=======
   "clear-all-evidence": "Xóa tất cả evidence",
-
   "updated-successfully": "Cập nhật thành công",
   "task-updated": "Cập nhật công việc thành công",
   "deadline-locked-when-completed": "Phase đã hoàn thành. Không thể chỉnh sửa hạn.",
   "phase-has-unfinished-tasks": "Còn {{count}} công việc chưa hoàn thành (không tính công việc đã hủy), nên không thể đặt phase thành Completed.",
   "reopen-constraints-not-met": "Để mở lại: Phase kế tiếp phải còn ở Planning và deadline của phase này chưa quá hạn.",
   "reopen-constraints-ok": "Bạn có thể mở lại sang In Progress vì thoả điều kiện: phase sau đang Planning và deadline hợp lệ.",
-
-
   "please-login-github-to-continue": "Vui lòng đăng nhập GitHub để tiếp tục",
   "GITHUB_TOKEN_EXPIRED": "Phiên đăng nhập GitHub đã hết hạn. Vui lòng đăng nhập lại.",
   "session-expired": "Phiên làm việc đã hết hạn. Vui lòng thử lại.",
@@ -140,5 +114,4 @@
   "Failed to create branch": "Tạo nhánh thất bại",
   "Project not found for this task": "Không tìm thấy dự án cho công việc này",
   "Task not found": "Không tìm thấy công việc"
->>>>>>> Stashed changes
 }

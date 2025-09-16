@@ -31,6 +31,7 @@ import EmployeeDetailsPage from "~/pages/employees/details";
 import EmployeeExcelImport from "~/pages/employees/excel_import";
 import CashAdvanceList from "~/pages/accountant/CashAdvanceList";
 
+import ProjectKanbanBoard from "~/components/project/KanbanForm";
 const roleRoutes = [
   // Accounts
   {
@@ -59,32 +60,21 @@ const roleRoutes = [
     layout: DefaultLayout,
     roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
   },
-<<<<<<< Updated upstream
-=======
+
 
   // Projects — mở cho tất cả vai trò liên quan (ADMIN/MANAGER/PM/HOD/EMPLOYEE)
->>>>>>> Stashed changes
   {
     path: "/management/documents/:id/update",
     component: DocumentUpdate,
     layout: DefaultLayout,
-<<<<<<< Updated upstream
+
     roles: ["ADMIN"],
-=======
-    roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
->>>>>>> Stashed changes
   },
   {
     path: "/management/documents/:id/histories",
     component: DocumentHistoryList,
     layout: DefaultLayout,
-<<<<<<< Updated upstream
     roles: ["MANAGER", "ADMIN"],
-  },
-
-  
-=======
-    roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
   },
 
   // Kanban (Project & Phase) — mở cho HOD/EMPLOYEE để họ xem/drag theo rule
@@ -100,7 +90,7 @@ const roleRoutes = [
     layout: DefaultLayout,
     roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
   },
->>>>>>> Stashed changes
+
 
   // Departments
   {
@@ -153,7 +143,6 @@ const roleRoutes = [
     layout: DefaultLayout,
     roles: ["ADMIN", "HOD", "ACCOUNTANT"],
   },
-<<<<<<< Updated upstream
   {
     path: "/finance/salary/create",
     component: CreateSalaryPage,
@@ -187,10 +176,6 @@ const roleRoutes = [
     layout: DefaultLayout,
     roles: ["ADMIN", "MANAGER", "HR"],
   },
-
-
-=======
->>>>>>> Stashed changes
 ];
 
 export default roleRoutes;

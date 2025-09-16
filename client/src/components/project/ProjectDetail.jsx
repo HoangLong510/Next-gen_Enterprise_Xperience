@@ -47,12 +47,9 @@ import {
   GitHub,
   Link as LinkIcon,
   OpenInNew,
-<<<<<<< Updated upstream
   Bolt,
-=======
   Visibility,
   Lock,
->>>>>>> Stashed changes
 } from "@mui/icons-material";
 import dayjs from "dayjs";
 import { useParams, Link as RouterLink } from "react-router-dom";
@@ -62,6 +59,7 @@ import { useTranslation } from "react-i18next";
 import {
   getProjectDetail,
   linkRepoToProject,
+  createQuickTask,
 } from "~/services/project.service";
 import UpdateTaskDialog from "~/components/project/form/UpdateTaskDialog";
 import { getProjectEmployees } from "~/services/project-employee.service";
@@ -82,7 +80,6 @@ import {
   isOverdue,
 } from "~/utils/project.utils";
 
-import { createQuickTask } from "~/services/project.service";
 import { setPopup } from "~/libs/features/popup/popupSlice";
 import {
   startGithubLogin,
@@ -138,13 +135,8 @@ export default function ProjectDetail() {
   const [githubConnected, setGithubConnected] = useState(false);
   const [repoUrl, setRepoUrl] = useState("");
 
-<<<<<<< Updated upstream
   const [quicking, setQuicking] = useState(false);
   const [openQuickAssign, setOpenQuickAssign] = useState(false);
-
-  // ======= Fetch data =======
-=======
-  // ========= Role-based capability =========
   const isPM = !!project?.pmId && !!me?.id && Number(me.id) === Number(project?.pmId);
   const canEditProject = ["ADMIN", "MANAGER", "PM"].includes(me?.role || "") || isPM;
   const isViewOnly = !canEditProject;
@@ -177,7 +169,6 @@ export default function ProjectDetail() {
     return /^https:\/\/github\.com\/[^\/\s]+\/[^\/\s]+\/?$/i.test(url);
   }, [project?.repoLink]);
 
->>>>>>> Stashed changes
   useEffect(() => {
     if (!projectId) return;
     fetchProject();
@@ -191,7 +182,6 @@ export default function ProjectDetail() {
       const res = await getProjectDetail(projectId);
       if (res?.status === 200 && res.data) {
         setProject(res.data);
-        // luôn sync repoUrl theo server để tránh giữ giá trị cũ trên input
         setRepoUrl(res.data.repoLink ? String(res.data.repoLink).trim() : "");
       } else {
         setProject(null);
@@ -269,7 +259,6 @@ export default function ProjectDetail() {
       const savedPid = sessionStorage.getItem("pendingRepoProjectId");
 
       (async () => {
-        // ✅ xác thực lại trạng thái token thật sự từ server
         const actuallyConnected = await getGithubTokenStatus();
 
         if (actuallyConnected && saved && savedPid && Number(savedPid) === Number(projectId)) {
@@ -292,30 +281,13 @@ export default function ProjectDetail() {
               })
             );
           }
-<<<<<<< Updated upstream
-          sessionStorage.removeItem("pendingRepoLink");
-          sessionStorage.removeItem("pendingRepoProjectId");
-        } else {
-          dispatch(
-            setPopup({ type: "success", message: "Đã kết nối GitHub!" })
-          );
-=======
         } else if (saved) {
           dispatch(setPopup({
             type: "error",
             message: "Kết nối GitHub thất bại hoặc bạn không có quyền. Hãy đăng nhập GitHub với tài khoản hợp lệ."
           }));
->>>>>>> Stashed changes
         }
 
-<<<<<<< Updated upstream
-      // clean url
-      url.searchParams.delete("github");
-      const clean =
-        url.pathname +
-        (url.searchParams.toString() ? `?${url.searchParams.toString()}` : "");
-      window.history.replaceState({}, "", clean);
-=======
         sessionStorage.removeItem("pendingRepoLink");
         sessionStorage.removeItem("pendingRepoProjectId");
 
@@ -324,7 +296,6 @@ export default function ProjectDetail() {
           url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : "");
         window.history.replaceState({}, "", clean);
       })();
->>>>>>> Stashed changes
     }
   }, [dispatch, projectId]);
 
@@ -377,7 +348,6 @@ export default function ProjectDetail() {
 
   const openUpdatePhaseDialog = (phase) => {
     if (isViewOnly) return;
-    // 🔒 Chỉ khóa khi phase hiện tại COMPLETED & phase sau IN_PROGRESS + có task
     if (isPhaseLockedForTaskEditing(phase, phases)) {
       dispatch(setPopup({ type: "warning", message: t("errors.phaseLockedEditing") }));
       return;
@@ -411,15 +381,9 @@ export default function ProjectDetail() {
   }, [phases]);
 
   const isProjectCanceled = project?.status === "CANCELED";
-<<<<<<< Updated upstream
-  const repoLinked = !!project?.repoLink;
-  const isPM =
-    !!project?.pmId && !!me?.id && Number(me.id) === Number(project.pmId);
-=======
 
   const hasMembers = (members?.length ?? 0) > 0;
   const canCreatePhase = !isProjectCanceled && hasMembers && canEditProject;
->>>>>>> Stashed changes
 
   const isPhaseLockedForTaskEditing = (phase, phases) => {
     if (!phase || !Array.isArray(phases)) return false;
@@ -431,7 +395,6 @@ export default function ProjectDetail() {
 
   const handleOpenAddTask = (phase) => {
     if (isViewOnly) return;
-    // 🔒 HARD-LOCK: Phase completed → cấm tạo task
     if (phase?.status === "COMPLETED") {
       dispatch(setPopup({ type: "warning", message: t("errors.phaseLockedEditing") }));
       return;
@@ -455,7 +418,6 @@ export default function ProjectDetail() {
 
   const connectGithub = async () => {
     try {
-      // Chỉ PM mới có quyền link → dùng context "project"
       await startGithubLogin({
         context: "project",
         id: Number(projectId),
@@ -472,18 +434,8 @@ export default function ProjectDetail() {
   };
 
   const handleLinkRepo = async () => {
-<<<<<<< Updated upstream
-    if (!isPM) {
-      dispatch(
-        setPopup({
-          type: "error",
-          message: "Chỉ PM của dự án mới được phép link repo.",
-        })
-      );
-=======
     if (!canLinkRepo) {
       dispatch(setPopup({ type: "error", message: "Chỉ PM được phép link repo." }));
->>>>>>> Stashed changes
       return;
     }
 
@@ -497,15 +449,9 @@ export default function ProjectDetail() {
       );
       return;
     }
-<<<<<<< Updated upstream
-    if (!/^https:\/\/github\.com\/[^\/]+\/[^\/]+/i.test(url)) {
-      dispatch(
-        setPopup({ type: "error", message: "Định dạng repo URL không hợp lệ" })
-      );
-=======
+
     if (!/^https:\/\/github\.com\/[^\/\s]+\/[^\/\s]+\/?$/i.test(url)) {
       dispatch(setPopup({ type: "error", message: "Định dạng repo URL không hợp lệ" }));
->>>>>>> Stashed changes
       return;
     }
 
@@ -537,15 +483,8 @@ export default function ProjectDetail() {
     }
   };
 
-<<<<<<< Updated upstream
-  // Early returns
-  if (loadingProject)
-    return <Typography>Loading project details...</Typography>;
-  if (!project) return <Typography>Không tìm thấy dự án.</Typography>;
-=======
   if (loadingProject) return <Typography>{t("loadingProject")}</Typography>;
   if (!project) return <Typography>{t("projectNotFound")}</Typography>;
->>>>>>> Stashed changes
 
   const overdue = isOverdue(project.deadline);
   const daysLeft = calculateDaysRemaining(project.deadline);
@@ -633,7 +572,6 @@ export default function ProjectDetail() {
                 >
                   {project.name}
                 </Typography>
-                {/* ↓ Description: wrap xuống dòng, không ellipsis, không tràn ngang */}
                 {project?.description?.trim() ? (
                   <Typography
                     variant="body2"
@@ -653,7 +591,6 @@ export default function ProjectDetail() {
               </Box>
 
               <Stack direction="row" spacing={1.25} alignItems="center" sx={{ flexShrink: 0 }}>
-                {/* ✅ Chỉ hiện "Mở GitHub" khi đã có repo hợp lệ (mọi role đều thấy) */}
                 {hasValidRepo ? (
                   <Button
                     variant="outlined"
@@ -667,7 +604,6 @@ export default function ProjectDetail() {
                     {t("githubOpen")}
                   </Button>
                 ) : (
-                  // ❗Không có repo → chỉ PM mới thấy UI link repo
                   canLinkRepo && (
                     <>
                       <TextField
@@ -699,7 +635,6 @@ export default function ProjectDetail() {
                   )
                 )}
 
-                {/* More menu: ẨN hoàn toàn với EMP/HOD */}
                 {!isStaff && (
                   <IconButton onClick={handleMenuClick} aria-label="project menu">
                     <MoreVert />
@@ -708,20 +643,8 @@ export default function ProjectDetail() {
               </Stack>
             </Box>
 
-<<<<<<< Updated upstream
-            {/* Menu */}
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleMenuClose}
-            >
-              {/* Chỉ PM mới thấy Connect GitHub */}
-              {isPM && !githubConnected ? (
-=======
-            {/* MENU (ẩn hoàn toàn với EMP/HOD) */}
             {!isStaff && (
               <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-                {/* ✅ Chỉ PM mới thấy “Connect GitHub” */}
                 {canLinkRepo && !githubConnected ? (
                   <MenuItem
                     onClick={() => {
@@ -757,7 +680,6 @@ export default function ProjectDetail() {
                   </MenuItem>
                 )}
 
-                {/* 👇 NEW: Add Members for ADMIN/MANAGER/PM */}
                 {canEditProject && (
                   <MenuItem
                     onClick={() => {
@@ -770,8 +692,6 @@ export default function ProjectDetail() {
                     <ListItemText primary={t("addMember")} />
                   </MenuItem>
                 )}
-
->>>>>>> Stashed changes
                 <MenuItem
                   onClick={() => {
                     setOpenViewMembers(true);
@@ -802,116 +722,13 @@ export default function ProjectDetail() {
               </Menu>
             )}
 
-<<<<<<< Updated upstream
-              <MenuItem
-                onClick={() => {
-                  setOpenViewMembers(true);
-                  handleMenuClose();
-                }}
-              >
-                <ListItemIcon>
-                  <Group fontSize="small" />
-                </ListItemIcon>
-                <ListItemText primary="View Members" />
-              </MenuItem>
-
-              <MenuItem
-                onClick={() => {
-                  if (isProjectCanceled) return;
-                  setOpenAddMembers(true);
-                  handleMenuClose();
-                }}
-                disabled={isProjectCanceled}
-              >
-                <ListItemIcon>
-                  <PersonAdd fontSize="small" />
-                </ListItemIcon>
-                <ListItemText primary="Add Member" />
-              </MenuItem>
-
-              <MenuItem
-                onClick={() => {
-                  if (isProjectCanceled) return;
-                  setOpenCreatePhase(true);
-                  handleMenuClose();
-                }}
-                disabled={isProjectCanceled}
-              >
-                <ListItemIcon>
-                  <Add fontSize="small" />
-                </ListItemIcon>
-                <ListItemText primary="Create Phase" />
-              </MenuItem>
-              <MenuItem
-                onClick={() => {
-                  handleMenuClose();
-                  if (!isProjectCanceled) setOpenQuickAssign(true);
-                }}
-                disabled={isProjectCanceled}
-              >
-                <ListItemIcon>
-                  <Bolt fontSize="small" />
-                </ListItemIcon>
-                <ListItemText primary="Quick Task" />
-              </MenuItem>
-            </Menu>
-
-            {/* Chips */}
-            <Stack
-              direction="row"
-              spacing={1}
-              alignItems="center"
-              flexWrap="wrap"
-              mb={2}
-            >
-=======
             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" mb={2}>
->>>>>>> Stashed changes
               <Chip
                 icon={<Schedule sx={{ fontSize: 16 }} />}
                 label={statusLabel(project.status, "project")}
                 size="small"
                 color={statusColor(project.status)}
               />
-<<<<<<< Updated upstream
-              {project.documentCode && (
-                <Chip
-                  label={project.documentCode}
-                  size="small"
-                  variant="outlined"
-                />
-              )}
-              {project.pmName && (
-                <Chip
-                  label={`PM: ${project.pmName}`}
-                  size="small"
-                  variant="outlined"
-                />
-              )}
-              {githubConnected && isPM && (
-                <Chip
-                  icon={<GitHub sx={{ fontSize: 16 }} />}
-                  label="GitHub Connected"
-                  size="small"
-                  color="default"
-                  variant="outlined"
-                />
-              )}
-            </Stack>
-
-            {/* Timeline */}
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-              sx={{
-                px: 1,
-                py: 1.2,
-                backgroundColor: "#F9FAFB",
-                borderRadius: 2,
-              }}
-            >
-=======
               {project.documentCode && <Chip label={project.documentCode} size="small" variant="outlined" />}
               {project.pmName && <Chip label={`PM: ${project.pmName}`} size="small" variant="outlined" />}
               {githubConnected && canLinkRepo && (
@@ -923,7 +740,6 @@ export default function ProjectDetail() {
             </Stack>
 
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 1, py: 1.2, backgroundColor: "#F9FAFB", borderRadius: 2 }}>
->>>>>>> Stashed changes
               <Stack direction="row" spacing={1} alignItems="center">
                 <Box
                   sx={{
@@ -950,21 +766,10 @@ export default function ProjectDetail() {
                   <AccessTime sx={{ fontSize: 18 }} />
                 </Box>
                 <Box>
-<<<<<<< Updated upstream
-                  <Typography
-                    variant="subtitle2"
-                    fontWeight={600}
-                    sx={{ color: overdue ? "error.main" : "success.main" }}
-                  >
-                    {overdue
-                      ? `${daysLate} days overdue`
-                      : `${daysLeft} days left`}
-=======
                   <Typography variant="subtitle2" fontWeight={600} sx={{ color: overdue ? "error.main" : "success.main" }}>
                     {overdue
                       ? t("daysOverdue", { count: daysLate })
                       : t("daysLeft", { count: daysLeft })}
->>>>>>> Stashed changes
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {overdue ? t("overdue") : t("remaining")}
@@ -975,50 +780,6 @@ export default function ProjectDetail() {
           </CardContent>
         </Card>
 
-<<<<<<< Updated upstream
-        {/* Phases Section */}
-        <Paper
-          elevation={2}
-          sx={{
-            px: 3,
-            py: 2,
-            borderRadius: 3,
-            backgroundColor: "#ffffff",
-            mb: 4,
-          }}
-        >
-          {/* Header + Search */}
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ mb: 3 }}
-          >
-            <Stack direction="row" alignItems="center" spacing={2}>
-              <Paper
-                sx={{
-                  p: 1.5,
-                  background:
-                    "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
-                  borderRadius: 3,
-                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
-                }}
-              >
-                <TrendingUp sx={{ color: "white", fontSize: 24 }} />
-              </Paper>
-              <Typography
-                variant="h6"
-                sx={{
-                  background:
-                    "linear-gradient(135deg, #1F2937 0%, #4B5563 100%)",
-                  backgroundClip: "text",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  fontWeight: 600,
-                }}
-              >
-                Phase Management
-=======
         {/* PHASES */}
         <Paper elevation={2} sx={{ px: 3, py: 2, borderRadius: 3, backgroundColor: "#ffffff", mb: 4 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
@@ -1028,7 +789,6 @@ export default function ProjectDetail() {
               </Paper>
               <Typography variant="h6" sx={{ background: "linear-gradient(135deg, #1F2937 0%, #4B5563 100%)", backgroundClip: "text", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontWeight: 600 }}>
                 {t("phaseManagement")}
->>>>>>> Stashed changes
               </Typography>
             </Stack>
 
@@ -1058,7 +818,6 @@ export default function ProjectDetail() {
                 const filteredTasks = getFilteredTasks(phase.tasks || []);
                 const taskCounts = getTaskStatusCounts(filteredTasks);
                 const showEditPhase = canEditProject && !isProjectCanceled;
-                // ✅ chỉ khóa khi phase hiện tại COMPLETED & phase sau IN_PROGRESS + có task
                 const allowEditPhase = showEditPhase && !isPhaseLockedForTaskEditing(phase, phases);
 
                 return (
@@ -1074,36 +833,12 @@ export default function ProjectDetail() {
                       "&.Mui-expanded": { margin: "8px 0" },
                     }}
                   >
+                    {/* ✅ SỬA Ở ĐÂY: thêm AccordionSummary đúng chuẩn */}
                     <AccordionSummary
-<<<<<<< Updated upstream
                       component="div"
                       expandIcon={<ExpandMore />}
-                    >
-                      <Box
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="space-between"
-                        width="100%"
-                      >
-                        <Box display="flex" alignItems="center" gap={2}>
-                          <Typography
-                            component={RouterLink}
-                            to={`/projects/${projectId}/phase/${phase.id}/kanban`}
-                            fontWeight={600}
-                            sx={{
-                              textDecoration: "none",
-                              color: "inherit",
-                              "&:hover": { textDecoration: "underline" },
-                              fontSize: 20,
-                            }}
-                          >
-                            {phase.displayName ||
-                              `Phase ${phase.sequence}: ${phase.name}`}
-                          </Typography>
-                        </Box>
-=======
-                    component="div"
-                      expandIcon={<ExpandMore />}
+                      aria-controls={`phase-${phase.id}-content`}
+                      id={`phase-${phase.id}-header`}
                       sx={{
                         "& .MuiAccordionSummary-content": {
                           overflow: "hidden",
@@ -1137,7 +872,6 @@ export default function ProjectDetail() {
                           {phase.displayName || `Phase ${phase.sequence}: ${phase.name}`}
                         </Typography>
                       </Box>
->>>>>>> Stashed changes
 
                       {/* RIGHT: Status + edit */}
                       <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0, ml: 2 }}>
@@ -1178,11 +912,7 @@ export default function ProjectDetail() {
                             borderRadius: 2,
                           }}
                         >
-                          <Stack
-                            direction="row"
-                            spacing={1}
-                            alignItems="center"
-                          >
+                          <Stack direction="row" spacing={1} alignItems="center">
                             <Box
                               sx={{
                                 backgroundColor: "#3B82F6",
@@ -1197,24 +927,13 @@ export default function ProjectDetail() {
                               <Typography variant="subtitle2" fontWeight={600}>
                                 {t("deadlineLabel")}: {phase.deadline}
                               </Typography>
-<<<<<<< Updated upstream
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                startIcon={<Add />}
-                                onClick={() => handleOpenAddTask(phase)}
-                                disabled={
-                                  isProjectCanceled || !canCreateTask(phase)
-                                }
-                                sx={{ textTransform: "capitalize" }}
-=======
+
                               <Tooltip
                                 title={
                                   (isViewOnly || isStaff || phase.status === "COMPLETED")
                                     ? t("viewOnly")
                                     : ""
                                 }
->>>>>>> Stashed changes
                               >
                                 <span>
                                   <Button
@@ -1222,7 +941,6 @@ export default function ProjectDetail() {
                                     size="small"
                                     startIcon={<Add />}
                                     onClick={() => handleOpenAddTask(phase)}
-                                    // 🔒 staff & view-only & COMPLETED không tạo task
                                     disabled={
                                       isProjectCanceled ||
                                       !canCreateTask(phase) ||
@@ -1242,101 +960,34 @@ export default function ProjectDetail() {
 
                           {phase.status !== "PLANNING" && (
                             <Box sx={{ minWidth: 120 }}>
-<<<<<<< Updated upstream
-                              <Stack
-                                direction="row"
-                                justifyContent="space-between"
-                                alignItems="center"
-                                mb={0.5}
-                              >
-                                <Typography variant="body2" fontWeight={600}>
-                                  Progress
-                                </Typography>
-                                <Typography
-                                  variant="body2"
-                                  color="primary.main"
-                                  fontWeight={600}
-                                >
-                                  {phase.progress ?? 0}%
-                                </Typography>
-                              </Stack>
-                              <LinearProgress
-                                variant="determinate"
-                                value={
-                                  typeof phase.progress === "number"
-                                    ? phase.progress
-                                    : 0
-                                }
-                                sx={{ height: 8, borderRadius: 5 }}
-                              />
-=======
                               <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.5}>
                                 <Typography variant="body2" fontWeight={600}>{t("progress")}</Typography>
                                 <Typography variant="body2" color="primary.main" fontWeight={600}>
                                   {phase.progress ?? 0}%
                                 </Typography>
                               </Stack>
-                              <LinearProgress variant="determinate" value={typeof phase.progress === "number" ? phase.progress : 0} sx={{ height: 8, borderRadius: 5 }} />
->>>>>>> Stashed changes
+                              <LinearProgress
+                                variant="determinate"
+                                value={typeof phase.progress === "number" ? phase.progress : 0}
+                                sx={{ height: 8, borderRadius: 5 }}
+                              />
                             </Box>
                           )}
                         </Stack>
 
                         {/* Tasks */}
                         <Box>
-                          <Stack
-                            direction="row"
-                            alignItems="center"
-                            spacing={1}
-                            mb={2}
-                          >
+                          <Stack direction="row" alignItems="center" spacing={1} mb={2}>
                             <Typography variant="subtitle1" fontWeight={600}>
                               {t("tasksHeading")} ({taskCounts.total})
                             </Typography>
                             {taskCounts.total > 0 && (
                               <>
-<<<<<<< Updated upstream
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                >
-                                  -
-                                </Typography>
-                                <Chip
-                                  label={`${formatStatus("PLANNING")} (${
-                                    taskCounts["PLANNING"]
-                                  })`}
-                                  size="small"
-                                  color="warning"
-                                  variant="outlined"
-                                  sx={{ fontSize: "0.75rem" }}
-                                />
-                                <Chip
-                                  label={`${formatStatus("IN_PROGRESS")} (${
-                                    taskCounts["IN_PROGRESS"]
-                                  })`}
-                                  size="small"
-                                  color="info"
-                                  variant="outlined"
-                                  sx={{ fontSize: "0.75rem" }}
-                                />
-                                <Chip
-                                  label={`${formatStatus("COMPLETED")} (${
-                                    taskCounts["COMPLETED"]
-                                  })`}
-                                  size="small"
-                                  color="success"
-                                  variant="outlined"
-                                  sx={{ fontSize: "0.75rem" }}
-                                />
-=======
                                 <Typography variant="body2" color="text.secondary">-</Typography>
                                 <Chip label={`${statusLabel("PLANNING", "task")} (${taskCounts["PLANNING"]})`} size="small" color="warning" variant="outlined" sx={{ fontSize: "0.75rem" }} />
-
                                 <Chip label={`${statusLabel("IN_PROGRESS", "task")} (${taskCounts["IN_PROGRESS"]})`} size="small" color="info" variant="outlined" sx={{ fontSize: "0.75rem" }} />
                                 <Chip label={`${statusLabel("IN_REVIEW", "task")} (${taskCounts["IN_REVIEW"]})`} size="small" color="secondary" variant="outlined" sx={{ fontSize: "0.75rem" }} />
                                 <Chip label={`${statusLabel("COMPLETED", "task")} (${taskCounts["COMPLETED"]})`} size="small" color="success" variant="outlined" sx={{ fontSize: "0.75rem" }} />
->>>>>>> Stashed changes
                               </>
                             )}
                           </Stack>
@@ -1357,86 +1008,21 @@ export default function ProjectDetail() {
                             }}
                           >
                             {filteredTasks.length === 0 ? (
-<<<<<<< Updated upstream
-                              <Paper
-                                variant="outlined"
-                                sx={{
-                                  p: 3,
-                                  textAlign: "center",
-                                  borderStyle: "dashed",
-                                  bgcolor: "#fafafa",
-                                  borderRadius: 2,
-                                }}
-                              >
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                >
-                                  {searchTerm.trim()
-                                    ? "Không tìm thấy task nào phù hợp."
-                                    : "Chưa có task nào. Hãy thêm task đầu tiên!"}
-=======
                               <Paper variant="outlined" sx={{ p: 3, textAlign: "center", borderStyle: "dashed", bgcolor: "#fafafa", borderRadius: 2 }}>
                                 <Typography variant="body2" color="text.secondary">
                                   {searchTerm.trim() ? t("noTasksFound") : t("noTasksYet")}
->>>>>>> Stashed changes
                                 </Typography>
                               </Paper>
                             ) : (
                               <Stack spacing={1}>
-<<<<<<< Updated upstream
-                                {filteredTasks.map((task) => (
-                                  <Card
-                                    key={task.id}
-                                    variant="outlined"
-                                    sx={{
-                                      borderRadius: 2,
-                                      minHeight: TASK_CARD_HEIGHT,
-                                      display: "flex",
-                                      alignItems: "center",
-                                      cursor: "pointer",
-                                      "&:hover": {
-                                        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                                      },
-                                      ...(isPhaseLockedForTaskEditing(
-                                        phase,
-                                        phases
-                                      ) && {
-                                        opacity: 0.6,
-                                        cursor: "not-allowed",
-                                        "&:hover": { boxShadow: "none" },
-                                      }),
-                                    }}
-                                    onClick={() => {
-                                      if (
-                                        isPhaseLockedForTaskEditing(
-                                          phase,
-                                          phases
-                                        )
-                                      ) {
-                                        alert(
-                                          "❌ Phase sau đang In progress và đã có task. Không thể chỉnh sửa task trong phase đã Completed."
-                                        );
-                                        return;
-                                      }
-                                      setEditingTask(task);
-                                      setCurrentPhaseForTask(phase);
-                                      setOpenUpdateTask(true);
-                                    }}
-                                  >
-                                    <CardContent
-=======
                                 {filteredTasks.map((task) => {
-                                  // 🔒 chỉ khóa khi phase hiện tại COMPLETED & phase sau IN_PROGRESS + có task
                                   const isLocked = isPhaseLockedForTaskEditing(phase, phases);
-                                  // 🔒 EMP/HOD & view-only không được click mở UpdateTask
                                   const clickable = !isLocked && canEditProject && !isStaff;
 
                                   return (
                                     <Card
                                       key={task.id}
                                       variant="outlined"
->>>>>>> Stashed changes
                                       sx={{
                                         borderRadius: 2,
                                         minHeight: TASK_CARD_HEIGHT,
@@ -1451,7 +1037,6 @@ export default function ProjectDetail() {
                                       }}
                                       onClick={() => {
                                         if (!clickable) {
-                                          // Thông báo khi cố sửa task thuộc phase đã bị khóa chuỗi
                                           dispatch(setPopup({ type: "warning", message: t("errors.phaseLockedEditing") }));
                                           return;
                                         }
@@ -1460,58 +1045,6 @@ export default function ProjectDetail() {
                                         setOpenUpdateTask(true);
                                       }}
                                     >
-<<<<<<< Updated upstream
-                                      <Stack
-                                        direction="row"
-                                        spacing={2}
-                                        alignItems="center"
-                                      >
-                                        {/* Task name (ellipsis) */}
-                                        <Box
-                                          display="flex"
-                                          alignItems="center"
-                                          gap={1.25}
-                                          flex={1}
-                                          minWidth={0}
-                                        >
-                                          {getStatusIcon(task.status)}
-                                          <Typography
-                                            fontWeight={600}
-                                            noWrap
-                                            sx={{
-                                              overflow: "hidden",
-                                              textOverflow: "ellipsis",
-                                              whiteSpace: "nowrap",
-                                            }}
-                                            title={task.name}
-                                          >
-                                            {task.name}
-                                          </Typography>
-                                        </Box>
-
-                                        {/* Assignee */}
-                                        {task.assigneeId && (
-                                          <Box sx={{ minWidth: 140 }}>
-                                            <Stack sx={{ minWidth: 0 }}>
-                                              <Typography
-                                                variant="caption"
-                                                noWrap
-                                                fontWeight={600}
-                                              >
-                                                {task.assigneeName ||
-                                                  "(No name)"}
-                                              </Typography>
-                                              <Typography
-                                                variant="caption"
-                                                color="text.secondary"
-                                                noWrap
-                                              >
-                                                {task.assigneeUsername
-                                                  ? `@${task.assigneeUsername}`
-                                                  : ""}
-                                              </Typography>
-                                            </Stack>
-=======
                                       <CardContent sx={{ p: 1.5, py: 1, width: "100%", "&:last-child": { pb: 1 } }}>
                                         <Box
                                           sx={{
@@ -1522,7 +1055,7 @@ export default function ProjectDetail() {
                                             alignItems: "center",
                                           }}
                                         >
-                                          {/* Tên task (co giãn) */}
+                                          {/* Tên task */}
                                           <Box sx={{ minWidth: 0 }}>
                                             <Typography
                                               fontWeight={600}
@@ -1532,59 +1065,8 @@ export default function ProjectDetail() {
                                             >
                                               {task.name}
                                             </Typography>
->>>>>>> Stashed changes
                                           </Box>
 
-<<<<<<< Updated upstream
-                                        {/* Status */}
-                                        <Chip
-                                          label={formatStatus(task.status)}
-                                          size="small"
-                                          color={getStatusColor(task.status)}
-                                          sx={{
-                                            minWidth: 80,
-                                            "& .MuiChip-label": {
-                                              fontWeight: 500,
-                                            },
-                                            whiteSpace: "nowrap",
-                                          }}
-                                        />
-
-                                        {/* Size */}
-                                        {task.size && (
-                                          <Chip
-                                            label={`Size: ${task.size}`}
-                                            size="small"
-                                            variant="outlined"
-                                            sx={{
-                                              minWidth: 70,
-                                              fontWeight: 600,
-                                              whiteSpace: "nowrap",
-                                            }}
-                                          />
-                                        )}
-
-                                        {/* Deadline */}
-                                        {task.deadline && (
-                                          <Typography
-                                            variant="caption"
-                                            color="text.secondary"
-                                            noWrap
-                                            sx={{
-                                              minWidth: 88,
-                                              textAlign: "center",
-                                              whiteSpace: "nowrap",
-                                            }}
-                                            title={task.deadline}
-                                          >
-                                            {task.deadline}
-                                          </Typography>
-                                        )}
-                                      </Stack>
-                                    </CardContent>
-                                  </Card>
-                                ))}
-=======
                                           {/* Assignee */}
                                           <Box sx={{ minWidth: 0 }}>
                                             {task.assigneeId ? (
@@ -1649,11 +1131,9 @@ export default function ProjectDetail() {
                                           </Box>
                                         </Box>
                                       </CardContent>
-
                                     </Card>
                                   );
                                 })}
->>>>>>> Stashed changes
                               </Stack>
                             )}
                           </Box>
@@ -1669,7 +1149,7 @@ export default function ProjectDetail() {
 
         {/* Create Task */}
         <CreateTaskDialog
-          open={openAddTask && canEditProject && !isStaff && currentPhaseForTask?.status !== "COMPLETED"} // 🔒 safety
+          open={openAddTask && canEditProject && !isStaff && currentPhaseForTask?.status !== "COMPLETED"}
           onClose={() => setOpenAddTask(false)}
           phase={currentPhaseForTask}
           projectId={projectId}
@@ -1702,35 +1182,15 @@ export default function ProjectDetail() {
         >
           <DialogTitle sx={{ fontWeight: 600 }}>{t("confirmDeleteTitle")}</DialogTitle>
           <DialogContent>
-<<<<<<< Updated upstream
-            <Typography>
-              Bạn có chắc chắn muốn xóa task này không? Hành động này không thể
-              hoàn tác.
-            </Typography>
-          </DialogContent>
-          <DialogActions sx={{ p: 3, pt: 2 }}>
-            <Button
-              onClick={() =>
-                setConfirmDelete({ open: false, phaseId: null, taskId: null })
-              }
-            >
-              Hủy
-=======
             <Typography>{t("confirmDeleteBody")}</Typography>
           </DialogContent>
           <DialogActions sx={{ p: 3, pt: 2 }}>
             <Button onClick={() => setConfirmDelete({ open: false, phaseId: null, taskId: null })}>
               {t("cancel")}
->>>>>>> Stashed changes
             </Button>
             <Button
               variant="contained"
               color="error"
-<<<<<<< Updated upstream
-              onClick={() => alert("Chức năng xóa task tạm khóa.")}
-            >
-              Xóa Task
-=======
               onClick={() =>
                 dispatch(
                   setPopup({
@@ -1742,7 +1202,6 @@ export default function ProjectDetail() {
               disabled={isViewOnly || isStaff}
             >
               {t("deleteTask")}
->>>>>>> Stashed changes
             </Button>
           </DialogActions>
         </Dialog>
@@ -1789,14 +1248,8 @@ export default function ProjectDetail() {
           hasTasks={(editingPhase?.tasks?.length || 0) > 0}
           projectDeadline={project?.deadline}
           previousDeadline={editingPhase ? getPrevDeadline(editingPhase) : null}
-<<<<<<< Updated upstream
-          nextPhaseStatus={
-            editingPhase ? getNextPhaseStatus(editingPhase) : null
-          }
-=======
           nextPhaseStatus={editingPhase ? getNextPhaseStatus(editingPhase) : null}
           nextPhaseDeadline={editingPhase ? getNextPhaseDeadline(editingPhase) : null}
->>>>>>> Stashed changes
           onUpdated={async () => {
             await fetchPhases();
           }}
@@ -1804,7 +1257,7 @@ export default function ProjectDetail() {
 
         {/* Update Task */}
         <UpdateTaskDialog
-          open={openUpdateTask && canEditProject && !isStaff} // 🔒 staff không mở dialog
+          open={openUpdateTask && canEditProject && !isStaff}
           onClose={() => setOpenUpdateTask(false)}
           task={editingTask}
           projectId={projectId}

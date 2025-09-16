@@ -1,16 +1,7 @@
 "use client";
 
-<<<<<<< Updated upstream
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
-import { useDispatch } from "react-redux";
 import { setPopup } from "~/libs/features/popup/popupSlice";
-=======
+
 /**
  * KanbanForm.jsx – FULL
  *  1) PM/Manager/Admin vẫn có thể kéo vào CANCELED dù phase bị "khóa chuỗi".
@@ -19,8 +10,8 @@ import { setPopup } from "~/libs/features/popup/popupSlice";
  *  4) Chỉ hiển thị ô tạo Branch khi dự án đã gắn repo GitHub hợp lệ (owner/repo).
  */
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
->>>>>>> Stashed changes
+import React, { useEffect, useState, useCallback,useRef, useMemo } from "react";
+import Tooltip from '@mui/material/Tooltip';
 import {
   Box,
   Container,
@@ -39,33 +30,23 @@ import {
   Select,
   MenuItem,
   InputLabel,
-<<<<<<< Updated upstream
   Autocomplete,
   Alert,
   Tabs,
   Tab,
   Grid,
 } from "@mui/material";
-import { useSelector } from "react-redux";
 import {
-  Search,
-  TrendingUp,
-  CalendarToday,
-  ArrowBack,
   RequestQuote,
   CloudDownload,
   PictureAsPdf,
+  Search,  
 } from "@mui/icons-material";
+import CircularProgress from '@mui/material/CircularProgress';
 import SignatureCanvas from "react-signature-canvas";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-=======
-  Tooltip,
-  CircularProgress,
-} from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
-import { setPopup } from "~/libs/features/popup/popupSlice";
-import { Search, TrendingUp, CalendarToday, ArrowBack, Refresh as RefreshIcon } from "@mui/icons-material";
->>>>>>> Stashed changes
+import { TrendingUp, CalendarToday, ArrowBack, Refresh as RefreshIcon } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -239,7 +220,6 @@ export default function KanbanForm() {
     overflowWrap: "anywhere",
     lineHeight: 1.3,
   };
-  const dispatch = useDispatch();
 
   // Helper: label trạng thái
   const prettyStatus = useCallback(
@@ -259,10 +239,7 @@ export default function KanbanForm() {
       case "PLANNING":
         s.add("IN_PROGRESS");
         s.add("CANCELED");
-<<<<<<< Updated upstream
-=======
         s.add("IN_REVIEW");
->>>>>>> Stashed changes
         break;
       case "IN_PROGRESS":
         s.add("CANCELED");
@@ -275,19 +252,16 @@ export default function KanbanForm() {
         break;
       case "COMPLETED":
         s.add("IN_PROGRESS");
-<<<<<<< Updated upstream
         break; // UI không cho IN_REVIEW
       case "CANCELED":
         s.add("PLANNING");
         s.add("IN_PROGRESS");
         break; // UI không cho IN_REVIEW
-=======
         break;
       case "CANCELED":
         s.add("PLANNING");
         s.add("IN_PROGRESS");
         break;
->>>>>>> Stashed changes
       default:
         break;
     }
@@ -303,19 +277,6 @@ export default function KanbanForm() {
 
   // ===== Load status list =====
   useEffect(() => {
-<<<<<<< Updated upstream
-    getTaskStatuses().then((list) => {
-      const opts = list.map((s) => ({
-        value: s,
-        label: s
-          .toLowerCase()
-          .replace(/_/g, " ")
-          .replace(/^\w/, (c) => c.toUpperCase()),
-      }));
-      setStatusOptions(opts);
-      setGrouped(opts.reduce((acc, o) => ({ ...acc, [o.value]: [] }), {}));
-    });
-=======
     (async () => {
       try {
         const list = await getTaskStatuses();
@@ -330,7 +291,6 @@ export default function KanbanForm() {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
->>>>>>> Stashed changes
   }, []);
 
   // (Optional) danh sách project cho staff filter
@@ -410,55 +370,13 @@ export default function KanbanForm() {
     return !!(next && cur.status === "COMPLETED" && next.status === "IN_PROGRESS" && nextHasTasks);
   }, [phasesMeta]);
 
-<<<<<<< Updated upstream
-  // Fetch + group tasks
-=======
+
   // ===== Fetch & group tasks =====
->>>>>>> Stashed changes
   const fetchAndGroup = useCallback(async () => {
     if (!statusOptions.length) return;
     const pid = isStaffTasksPage ? selectedProject : projectId;
     if (!pid) return;
 
-<<<<<<< Updated upstream
-    const res = await getKanbanTasks(pid);
-    let tasks = Array.isArray(res)
-      ? res
-      : Array.isArray(res?.data)
-      ? res.data
-      : [];
-
-    if (phaseId) tasks = tasks.filter((t) => String(t.phaseId) === phaseId);
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      tasks = tasks.filter(
-        (t) =>
-          t.name.toLowerCase().includes(term) ||
-          (t.description || "").toLowerCase().includes(term)
-      );
-    }
-    const next = statusOptions.reduce(
-      (acc, o) => ({ ...acc, [o.value]: [] }),
-      {}
-    );
-    tasks.forEach((t) => {
-      if (!next[t.status]) next[statusOptions[0].value].push(t);
-      else next[t.status].push(t);
-    });
-    setGrouped(next);
-  }, [
-    projectId,
-    selectedProject,
-    searchTerm,
-    statusOptions,
-    phaseId,
-    isStaffTasksPage,
-  ]);
-
-  useEffect(() => {
-    if (statusOptions.length && (!isStaffTasksPage || selectedProject)) {
-      fetchAndGroup();
-=======
     setLoading(true);
     try {
       const res = await getKanbanTasks(pid);
@@ -486,7 +404,6 @@ export default function KanbanForm() {
       setGrouped(next);
     } finally {
       setLoading(false);
->>>>>>> Stashed changes
     }
   }, [projectId, selectedProject, searchTerm, statusOptions, phaseId, isStaffTasksPage]);
   useEffect(() => {
@@ -535,51 +452,8 @@ export default function KanbanForm() {
     [nextPhaseInfo]
   );
 
-<<<<<<< Updated upstream
-  // ===== Helpers: phase sau của 1 phase =====
-  const nextPhaseInfo = useCallback(
-    (curPhaseId) => {
-      if (!Array.isArray(phasesMeta) || !curPhaseId) return null;
-      const cur = phasesMeta.find((p) => String(p.id) === String(curPhaseId));
-      if (!cur) return null;
-      const next = phasesMeta.find((p) => p.sequence === cur.sequence + 1);
-      if (!next) return { exists: false };
-      return {
-        exists: true,
-        status: next.status,
-        taskCount: Array.isArray(next.tasks) ? next.tasks.length : 0,
-        curStatus: cur.status,
-      };
-    },
-    [phasesMeta]
-  );
 
-  const blockToInProgress = useCallback(
-    (fromTaskStatus, phaseId) => {
-      if (!["COMPLETED", "CANCELED"].includes(fromTaskStatus)) return false;
-      const info = nextPhaseInfo(phaseId);
-      if (!info || !info.exists) return false;
-      const ok = info.status === "PLANNING" && info.taskCount === 0;
-      return !ok;
-    },
-    [nextPhaseInfo]
-  );
 
-  const blockAllChange = useCallback(
-    (phaseId) => {
-      const info = nextPhaseInfo(phaseId);
-      if (!info || !info.exists) return false;
-      return (
-        info.curStatus === "COMPLETED" &&
-        info.status === "IN_PROGRESS" &&
-        info.taskCount > 0
-      );
-    },
-    [nextPhaseInfo]
-  );
-
-  // Evidence dialog open
-=======
   // ===== helper: phase của task đã completed chưa?
   const isTaskPhaseCompleted = useCallback((task) => {
     if (!task) return false;
@@ -590,7 +464,6 @@ export default function KanbanForm() {
   // ===== Click mở dialog
   //  - EMP/HOD: KHÔNG cho click task COMPLETED hoặc CANCELED
   //  - Role khác: cho click bình thường
->>>>>>> Stashed changes
   const handleCardClick = (task) => {
     if (!task) return;
     if (isStaffMode && (task.status === "COMPLETED" || task.status === "CANCELED")) {
@@ -652,45 +525,10 @@ export default function KanbanForm() {
   const handleDragStart = ({ active }) => {
     const taskObj = active?.data?.current?.project;
 
-<<<<<<< Updated upstream
-    if (fromTaskStatus) {
-      const s = getAllowedTargets(fromTaskStatus, account.role);
-
-      // các rule chặn sẵn
-      if (
-        s.has("IN_PROGRESS") &&
-        blockToInProgress(fromTaskStatus, taskPhaseId)
-      ) {
-        s.delete("IN_PROGRESS");
-      }
-      if (blockAllChange(taskPhaseId)) {
-        for (const v of Array.from(s)) if (v !== fromTaskStatus) s.delete(v);
-      }
-
-      // Cho phép PLANNING → IN_REVIEW nếu đã có evidence HOẶC branch
-      if (fromTaskStatus === "PLANNING" && taskObj) {
-        if (hasBranch(taskObj)) s.add("IN_REVIEW");
-        setAllowedDropSet(new Set(s));
-        (async () => {
-          const existed = await hasEvidence(taskObj.id);
-          if (existed) {
-            setAllowedDropSet((prev) => {
-              const next = new Set(prev);
-              next.add("IN_REVIEW");
-              return next;
-            });
-          }
-        })();
-      } else {
-        setAllowedDropSet(s);
-      }
-    } else {
-=======
     // 🔒 Nếu phase bị khóa:
     //  - EMP/HOD: chặn drag ngay.
     //  - PM/Manager/Admin: vẫn cho drag, nhưng sẽ siết allowedDropSet (chỉ còn CANCELED).
     if (taskObj && isPhaseLocked(taskObj.phaseId) && isStaffMode) {
->>>>>>> Stashed changes
       setAllowedDropSet(new Set());
       setActiveId(null);
       dispatch(setPopup({ type: "warning", message: tProj("errors.phaseLockedEditing") }));
@@ -749,19 +587,9 @@ export default function KanbanForm() {
       setOverIndex(null);
       return;
     }
-<<<<<<< Updated upstream
-    const colId = grouped[over.id]
-      ? over.id
-      : over.data.current?.sortable?.containerId;
-    if (
-      !grouped[colId] ||
-      (allowedDropSet.size && !allowedDropSet.has(colId))
-    ) {
-=======
     const overId = String(over.id);
     const colId = grouped[overId] ? overId : over.data.current?.sortable?.containerId;
     if (!grouped[colId] || (allowedDropSet.size && !allowedDropSet.has(colId))) {
->>>>>>> Stashed changes
       setOverColumn(null);
       setOverIndex(null);
       return;
@@ -771,19 +599,6 @@ export default function KanbanForm() {
     setOverIndex(idx >= 0 ? idx : grouped[colId].length);
   };
 
-<<<<<<< Updated upstream
-  // gộp refresh meta
-  const refreshMeta = useCallback(async () => {
-    await Promise.all([
-      fetchAndGroup(),
-      loadPhasesMeta(),
-      loadPhaseInfo(),
-      loadProjectInfo(),
-    ]);
-  }, [fetchAndGroup, loadPhasesMeta, loadPhaseInfo, loadProjectInfo]);
-
-=======
->>>>>>> Stashed changes
   const handleDragEnd = async ({ active, over }) => {
     setOverColumn(null);
     setOverIndex(null);
@@ -818,24 +633,10 @@ export default function KanbanForm() {
       return;
     }
 
-<<<<<<< Updated upstream
-    // ❌ Staff Tasks page: chặn Completed hoàn toàn + chặn IN_REVIEW→COMPLETED
-    if (
-      isStaffTasksPage &&
-      (toCol === "COMPLETED" || fromCol === "COMPLETED")
-    ) {
-      dispatch(
-        setPopup({
-          type: "error",
-          message:
-            "You don't have permission to change tasks in/from Completed.",
-        })
-      );
-=======
+
     // ❌ EMP/HOD không được move vào CANCELED
     if (isStaffMode && toCol === "CANCELED") {
       dispatch(setPopup({ type: "error", message: tTasks("errors.noPermissionChangeCanceled") || tTasks("errors.noPermissionChangeCompleted") }));
->>>>>>> Stashed changes
       setAllowedDropSet(new Set());
       return;
     }
@@ -852,43 +653,18 @@ export default function KanbanForm() {
       setAllowedDropSet(new Set());
       return;
     }
-
-<<<<<<< Updated upstream
-    if (
-      toCol === "IN_REVIEW" &&
-      (fromCol === "COMPLETED" || fromCol === "CANCELED")
-    ) {
-      dispatch(
-        setPopup({
-          type: "error",
-          message:
-            "Cannot move to In review from Completed or Canceled status.",
-        })
-      );
-=======
     // Không cho từ COMPLETED/CANCELED sang IN_REVIEW
     if (toCol === "IN_REVIEW" && (fromCol === "COMPLETED" || fromCol === "CANCELED")) {
       dispatch(setPopup({ type: "warning", message: tTasks("errors.cannotMoveToInReviewFromDoneOrCanceled") }));
->>>>>>> Stashed changes
       setAllowedDropSet(new Set());
       return;
     }
 
-<<<<<<< Updated upstream
-    if (
-      toCol === "IN_PROGRESS" &&
-      ["COMPLETED", "CANCELED"].includes(fromCol)
-    ) {
-      if (blockToInProgress(fromCol, task.phaseId)) {
-        alert(
-          "Không thể chuyển về In progress vì phase kế tiếp không còn ở Planning rỗng."
-        );
-=======
+
     // COMPLETED/CANCELED -> IN_PROGRESS: check phase sau
     if (toCol === "IN_PROGRESS" && ["COMPLETED", "CANCELED"].includes(fromCol)) {
       if (blockToInProgress(fromCol, task.phaseId)) {
         dispatch(setPopup({ type: "warning", message: tTasks("errors.cannotMoveToInProgressNextPhaseNotPlanning") }));
->>>>>>> Stashed changes
         setAllowedDropSet(new Set());
         return;
       }
@@ -897,19 +673,11 @@ export default function KanbanForm() {
     // Block mọi chuyển đổi nếu "khóa chuỗi"
     //  - vẫn cho PM/Manager/Admin chuyển sang CANCELED
     if (fromCol !== toCol && blockAllChange(task.phaseId)) {
-<<<<<<< Updated upstream
-      alert(
-        "Phase sau đã bắt đầu và có task. Không thể thay đổi trạng thái task ở phase đã hoàn thành."
-      );
-      setAllowedDropSet(new Set());
-      return;
-=======
       if (!(toCol === "CANCELED" && !isStaffMode)) {
         dispatch(setPopup({ type: "warning", message: tProj("errors.phaseLockedEditing") }));
         setAllowedDropSet(new Set());
         return;
       }
->>>>>>> Stashed changes
     }
 
     // Xác nhận cancel (không phải staff)
@@ -936,19 +704,9 @@ export default function KanbanForm() {
     // ===== UI lạc quan
     const next = { ...grouped };
     if (fromCol === toCol) {
-<<<<<<< Updated upstream
-      const oldIdx = srcList.findIndex((t) => t.id === active.id);
-      const newIdx = (grouped[toCol] || []).findIndex((t) => t.id === over.id);
-      next[fromCol] = arrayMove(
-        srcList,
-        oldIdx,
-        newIdx >= 0 ? newIdx : srcList.length - 1
-      );
-=======
       const oldIdx = (grouped[fromCol] || []).findIndex((t) => String(t.id) === String(active.id));
       const overIdx = (grouped[toCol] || []).findIndex((t) => String(t.id) === overId);
       next[fromCol] = arrayMove(grouped[fromCol], oldIdx, overIdx >= 0 ? overIdx : grouped[fromCol].length - 1);
->>>>>>> Stashed changes
     } else {
       next[fromCol] = (grouped[fromCol] || []).filter((t) => String(t.id) !== String(active.id));
       const dest = [...(grouped[toCol] || [])];
@@ -984,16 +742,10 @@ export default function KanbanForm() {
   // Task đang drag
   const flattened = useMemo(() => Object.values(grouped).flat(), [grouped]);
   const activeTask = activeId ? flattened.find((t) => String(t.id) === String(activeId)) : null;
-
-<<<<<<< Updated upstream
-  const advanceOptions = useMemo(() => {
+const advanceOptions = useMemo(() => {
     return (flattened || []).filter((t) => t && t.status !== "CANCELED");
-  }, [flattened]);
-
-  // ==== Tính khóa "Clear evidence" theo rule phase sau ====
-=======
+  }, [flattened])
   // ===== Lock clear evidence theo rule phase sau
->>>>>>> Stashed changes
   const curPhaseMeta = useMemo(() => {
     if (!pendingTask) return null;
     return phasesMeta.find((p) => String(p.id) === String(pendingTask.phaseId));
@@ -1025,44 +777,20 @@ export default function KanbanForm() {
 
   const handleBranchCreated = useCallback(
     (taskId, fullBranchName) => {
-<<<<<<< Updated upstream
-=======
-      // cập nhật local task
->>>>>>> Stashed changes
       setGrouped((prev) => {
         const next = {};
         for (const col of Object.keys(prev)) {
           next[col] = (prev[col] || []).map((t) =>
-<<<<<<< Updated upstream
-            t.id === taskId
-              ? { ...t, githubBranch: fullBranchName, branchCreated: true }
-              : t
-=======
             String(t.id) === String(taskId) ? { ...t, githubBranch: fullBranchName, branchCreated: true } : t
->>>>>>> Stashed changes
           );
         }
         return next;
       });
       setPendingTask((prev) =>
-<<<<<<< Updated upstream
-        prev && prev.id === taskId
-          ? { ...prev, githubBranch: fullBranchName, branchCreated: true }
-          : prev
-      );
-      refreshMeta();
-    },
-    [refreshMeta]
-  );
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-=======
         prev && String(prev.id) === String(taskId)
           ? { ...prev, githubBranch: fullBranchName, branchCreated: true }
           : prev
       );
->>>>>>> Stashed changes
       refreshMeta();
     },
     [refreshMeta]
@@ -1183,36 +911,10 @@ export default function KanbanForm() {
             {tt(projReady, tProj, "backToProjectDetail", "Back to Project Detail")}
           </Button>
         )}
-
-<<<<<<< Updated upstream
-        <Stack direction="row" spacing={2} alignItems="center" mb={2}>
-          <Paper
-            sx={{
-              p: 1.5,
-              background: "linear-gradient(135deg,#118D57,#10B981)",
-            }}
-          >
-            <TrendingUp sx={{ color: "#fff", fontSize: 28 }} />
-          </Paper>
-          <Typography variant="h5" fontWeight={700}>
-            Project Kanban Board
-          </Typography>
-        </Stack>
-
-        <Box
-          sx={{
-            display: "flex",
-            gap: 2,
-            mb: 3,
-            flexWrap: { xs: "wrap", md: "nowrap" },
-          }}
-        >
-=======
         {renderHeader()}
 
         {/* Project/Phase cards */}
         <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: { xs: "wrap", md: "nowrap" } }}>
->>>>>>> Stashed changes
           {projectInfo && (
             <Paper sx={{ flex: 1, p: 2, borderRadius: 2, boxShadow: 1 }}>
               <Typography
@@ -1385,35 +1087,6 @@ export default function KanbanForm() {
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-<<<<<<< Updated upstream
-          <Box sx={{ display: "flex", gap: 3, overflowX: "auto", p: 1 }}>
-            {visibleStatusOptions.map(({ value, label }) => (
-              <SortableContext
-                key={value}
-                items={(grouped[value] || []).map((t) => t.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <KanbanColumn
-                  id={value}
-                  title={label}
-                  projects={grouped[value] || []}
-                  onOpenTask={handleCardClick}
-                  overColumn={overColumn}
-                  overIndex={overIndex}
-                  activeId={activeId}
-                  droppableDisabled={
-                    allowedDropSet.size ? !allowedDropSet.has(value) : false
-                  }
-                />
-              </SortableContext>
-            ))}
-          </Box>
-
-          <DragOverlay>
-            {activeTask && (
-              <TaskCard project={activeTask} onTitleClick={() => {}} />
-            )}
-=======
           {loading ? (
             <Stack alignItems="center" py={6} spacing={1}>
               <CircularProgress />
@@ -1466,7 +1139,6 @@ export default function KanbanForm() {
                 <TaskCard project={activeTask} onTitleClick={() => {}} />
               </Box>
             ) : null}
->>>>>>> Stashed changes
           </DragOverlay>
         </DndContext>
 
@@ -1519,14 +1191,6 @@ export default function KanbanForm() {
         <TaskReviewDialog
           open={reviewOpen}
           task={pendingTask}
-<<<<<<< Updated upstream
-          canUpload={["PLANNING", "IN_PROGRESS", "IN_REVIEW"].includes(
-            pendingTask?.status
-          )}
-          canClearEvidence={!lockClearEvidence}
-          canCreateBranch={canCreateBranch}
-          onClose={() => {
-=======
           // View-only cho PM/Manager/Admin nếu phase của task đã COMPLETED
           readOnly={dialogReadOnly}
           // Upload/Clear: tắt hoàn toàn khi readOnly
@@ -1553,7 +1217,6 @@ export default function KanbanForm() {
           }
           canCreateBranch={!["COMPLETED", "CANCELED"].includes(pendingTask?.status)}
           onClose={(shouldRefresh) => {
->>>>>>> Stashed changes
             setReviewOpen(false);
             setPendingTask(null);
             setPendingMoveToReview(null);

@@ -31,7 +31,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findTasksDeadlineAfter(@Param("projectId") Long projectId,
                                       @Param("date") LocalDate date);
 
-<<<<<<< Updated upstream
+
     boolean existsByPhaseIdAndNameIgnoreCaseAndHiddenFalse(Long phaseId, String name);
 
     @Query("""
@@ -41,7 +41,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
         where t.id = :id
     """)
     Optional<Task> findWithPhaseAndProjectById(@Param("id") Long id);
-=======
+
     /**
      * ✅ TRUY VẤN CHO KANBAN:
      * - Lấy toàn bộ task của project (theo cột/phase bất kỳ)
@@ -78,5 +78,5 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     """)
     boolean existsLiveTaskInActivePhase(@Param("projectId") Long projectId,
                                         @Param("allowed") List<TaskStatus> allowed);
->>>>>>> Stashed changes
+
 }

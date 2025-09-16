@@ -78,12 +78,10 @@ public class TaskController {
         return taskService.filter(status);
     }
 
-<<<<<<< Updated upstream
-=======
+
     // ⬇️ Kanban Tasks: cho ADMIN, MANAGER, PM, HOD, EMPLOYEE
     // Service sẽ tự lọc theo role (EMP/HOD chỉ thấy task của họ trong projects đủ điều kiện)
     @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
->>>>>>> Stashed changes
     @GetMapping("/kanban")
     public ApiResponse<List<TaskDto>> getKanbanTasks(
             @RequestParam Long projectId,

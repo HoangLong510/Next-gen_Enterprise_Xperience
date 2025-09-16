@@ -21,21 +21,12 @@ public class Task {
 
     private String name;
 
-<<<<<<< Updated upstream
-    private String description;
 
-    private String imageUrl;
-
-    @Enumerated(EnumType.STRING)
-    private TaskSize size;
-=======
     @Column(columnDefinition = "TEXT")
     private String description; // Mô tả task
     @Enumerated(EnumType.STRING) // 👈 mới thêm
     private TaskSize size;        // 👈 mới thêm
->>>>>>> Stashed changes
     private LocalDate deadline;
-
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
     private TaskStatus status;

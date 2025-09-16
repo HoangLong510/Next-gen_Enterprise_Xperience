@@ -21,12 +21,10 @@ public class Document {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-<<<<<<< Updated upstream
+
     @Column(name = "code", unique = true, nullable = false, length = 50)
     private String code;
-=======
 
->>>>>>> Stashed changes
 
     private String title;
 

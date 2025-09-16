@@ -219,56 +219,51 @@ public class ProjectService {
             return ApiResponse.errorServer("Công văn chưa được ký duyệt. Không thể tạo dự án!");
         }
 
-<<<<<<< Updated upstream
+
         Account pm = document.getPm(); // KHÔNG dùng getReceiver() nếu receiver là giám đốc
         if (pm == null) {
             return ApiResponse.errorServer("Document chưa chọn PM");
-=======
-        Account pm = document.getPm();
-        if (pm == null) {
-            return ApiResponse.errorServer("Document không có người PM (pm_id).");
->>>>>>> Stashed changes
         }
 
-        String name = (dto.getName() != null && !dto.getName().isBlank())
-                ? dto.getName().trim()
-                : document.getProjectName();
+            String name = (dto.getName() != null && !dto.getName().isBlank())
+                    ? dto.getName().trim()
+                    : document.getProjectName();
 
-        String description = (dto.getDescription() != null && !dto.getDescription().isBlank())
-                ? dto.getDescription().trim()
-                : document.getProjectDescription();
+            String description = (dto.getDescription() != null && !dto.getDescription().isBlank())
+                    ? dto.getDescription().trim()
+                    : document.getProjectDescription();
 
-        LocalDate deadline = (dto.getDeadline() != null)
-                ? dto.getDeadline()
-                : document.getProjectDeadline();
+            LocalDate deadline = (dto.getDeadline() != null)
+                    ? dto.getDeadline()
+                    : document.getProjectDeadline();
 
-        Project project = Project.builder()
-                .name(name)
-                .description(description)
-                .createdAt(LocalDate.now())
-                .deadline(deadline)
-                .status(ProjectStatus.PLANNING)
-                .document(document)
-                .projectManager(pm)
-                .build();
+            Project project = Project.builder()
+                    .name(name)
+                    .description(description)
+                    .createdAt(LocalDate.now())
+                    .deadline(deadline)
+                    .status(ProjectStatus.PLANNING)
+                    .document(document)
+                    .projectManager(pm)
+                    .build();
 
-        projectRepository.save(project);
-        projectRepository.flush();
+            projectRepository.save(project);
+            projectRepository.flush();
 
-        document.setProject(project);
-        document.setStatus(DocumentStatus.IN_PROGRESS);
-        documentRepository.save(document);
+            document.setProject(project);
+            document.setStatus(DocumentStatus.IN_PROGRESS);
+            documentRepository.save(document);
 
-        notificationService.createNotification(
-                NotificationType.PROJECT,
-                document.getId(),
-                false
-        );
+            notificationService.createNotification(
+                    NotificationType.PROJECT,
+                    document.getId(),
+                    false
+            );
 
-        return ApiResponse.success(null, "project-created-successfully");
-    }
+            return ApiResponse.success(null, "project-created-successfully");
+        }
 
-    public ApiResponse<?> deleteProject(Long id) {
+    public ApiResponse<?> deleteProject( Long id ) {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found"));
 

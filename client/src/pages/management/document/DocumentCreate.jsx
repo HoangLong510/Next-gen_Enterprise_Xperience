@@ -37,10 +37,6 @@ import {
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-<<<<<<< Updated upstream
-=======
-import { useEffect, useMemo, useState } from "react";
->>>>>>> Stashed changes
 import { createDocumentApi } from "~/services/document.service";
 import { fetchPMsApi } from "~/services/account.service";
 import { useDispatch } from "react-redux";
@@ -99,7 +95,6 @@ const schema = yup.object().shape({
           }),
       otherwise: (s) => s.nullable(),
     }),
-<<<<<<< Updated upstream
 
   attachFund: yup.boolean().default(false),
 
@@ -139,8 +134,6 @@ const schema = yup.object().shape({
         return new Date(value) >= new Date(start);
       }
     ),
-=======
->>>>>>> Stashed changes
 });
 
 export default function DocumentCreate({ onSuccess, onCancel }) {
@@ -167,10 +160,6 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
       projectName: "",
       projectDescription: "",
       projectDeadline: "",
-<<<<<<< Updated upstream
-=======
-      fundName: "",
->>>>>>> Stashed changes
       fundBalance: "",
       fundPurpose: "",
       attachFund: false,
@@ -184,15 +173,6 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
   const attachFund = watch("attachFund");
   const title = watch("title");
 
-  // Chỉ hiển thị thông tin lỗi an toàn (tránh circular refs)
-  const safeErrors = useMemo(() => {
-    const out = {};
-    for (const [k, v] of Object.entries(errors || {})) {
-      out[k] = { type: v?.type, message: v?.message };
-    }
-    return out;
-  }, [errors]);
-
   // Fetch PM list
   useEffect(() => {
     let ignore = false;
@@ -202,15 +182,7 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
       try {
         const token = localStorage.getItem("accessToken");
         const res = await fetchPMsApi(token);
-<<<<<<< Updated upstream
         const list = res.status === 200 ? res.data : [];
-=======
-        setPmList(res?.status === 200 ? res.data || [] : []);
-      }
-      fetchPMs();
-    }
-  }, [type]);
->>>>>>> Stashed changes
 
         if (!ignore) setPmList(list || []);
         if ((res.status !== 200 || !list || list.length === 0) && !ignore) {
@@ -271,29 +243,6 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
       title: data.title,
       content: data.content,
       type: data.type,
-<<<<<<< Updated upstream
-=======
-
-      pmId: data.type === "PROJECT" ? Number(data.projectManagerId) : null,
-      receiverId:
-        data.type === "PROJECT"
-          ? Number(data.projectManagerId)
-          : data.type === "OTHER"
-          ? data.receiverId ?? null
-          : null,
-
-      projectName: data.type === "PROJECT" ? data.projectName : null,
-      projectDescription:
-        data.type === "PROJECT" ? data.projectDescription : null,
-      projectDeadline: data.type === "PROJECT" ? data.projectDeadline : null, // YYYY-MM-DD
-
-      fundName: data.type === "ADMINISTRATIVE" ? data.fundName : null,
-      fundBalance:
-        data.type === "ADMINISTRATIVE"
-          ? (data.fundBalance === "" ? null : Number(data.fundBalance))
-          : null,
-      fundPurpose: data.type === "ADMINISTRATIVE" ? data.fundPurpose : null,
->>>>>>> Stashed changes
     };
 
     let payload = { ...base };
@@ -329,21 +278,16 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
 
     try {
       const res = await createDocumentApi(payload, token);
-<<<<<<< Updated upstream
       if (res.status === 201) {
-=======
-      if (res?.status === 201) {
->>>>>>> Stashed changes
         dispatch(
           setPopup({
             type: "success",
             message: "Tạo công văn thành công!",
           })
         );
-        onSuccess?.(res.data);
+        onSuccess && onSuccess(res.data);
         reset();
       } else {
-<<<<<<< Updated upstream
         dispatch(
           setPopup({
             type: "error",
@@ -352,18 +296,6 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
         );
       }
     } catch (error) {
-=======
-        setError("title", {
-          type: "manual",
-          message: res?.message || "Create document failed",
-        });
-      }
-    } catch (error) {
-      setError("title", {
-        type: "manual",
-        message: "Something went wrong, please try again.",
-      });
->>>>>>> Stashed changes
       dispatch(
         setPopup({
           type: "error",
@@ -389,7 +321,6 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
         height: { xs: "calc(100vh - 32px)", md: "calc(100vh - 48px)" },
       }}
     >
-<<<<<<< Updated upstream
       <Paper
         elevation={0}
         sx={{
@@ -402,24 +333,8 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
           display: "flex",
           flexDirection: "column",
           height: "100%",
-=======
-      <Typography
-        variant="h5"
-        fontWeight={700}
-        textAlign="center"
-        color="primary.main"
-        mb={2}
-      >
-        Create New Document
-      </Typography>
-
-      <form
-        onSubmit={(e) => {
-          handleSubmit(onSubmit)(e);
->>>>>>> Stashed changes
         }}
       >
-<<<<<<< Updated upstream
         {/* Header */}
         <Box sx={{ p: { xs: 2, md: 3 }, pb: 1.5 }}>
           <Stack direction="row" alignItems="center" spacing={1.5} mb={0.5}>
@@ -446,217 +361,6 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
             Please fill in the information below. Fields will adapt based on the
             selected document type.
           </Typography>
-=======
-        <TextField
-          label="Title"
-          placeholder="Enter document title"
-          fullWidth
-          margin="normal"
-          error={!!errors.title}
-          helperText={errors.title?.message}
-          {...register("title")}
-          autoComplete="off"
-          InputProps={{ sx: { borderRadius: 2 } }}
-        />
-
-        <TextField
-          label="Content"
-          placeholder="Enter a short description..."
-          fullWidth
-          multiline
-          rows={4}
-          margin="normal"
-          error={!!errors.content}
-          helperText={errors.content?.message}
-          {...register("content")}
-          autoComplete="off"
-          InputProps={{ sx: { borderRadius: 2 } }}
-        />
-
-        <TextField
-          select
-          label="Document Type"
-          fullWidth
-          margin="normal"
-          error={!!errors.type}
-          helperText={errors.type?.message}
-          value={type || ""}
-          onChange={(e) => setValue("type", e.target.value)}
-          InputProps={{ sx: { borderRadius: 2 } }}
-        >
-          <MenuItem value="">-- Select document type --</MenuItem>
-          <MenuItem value="PROJECT">Project Document</MenuItem>
-          <MenuItem value="ADMINISTRATIVE">Administrative Document</MenuItem>
-          <MenuItem value="OTHER">Other Document</MenuItem>
-        </TextField>
-
-        {/* PROJECT fields (priority removed) */}
-        {type === "PROJECT" && (
-          <>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Project Name"
-                  placeholder="Enter project name"
-                  fullWidth
-                  margin="normal"
-                  error={!!errors.projectName}
-                  helperText={errors.projectName?.message}
-                  {...register("projectName")}
-                  autoComplete="off"
-                  InputProps={{ sx: { borderRadius: 2 } }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  select
-                  label="Project Manager"
-                  placeholder="Select Project Manager"
-                  fullWidth
-                  margin="normal"
-                  error={!!errors.projectManagerId}
-                  helperText={errors.projectManagerId?.message}
-                  value={projectManagerId || ""}
-                  onChange={(e) =>
-                    setValue(
-                      "projectManagerId",
-                      e.target.value === "" ? null : e.target.value
-                    )
-                  }
-                  InputProps={{ sx: { borderRadius: 2 } }}
-                >
-                  <MenuItem value="">-- Select Project Manager --</MenuItem>
-                  {pmList.length === 0 ? (
-                    <MenuItem disabled value="">
-                      No Project Managers found
-                    </MenuItem>
-                  ) : (
-                    pmList.map((pm) => (
-                      <MenuItem key={pm.id} value={pm.id}>
-                        {pm.fullName
-                          ? `${pm.fullName} (${pm.username})`
-                          : pm.username}
-                      </MenuItem>
-                    ))
-                  )}
-                </TextField>
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Project Deadline"
-                  type="date"
-                  fullWidth
-                  margin="normal"
-                  error={!!errors.projectDeadline}
-                  helperText={errors.projectDeadline?.message}
-                  {...register("projectDeadline")}
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{
-                    min: new Date().toISOString().slice(0, 10),
-                  }}
-                  InputProps={{ sx: { borderRadius: 2 } }}
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  label="Project Description"
-                  placeholder="Enter project description"
-                  fullWidth
-                  multiline
-                  rows={2}
-                  margin="normal"
-                  error={!!errors.projectDescription}
-                  helperText={errors.projectDescription?.message}
-                  {...register("projectDescription")}
-                  autoComplete="off"
-                  InputProps={{ sx: { borderRadius: 2 } }}
-                />
-              </Grid>
-            </Grid>
-          </>
-        )}
-
-        {/* ADMINISTRATIVE fields */}
-        {type === "ADMINISTRATIVE" && (
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                label="Fund Name"
-                {...register("fundName")}
-                fullWidth
-                error={!!errors.fundName}
-                helperText={errors.fundName?.message}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                label="Fund Balance"
-                type="number"
-                {...register("fundBalance")}
-                fullWidth
-                error={!!errors.fundBalance}
-                helperText={errors.fundBalance?.message}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                label="Fund Purpose"
-                multiline
-                rows={3}
-                {...register("fundPurpose")}
-                fullWidth
-                error={!!errors.fundPurpose}
-                helperText={errors.fundPurpose?.message}
-              />
-            </Grid>
-          </Grid>
-        )}
-
-        <Box sx={{ display: "flex", gap: 2, mt: 3, flexDirection: "column" }}>
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            size="large"
-            disabled={loading}
-            sx={{
-              fontWeight: 600,
-              borderRadius: 2,
-              background: "linear-gradient(90deg,#1976d2,#4791db)",
-              boxShadow: "0 2px 8px rgba(24,144,255,.08)",
-            }}
-            startIcon={
-              loading ? <CircularProgress size={20} color="inherit" /> : null
-            }
-          >
-            {loading ? "Creating..." : "Create Document"}
-          </Button>
-
-          {Object.keys(errors).length > 0 && (
-            <Box p={2} bgcolor="#ffe0e0" borderRadius={2}>
-              <Typography variant="body2" color="error" sx={{ mb: 0.5 }}>
-                ❗ Validation Errors:
-              </Typography>
-              <pre style={{ fontSize: 12, margin: 0 }}>
-                {JSON.stringify(safeErrors, null, 2)}
-              </pre>
-            </Box>
-          )}
-
-          <Button
-            variant="outlined"
-            fullWidth
-            size="large"
-            color="secondary"
-            onClick={onCancel}
-            disabled={loading}
-            sx={{ fontWeight: 600, borderRadius: 2, background: "#f8fafc" }}
-          >
-            Cancel
-          </Button>
->>>>>>> Stashed changes
         </Box>
 
         {/* Content (scrollable) */}

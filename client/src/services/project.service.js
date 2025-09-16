@@ -136,7 +136,7 @@ const handleApiError = (error) => {
   if (error.response) return error.response.data;
   return { status: 500, message: "server-is-busy" };
 };
-<<<<<<< Updated upstream
+
 
 export const createQuickTask = async (projectId, name) => {
   try {
@@ -211,5 +211,3 @@ export const uploadPublicImageApi = async (file) => {
     return { status: 500, message: "server-is-busy" };
   }
 };
-=======
->>>>>>> Stashed changes

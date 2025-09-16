@@ -22,16 +22,13 @@ import java.util.Map;
 public class ProjectController {
 
     private final ProjectService projectService;
-<<<<<<< Updated upstream
+
     private final QuickTaskService quickTaskService;
     private final UploadFileService uploadFileService;
 
-    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM')")
-=======
 
     // ✅ Lấy tất cả dự án đang hoạt động (theo role, EMP/HOD dùng rule mới)
     @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
->>>>>>> Stashed changes
     @GetMapping
     public ApiResponse<List<ProjectDto>> getAllVisible(HttpServletRequest request) {
         return projectService.getAllVisible(request);
@@ -81,7 +78,7 @@ public class ProjectController {
         return projectService.createProject(dto, request);
     }
 
-<<<<<<< Updated upstream
+
     @PreAuthorize("""
   hasAnyAuthority('ADMIN','MANAGER') or
   (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))
@@ -123,9 +120,6 @@ public class ProjectController {
     }
 
     // Cập nhật thông tin dự án
-=======
-    // ✅ Cập nhật dự án
->>>>>>> Stashed changes
     @PutMapping("/{id}")
     public ApiResponse<?> updateProject(
             @PathVariable Long id,

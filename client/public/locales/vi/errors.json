@@ -44,8 +44,6 @@
   "invalid-image-type": "Loại hình ảnh không hợp lệ, chỉ hỗ trợ các tệp JPG, PNG, GIF",
   "file-is-empty": "Tập tin trống",
   "file-too-large": "Tệp quá lớn, chỉ hỗ trợ các tệp có kích thước dưới 5mb",
-
-<<<<<<< Updated upstream
 	"department-already-exists": "Phòng ban đã tồn tại",
 	"hod-id-not-found": "Không thể tìm thấy trưởng phòng này",
 	"hod-role-is-invalid": "Vai trò của trưởng phòng không hợp lệ",
@@ -61,8 +59,8 @@
 	"deadline-before-today": "Hạn không được trước hôm nay",
 	"deadline-before-previous-phase": "Hạn không được trước phase liền trước",
 	"deadline-after-project-deadline": "Hạn không được vượt quá hạn của dự án",
-	"invalid-role": "Vai trò không hợp lệ"
-=======
+	"invalid-role": "Vai trò không hợp lệ",
+
   "department-already-exists": "Phòng ban đã tồn tại",
   "hod-id-not-found": "Không thể tìm thấy trưởng phòng này",
   "hod-role-is-invalid": "Vai trò của trưởng phòng không hợp lệ",
@@ -96,5 +94,4 @@
   "size-is-required": "Kích thước là bắt buộc",
   "invalid-size": "Kích thước không hợp lệ",
   "assignee-is-required": "Người được giao là bắt buộc"
->>>>>>> Stashed changes
 }

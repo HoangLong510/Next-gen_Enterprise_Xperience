@@ -44,25 +44,6 @@
   "invalid-image-type": "Invalid image type, only JPG, PNG, GIF files are supported",
   "file-is-empty": "File is empty",
   "file-too-large": "File too large, only supports files under 5mb in size",
-
-<<<<<<< Updated upstream
-	"department-already-exists": "Department already exists",
-	"hod-id-not-found": "Head of department not found",
-	"hod-role-is-invalid": "Head of department role is invalid",
-	"the-hod-has-a-department": "The head of department has a department",
-	"department-name-is-required": "Department name is required",
-	"department-description-is-required": "Department description is required",
-	"hod-is-required": "Head of department is required",
-	"phase-name-is-required": "Phase name is required",
-	"phase-name-must-be-at-least-3-characters": "Phase name must be at least 3 characters",
-	"phase-name-must-be-at-most-100-characters": "Phase name must be at most 100 characters",
-	"deadline-is-required": "Deadline is required",
-	"invalid-date-format": "Invalid date format",
-	"deadline-before-today": "Deadline cannot be before today",
-	"deadline-before-previous-phase": "Deadline cannot be before the previous phase",
-	"deadline-after-project-deadline": "Deadline cannot be after the project's deadline",
-	"invalid-role": "Role is invalid"
-=======
   "department-already-exists": "Department already exists",
   "hod-id-not-found": "Head of department not found",
   "hod-role-is-invalid": "Head of department role is invalid",
@@ -96,5 +77,4 @@
   "size-is-required": "Size is required",
   "invalid-size": "Invalid size",
   "assignee-is-required": "Assignee is required"
->>>>>>> Stashed changes
 }
