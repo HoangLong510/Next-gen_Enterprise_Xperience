@@ -43,6 +43,7 @@ public class TaskService {
     private final TaskEvidenceRepository taskEvidenceRepository;
     private final EmployeeRepository employeeRepository;
     private final TaskEvidenceService taskEvidenceService;
+    private final NotificationService notificationService;
 
     @Transactional
     public ApiResponse<?> createTask(CreateTaskDto dto) {
@@ -105,6 +106,7 @@ public class TaskService {
 
         Task saved = taskRepository.save(task);
         projectStatusService.refreshStatus(phase.getProject());
+        notificationService.notifyTaskAssigned(saved, phase.getProject().getProjectManager());
 
         TaskDto result = new TaskDto();
         result.setId(saved.getId());
@@ -381,6 +383,9 @@ public class TaskService {
 
         taskRepository.save(task);
         projectStatusService.refreshStatus(task.getPhase().getProject());
+        if (me.getRole() == Role.EMPLOYEE && task.getPhase().getProject().getProjectManager() != null) {
+            notificationService.notifyPmOnTaskUpdate(task, me);
+        }
         return ApiResponse.success(null, "task-status-updated-successfully");
     }
 
@@ -406,7 +411,7 @@ public class TaskService {
         dto.setId(task.getId());
         dto.setName(task.getName());
         dto.setDescription(task.getDescription());
-        dto.setImageUrl(task.getImageUrl());
+//        dto.setImageUrl(task.getImageUrl());
         dto.setDeadline(task.getDeadline());
         dto.setStatus(task.getStatus().name());
         dto.setSize(task.getSize() != null ? task.getSize().name() : null);

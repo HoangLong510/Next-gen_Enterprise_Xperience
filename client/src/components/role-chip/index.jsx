@@ -15,8 +15,9 @@ export default function RoleChip({ role, onDelete, size = "small" }) {
 				<Box
 					sx={{
 						display: "flex",
-						alignItems: "center",
-						gap:0.5, 
+
+						alignI1tems: "center",
+						gap: 1
 					}}
 				>
 					<Icon

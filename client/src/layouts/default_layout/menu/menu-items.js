@@ -4,12 +4,15 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import FilePresentIcon from "@mui/icons-material/FilePresent";
-import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import DescriptionIcon from "@mui/icons-material/Description";
 import WorkIcon from "@mui/icons-material/Work";
 import PunchClockIcon from "@mui/icons-material/PunchClock";
 import GavelIcon from "@mui/icons-material/Gavel"; // thêm cho Contracts
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+
 
 export const menuItems = [
   {
@@ -43,11 +46,13 @@ export const menuItems = [
         icon: AssignmentIndIcon,
         href: "/employees",
         roles: ["ADMIN", "MANAGER", "HR"],
+
       },
       {
         label: "Contracts",
         icon: FilePresentIcon,
         href: "/contracts",
+
         roles: ["ADMIN", "MANAGER"],
       },
       {
@@ -55,6 +60,12 @@ export const menuItems = [
         icon: PunchClockIcon,
         href: "/attendance/list",
         roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR"],
+      },
+      {
+        label: "Missing Checkout",
+        icon: WarningAmberIcon,
+        href: "/attendance/missing-checkout",
+        roles: ["HR"],
       },
     ],
   },
@@ -100,19 +111,14 @@ export const menuItems = [
         label: "Projects",
         icon: WorkIcon,
         href: "/management/projects",
-        roles: ["ADMIN", "MANAGER", "PM"],
+        roles: ["ADMIN", "MANAGER", "PM","SECRETARY", "HOD", "EMPLOYEE"],
       },
       {
         label: "Dispatches",
         icon: AssignmentIcon,
         href: "/management/documents",
-        roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
-      },
-      {
-        label: "Tasks",
-        icon: TaskAltIcon,
-        href: "/utilities/tasks",
-        roles: ["ADMIN", "MANAGER", "PM", "CHIEFACCOUNTANT", "ACCOUNTANT", "HOD", "EMPLOYEE"],
+
+        roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT","SECRETARY"],
       },
       {
         label: "Leave Request",

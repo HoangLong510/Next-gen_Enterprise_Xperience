@@ -1,14 +1,18 @@
 "use client";
 
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
-import { useDispatch } from "react-redux";
+
 import { setPopup } from "~/libs/features/popup/popupSlice";
+
+/**
+ * KanbanForm.jsx – FULL
+ *  1) PM/Manager/Admin vẫn có thể kéo vào CANCELED dù phase bị "khóa chuỗi".
+ *  2) EMP/HOD KHÔNG được click vào task ở trạng thái COMPLETED hoặc CANCELED (disable click).
+ *  3) Khi mở review dialog: nếu phase của task đã COMPLETED thì PM/Manager/Admin xem được nhưng tất cả field bị disable (view-only).
+ *  4) Chỉ hiển thị ô tạo Branch khi dự án đã gắn repo GitHub hợp lệ (owner/repo).
+ */
+
+import React, { useEffect, useState, useCallback,useRef, useMemo } from "react";
+import Tooltip from '@mui/material/Tooltip';
 import {
   Box,
   Container,
@@ -33,18 +37,17 @@ import {
   Tab,
   Grid,
 } from "@mui/material";
-import { useSelector } from "react-redux";
 import {
-  Search,
-  TrendingUp,
-  CalendarToday,
-  ArrowBack,
   RequestQuote,
   CloudDownload,
   PictureAsPdf,
+  Search,  
 } from "@mui/icons-material";
+import CircularProgress from '@mui/material/CircularProgress';
 import SignatureCanvas from "react-signature-canvas";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import { useDispatch, useSelector } from "react-redux";
+import { TrendingUp, CalendarToday, ArrowBack, Refresh as RefreshIcon } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -193,13 +196,38 @@ export default function KanbanForm() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  // Ma trận allowed cơ bản; siết thêm cho staff ở dưới
+  const NAME_CLAMP_SX = {
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: 2,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    wordBreak: "break-word",
+    overflowWrap: "anywhere",
+    lineHeight: 1.3,
+  };
+
+  // Helper: label trạng thái
+  const prettyStatus = useCallback(
+    (code) => {
+      const key = `statusLabel.${code}`;
+      const translated = tProj(key);
+      if (projReady && translated && translated !== key) return translated;
+      return code?.toLowerCase().replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+    },
+    [tProj, projReady, i18n.language]
+  );
+
+  // Allowed targets theo status gốc
+
   const getAllowedTargets = useCallback((from, role) => {
     const s = new Set([from]);
     switch (from) {
       case "PLANNING":
         s.add("IN_PROGRESS");
         s.add("CANCELED");
+        s.add("IN_REVIEW");
+
         break;
       case "IN_PROGRESS":
         s.add("CANCELED");
@@ -217,6 +245,11 @@ export default function KanbanForm() {
         s.add("PLANNING");
         s.add("IN_PROGRESS");
         break; // UI không cho IN_REVIEW
+        break;
+      case "CANCELED":
+        s.add("PLANNING");
+        s.add("IN_PROGRESS");
+        break;
       default:
         break;
     }
@@ -232,17 +265,20 @@ export default function KanbanForm() {
 
   // Load status list
   useEffect(() => {
-    getTaskStatuses().then((list) => {
-      const opts = list.map((s) => ({
-        value: s,
-        label: s
-          .toLowerCase()
-          .replace(/_/g, " ")
-          .replace(/^\w/, (c) => c.toUpperCase()),
-      }));
-      setStatusOptions(opts);
-      setGrouped(opts.reduce((acc, o) => ({ ...acc, [o.value]: [] }), {}));
-    });
+    (async () => {
+      try {
+        const list = await getTaskStatuses();
+        const opts = list.map((s) => ({ value: s, label: prettyStatus(s) }));
+        setStatusOptions(opts);
+        setGrouped(opts.reduce((acc, o) => ({ ...acc, [o.value]: [] }), {}));
+      } catch {
+        const fallback = ["PLANNING", "IN_PROGRESS", "IN_REVIEW", "COMPLETED", "CANCELED"];
+        const opts = fallback.map((s) => ({ value: s, label: prettyStatus(s) }));
+        setStatusOptions(opts);
+        setGrouped(opts.reduce((acc, o) => ({ ...acc, [o.value]: [] }), {}));
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Project info (khi vào theo route /projects/:id/kanban)
@@ -282,53 +318,52 @@ export default function KanbanForm() {
     else setPhasesMeta([]);
   }, [projectId, selectedProject, isStaffTasksPage]);
 
-  useEffect(() => {
-    loadPhasesMeta();
-  }, [loadPhasesMeta]);
+  useEffect(() => { loadPhasesMeta(); }, [loadPhasesMeta]);
 
-  // Fetch + group tasks
+  // 🔒 Rule "khóa chuỗi"
+  const isPhaseLocked = useCallback((curPhaseId) => {
+    if (!Array.isArray(phasesMeta) || !curPhaseId) return false;
+    const cur = phasesMeta.find((p) => String(p.id) === String(curPhaseId));
+    if (!cur) return false;
+    const next = phasesMeta.find((p) => p.sequence === cur.sequence + 1);
+    const nextHasTasks = Array.isArray(next?.tasks) && next.tasks.length > 0;
+    return !!(next && cur.status === "COMPLETED" && next.status === "IN_PROGRESS" && nextHasTasks);
+  }, [phasesMeta]);
+
+
+  // ===== Fetch & group tasks =====
   const fetchAndGroup = useCallback(async () => {
     if (!statusOptions.length) return;
     const pid = isStaffTasksPage ? selectedProject : projectId;
     if (!pid) return;
+    setLoading(true);
+    try {
+      const res = await getKanbanTasks(pid);
+      let tasks = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
 
-    const res = await getKanbanTasks(pid);
-    let tasks = Array.isArray(res)
-      ? res
-      : Array.isArray(res?.data)
-      ? res.data
-      : [];
+      // lọc theo phase
+      if (phaseId) tasks = tasks.filter((t) => String(t.phaseId) === String(phaseId));
 
-    if (phaseId) tasks = tasks.filter((t) => String(t.phaseId) === phaseId);
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      tasks = tasks.filter(
-        (t) =>
-          t.name.toLowerCase().includes(term) ||
-          (t.description || "").toLowerCase().includes(term)
-      );
-    }
-    const next = statusOptions.reduce(
-      (acc, o) => ({ ...acc, [o.value]: [] }),
-      {}
-    );
-    tasks.forEach((t) => {
-      if (!next[t.status]) next[statusOptions[0].value].push(t);
-      else next[t.status].push(t);
-    });
-    setGrouped(next);
-  }, [
-    projectId,
-    selectedProject,
-    searchTerm,
-    statusOptions,
-    phaseId,
-    isStaffTasksPage,
-  ]);
+      // lọc theo search
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        tasks = tasks.filter(
+          (t) =>
+            t.name?.toLowerCase().includes(term) ||
+            (t.description || "").toLowerCase().includes(term) ||
+            (t.assigneeName || "").toLowerCase().includes(term)
+        );
+      }
 
-  useEffect(() => {
-    if (statusOptions.length && (!isStaffTasksPage || selectedProject)) {
-      fetchAndGroup();
+      const next = statusOptions.reduce((acc, o) => ({ ...acc, [o.value]: [] }), {});
+      tasks.forEach((t) => {
+        if (next[t.status]) next[t.status].push(t);
+        else next[statusOptions[0].value].push(t);
+      });
+      setGrouped(next);
+    } finally {
+      setLoading(false);
+
     }
   }, [fetchAndGroup, selectedProject, isStaffTasksPage, statusOptions.length]);
 
@@ -356,6 +391,7 @@ export default function KanbanForm() {
       })
       .finally(() => setProjLoading(false));
   }, [isStaffTasksPage]);
+
 
   // ===== Helpers: phase sau của 1 phase =====
   const nextPhaseInfo = useCallback(
@@ -386,20 +422,17 @@ export default function KanbanForm() {
     [nextPhaseInfo]
   );
 
-  const blockAllChange = useCallback(
-    (phaseId) => {
-      const info = nextPhaseInfo(phaseId);
-      if (!info || !info.exists) return false;
-      return (
-        info.curStatus === "COMPLETED" &&
-        info.status === "IN_PROGRESS" &&
-        info.taskCount > 0
-      );
-    },
-    [nextPhaseInfo]
-  );
+  // ===== helper: phase của task đã completed chưa?
+  const isTaskPhaseCompleted = useCallback((task) => {
+    if (!task) return false;
+    const ph = phasesMeta.find((p) => String(p.id) === String(task.phaseId));
+    return ph?.status === "COMPLETED";
+  }, [phasesMeta]);
 
-  // Evidence dialog open
+  // ===== Click mở dialog
+  //  - EMP/HOD: KHÔNG cho click task COMPLETED hoặc CANCELED
+  //  - Role khác: cho click bình thường
+n
   const handleCardClick = (task) => {
     if (!task) return;
     setPendingTask(task);
@@ -425,38 +458,10 @@ export default function KanbanForm() {
     const taskPhaseId = active?.data?.current?.project?.phaseId;
     const taskObj = active?.data?.current?.project;
 
-    if (fromTaskStatus) {
-      const s = getAllowedTargets(fromTaskStatus, account.role);
-
-      // các rule chặn sẵn
-      if (
-        s.has("IN_PROGRESS") &&
-        blockToInProgress(fromTaskStatus, taskPhaseId)
-      ) {
-        s.delete("IN_PROGRESS");
-      }
-      if (blockAllChange(taskPhaseId)) {
-        for (const v of Array.from(s)) if (v !== fromTaskStatus) s.delete(v);
-      }
-
-      // Cho phép PLANNING → IN_REVIEW nếu đã có evidence HOẶC branch
-      if (fromTaskStatus === "PLANNING" && taskObj) {
-        if (hasBranch(taskObj)) s.add("IN_REVIEW");
-        setAllowedDropSet(new Set(s));
-        (async () => {
-          const existed = await hasEvidence(taskObj.id);
-          if (existed) {
-            setAllowedDropSet((prev) => {
-              const next = new Set(prev);
-              next.add("IN_REVIEW");
-              return next;
-            });
-          }
-        })();
-      } else {
-        setAllowedDropSet(s);
-      }
-    } else {
+    // 🔒 Nếu phase bị khóa:
+    //  - EMP/HOD: chặn drag ngay.
+    //  - PM/Manager/Admin: vẫn cho drag, nhưng sẽ siết allowedDropSet (chỉ còn CANCELED).
+    if (taskObj && isPhaseLocked(taskObj.phaseId) && isStaffMode) {
       setAllowedDropSet(new Set());
     }
   };
@@ -467,13 +472,10 @@ export default function KanbanForm() {
       setOverIndex(null);
       return;
     }
-    const colId = grouped[over.id]
-      ? over.id
-      : over.data.current?.sortable?.containerId;
-    if (
-      !grouped[colId] ||
-      (allowedDropSet.size && !allowedDropSet.has(colId))
-    ) {
+
+    const overId = String(over.id);
+    const colId = grouped[overId] ? overId : over.data.current?.sortable?.containerId;
+    if (!grouped[colId] || (allowedDropSet.size && !allowedDropSet.has(colId))) {
       setOverColumn(null);
       setOverIndex(null);
       return;
@@ -482,6 +484,7 @@ export default function KanbanForm() {
     setOverColumn(colId);
     setOverIndex(idx >= 0 ? idx : grouped[colId].length);
   };
+
 
   // gộp refresh meta
   const refreshMeta = useCallback(async () => {
@@ -492,7 +495,6 @@ export default function KanbanForm() {
       loadProjectInfo(),
     ]);
   }, [fetchAndGroup, loadPhasesMeta, loadPhaseInfo, loadProjectInfo]);
-
   const handleDragEnd = async ({ active, over }) => {
     setOverColumn(null);
     setOverIndex(null);
@@ -518,19 +520,10 @@ export default function KanbanForm() {
       setAllowedDropSet(new Set());
       return;
     }
+    // ❌ EMP/HOD không được move vào CANCELED
+    if (isStaffMode && toCol === "CANCELED") {
+      dispatch(setPopup({ type: "error", message: tTasks("errors.noPermissionChangeCanceled") || tTasks("errors.noPermissionChangeCompleted") }));
 
-    // ❌ Staff Tasks page: chặn Completed hoàn toàn + chặn IN_REVIEW→COMPLETED
-    if (
-      isStaffTasksPage &&
-      (toCol === "COMPLETED" || fromCol === "COMPLETED")
-    ) {
-      dispatch(
-        setPopup({
-          type: "error",
-          message:
-            "You don't have permission to change tasks in/from Completed.",
-        })
-      );
       setAllowedDropSet(new Set());
       return;
     }
@@ -546,41 +539,31 @@ export default function KanbanForm() {
       setAllowedDropSet(new Set());
       return;
     }
+    // Không cho từ COMPLETED/CANCELED sang IN_REVIEW
+    if (toCol === "IN_REVIEW" && (fromCol === "COMPLETED" || fromCol === "CANCELED")) {
+      dispatch(setPopup({ type: "warning", message: tTasks("errors.cannotMoveToInReviewFromDoneOrCanceled") }));
 
-    if (
-      toCol === "IN_REVIEW" &&
-      (fromCol === "COMPLETED" || fromCol === "CANCELED")
-    ) {
-      dispatch(
-        setPopup({
-          type: "error",
-          message:
-            "Cannot move to In review from Completed or Canceled status.",
-        })
-      );
       setAllowedDropSet(new Set());
       return;
     }
-
-    if (
-      toCol === "IN_PROGRESS" &&
-      ["COMPLETED", "CANCELED"].includes(fromCol)
-    ) {
+    // COMPLETED/CANCELED -> IN_PROGRESS: check phase sau
+    if (toCol === "IN_PROGRESS" && ["COMPLETED", "CANCELED"].includes(fromCol)) {
       if (blockToInProgress(fromCol, task.phaseId)) {
-        alert(
-          "Cannot switch back to In progress because the next phase is no longer in empty Planning."
-        );
+
+        dispatch(setPopup({ type: "warning", message: tTasks("errors.cannotMoveToInProgressNextPhaseNotPlanning") }));
+
         setAllowedDropSet(new Set());
         return;
       }
     }
 
     if (fromCol !== toCol && blockAllChange(task.phaseId)) {
-      alert(
-        "The next phase has started and has tasks. It is not possible to change the task status in the completed phase."
-      );
-      setAllowedDropSet(new Set());
-      return;
+
+      if (!(toCol === "CANCELED" && !isStaffMode)) {
+        dispatch(setPopup({ type: "warning", message: tProj("errors.phaseLockedEditing") }));
+        setAllowedDropSet(new Set());
+        return;
+      }
     }
 
     if (toCol === "CANCELED" && fromCol !== toCol) {
@@ -605,13 +588,9 @@ export default function KanbanForm() {
     // update UI lạc quan
     const next = { ...grouped };
     if (fromCol === toCol) {
-      const oldIdx = srcList.findIndex((t) => t.id === active.id);
-      const newIdx = (grouped[toCol] || []).findIndex((t) => t.id === over.id);
-      next[fromCol] = arrayMove(
-        srcList,
-        oldIdx,
-        newIdx >= 0 ? newIdx : srcList.length - 1
-      );
+      const oldIdx = (grouped[fromCol] || []).findIndex((t) => String(t.id) === String(active.id));
+      const overIdx = (grouped[toCol] || []).findIndex((t) => String(t.id) === overId);
+      next[fromCol] = arrayMove(grouped[fromCol], oldIdx, overIdx >= 0 ? overIdx : grouped[fromCol].length - 1);
     } else {
       next[fromCol] = srcList.filter((t) => t.id !== active.id);
       const dest = [...(grouped[toCol] || [])];
@@ -644,13 +623,11 @@ export default function KanbanForm() {
   };
 
   const flattened = useMemo(() => Object.values(grouped).flat(), [grouped]);
-  const activeTask = activeId ? flattened.find((t) => t.id === activeId) : null;
-
-  const advanceOptions = useMemo(() => {
+  const activeTask = activeId ? flattened.find((t) => String(t.id) === String(activeId)) : null;
+const advanceOptions = useMemo(() => {
     return (flattened || []).filter((t) => t && t.status !== "CANCELED");
-  }, [flattened]);
-
-  // ==== Tính khóa "Clear evidence" theo rule phase sau ====
+  }, [flattened])
+  // ===== Lock clear evidence theo rule phase sau
   const curPhaseMeta = useMemo(() => {
     if (!pendingTask) return null;
     return phasesMeta.find((p) => String(p.id) === String(pendingTask.phaseId));
@@ -686,25 +663,16 @@ export default function KanbanForm() {
         const next = {};
         for (const col of Object.keys(prev)) {
           next[col] = (prev[col] || []).map((t) =>
-            t.id === taskId
-              ? { ...t, githubBranch: fullBranchName, branchCreated: true }
-              : t
+            String(t.id) === String(taskId) ? { ...t, githubBranch: fullBranchName, branchCreated: true } : t
           );
         }
         return next;
       });
       setPendingTask((prev) =>
-        prev && prev.id === taskId
+        prev && String(prev.id) === String(taskId)
           ? { ...prev, githubBranch: fullBranchName, branchCreated: true }
           : prev
       );
-      refreshMeta();
-    },
-    [refreshMeta]
-  );
-
-  useEffect(() => {
-    const interval = setInterval(() => {
       refreshMeta();
     }, 30000);
     return () => clearInterval(interval);
@@ -809,29 +777,10 @@ export default function KanbanForm() {
             Back To Project Detail
           </Button>
         )}
+        {renderHeader()}
 
-        <Stack direction="row" spacing={2} alignItems="center" mb={2}>
-          <Paper
-            sx={{
-              p: 1.5,
-              background: "linear-gradient(135deg,#118D57,#10B981)",
-            }}
-          >
-            <TrendingUp sx={{ color: "#fff", fontSize: 28 }} />
-          </Paper>
-          <Typography variant="h5" fontWeight={700}>
-            Project Kanban Board
-          </Typography>
-        </Stack>
-
-        <Box
-          sx={{
-            display: "flex",
-            gap: 2,
-            mb: 3,
-            flexWrap: { xs: "wrap", md: "nowrap" },
-          }}
-        >
+        {/* Project/Phase cards */}
+        <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: { xs: "wrap", md: "nowrap" } }}>
           {projectInfo && (
             <Paper sx={{ flex: 1, p: 2, borderRadius: 2, boxShadow: 1 }}>
               <Typography variant="subtitle1" fontWeight={600} gutterBottom>
@@ -991,33 +940,58 @@ export default function KanbanForm() {
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-          <Box sx={{ display: "flex", gap: 3, overflowX: "auto", p: 1 }}>
-            {visibleStatusOptions.map(({ value, label }) => (
-              <SortableContext
-                key={value}
-                items={(grouped[value] || []).map((t) => t.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <KanbanColumn
-                  id={value}
-                  title={label}
-                  projects={grouped[value] || []}
-                  onOpenTask={handleCardClick}
-                  overColumn={overColumn}
-                  overIndex={overIndex}
-                  activeId={activeId}
-                  droppableDisabled={
-                    allowedDropSet.size ? !allowedDropSet.has(value) : false
-                  }
-                />
-              </SortableContext>
-            ))}
-          </Box>
+          {loading ? (
+            <Stack alignItems="center" py={6} spacing={1}>
+              <CircularProgress />
+              <Typography variant="body2" color="text.secondary">
+                {tt(tasksReady, tTasks, "loadingTasks", "Loading tasks...")}
+              </Typography>
+            </Stack>
+          ) : (
+            <Box sx={{ display: "flex", gap: 3, overflowX: "auto", p: 1 }}>
+              {visibleStatusOptions.map(({ value }) => {
+                // localized label
+                const label = prettyStatus(value);
+
+                // Staff: cột CANCELED chỉ xem, không drop
+                const forceDisabledCanceledForStaff = isStaffMode && value === "CANCELED";
+
+                return (
+                  <SortableContext
+                    key={value}
+                    items={(grouped[value] || []).map((t) => t.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <KanbanColumn
+                      id={value}
+                      title={label}
+                      projects={grouped[value] || []}
+                      onOpenTask={handleCardClick}
+                      overColumn={overColumn}
+                      overIndex={overIndex}
+                      activeId={activeId}
+                      // 1) Column drop disabled: EMP/HOD tại CANCELED, hoặc không thuộc allowedDropSet khi đang kéo
+                      droppableDisabled={
+                        forceDisabledCanceledForStaff ||
+                        (allowedDropSet.size ? !allowedDropSet.has(value) : false)
+                      }
+                      // 2) Lock DRAG theo "khóa chuỗi" — chỉ khóa cho EMP/HOD
+                      isTaskLocked={(task) => isStaffMode && isPhaseLocked(task.phaseId)}
+                      // 3) Lock CLICK riêng cho EMP/HOD ở COMPLETED hoặc CANCELED
+                      isTaskClickDisabled={(task) => isStaffMode && (task.status === "COMPLETED" || task.status === "CANCELED")}
+                    />
+                  </SortableContext>
+                );
+              })}
+            </Box>
+          )}
 
           <DragOverlay>
-            {activeTask && (
-              <TaskCard project={activeTask} onTitleClick={() => {}} />
-            )}
+            {activeTask ? (
+              <Box sx={{ width: 300 }}>
+                <TaskCard project={activeTask} onTitleClick={() => {}} />
+              </Box>
+            ) : null}
           </DragOverlay>
         </DndContext>
 
@@ -1070,12 +1044,32 @@ export default function KanbanForm() {
         <TaskReviewDialog
           open={reviewOpen}
           task={pendingTask}
-          canUpload={["PLANNING", "IN_PROGRESS", "IN_REVIEW"].includes(
-            pendingTask?.status
-          )}
-          canClearEvidence={!lockClearEvidence}
-          canCreateBranch={canCreateBranch}
-          onClose={() => {
+          // View-only cho PM/Manager/Admin nếu phase của task đã COMPLETED
+          readOnly={dialogReadOnly}
+          // Upload/Clear: tắt hoàn toàn khi readOnly
+          canUpload={
+            !dialogReadOnly &&
+            ["PLANNING", "IN_PROGRESS", "IN_REVIEW"].includes(pendingTask?.status)
+          }
+          canClearEvidence={
+            !dialogReadOnly &&
+            !!(
+              pendingTask &&
+              (() => {
+                const cur = phasesMeta.find((p) => String(p.id) === String(pendingTask.phaseId));
+                if (!cur) return true;
+                const next = phasesMeta.find((p) => p.sequence === cur.sequence + 1);
+                if (!next) return true;
+                return !(
+                  cur.status === "COMPLETED" &&
+                  next.status === "IN_PROGRESS" &&
+                  (next.tasks?.length || 0) > 0
+                );
+              })()
+            )
+          }
+          canCreateBranch={!["COMPLETED", "CANCELED"].includes(pendingTask?.status)}
+          onClose={(shouldRefresh) => {
             setReviewOpen(false);
             setPendingTask(null);
           }}

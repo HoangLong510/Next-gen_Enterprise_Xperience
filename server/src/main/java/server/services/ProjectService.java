@@ -5,26 +5,25 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import server.dtos.*;
-
-import server.models.*;
-import server.models.enums.*;
-
+import server.dtos.CreateProjectDto;
+import server.dtos.ProjectDto;
+import server.dtos.ProjectUpdateDto;
+import server.dtos.RepoRequestDto;
+import server.dtos.TaskDto;
+import server.dtos.UpdateProjectDto;
 import server.models.Account;
 import server.models.Document;
 import server.models.Project;
 import server.models.Task;
-import server.models.enums.PhaseStatus;
-import server.models.enums.ProjectStatus;
-import server.models.enums.TaskStatus;
-
-import server.repositories.*;
+import server.models.enums.*;
+import server.repositories.AccountRepository;
+import server.repositories.DocumentRepository;
+import server.repositories.PhaseRepository;
+import server.repositories.ProjectRepository;
+import server.repositories.ProjectRepositoryImpl;
+import server.repositories.TaskRepository;
 import server.utils.ApiResponse;
 import server.utils.JwtUtil;
-
-
-import java.io.IOException;
-
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -34,6 +33,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ProjectService {
+
     private final PhaseRepository phaseRepository;
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
@@ -45,31 +45,32 @@ public class ProjectService {
     private final GitHubTokenService gitHubTokenService;
     private final NotificationService notificationService;
 
-    public ApiResponse<List<ProjectDto>> getAllVisible(HttpServletRequest request) {
-        updateHiddenFlags();
+    /* ==================== QUYỀN TRUY CẬP ==================== */
 
-        String username = jwtUtil.extractUsernameFromRequest(request);
-        Account account = accountRepository.findByUsername(username).orElse(null);
-        if (account == null) {
-            return ApiResponse.unauthorized("unauthorized");
-        }
+    /**
+     * - ADMIN/MANAGER: true
+     * - PM của project: true
+     * - EMPLOYEE/HOD: true nếu Project có Phase IN_PROGRESS và trong đó có Task non-canceled
+     *   (PLANNING/IN_PROGRESS/IN_REVIEW/COMPLETED)
+     */
+    public boolean hasProjectAccess(Long projectId, String username) {
+        Optional<Account> accOpt = accountRepository.findByUsername(username);
+        if (accOpt.isEmpty()) return false;
+        Account viewer = accOpt.get();
+        Role role = viewer.getRole();
 
-        List<Project> projects;
-        String role = String.valueOf(account.getRole());
+        if (role == Role.ADMIN || role == Role.MANAGER) return true;
 
-        if ("ADMIN".equals(role) || "MANAGER".equals(role)) {
-            projects = projectQuery.getAllVisible();
-        } else if ("PM".equals(role)) {
-            projects = projectQuery.getAllVisible().stream()
-                    .filter(p -> p.getProjectManager() != null
-                            && p.getProjectManager().getId().equals(account.getId()))
-                    .collect(Collectors.toList());
-        } else {
-            projects = List.of();
-        }
-
-        List<ProjectDto> dtos = projects.stream().map(this::toDto).collect(Collectors.toList());
-        return ApiResponse.success(dtos, "fetch-projects-success");
+        return projectRepository.findById(projectId).map(pr -> {
+            if (role == Role.PM) {
+                return pr.getProjectManager() != null
+                        && pr.getProjectManager().getUsername().equals(username);
+            }
+            if (role == Role.EMPLOYEE || role == Role.HOD) {
+                return projectHasActivePhaseWithLiveTasks(pr);
+            }
+            return false;
+        }).orElse(false);
     }
 
     public boolean isProjectManager(Long projectId, String username) {
@@ -79,50 +80,134 @@ public class ProjectService {
                 .orElse(false);
     }
 
-    public ApiResponse<ProjectDto> getProjectDetail(Long id) {
+    /* ==================== LIST / SEARCH / FILTER ==================== */
+
+    public ApiResponse<List<ProjectDto>> getAllVisible(HttpServletRequest request) {
+        updateHiddenFlags();
+
+        Account viewer = requireViewer(request);
+        Role role = viewer.getRole();
+
+        List<Project> all = projectQuery.getAllVisible();
+
+        List<Project> filtered;
+        if (role == Role.ADMIN || role == Role.MANAGER) {
+            filtered = all;
+        } else if (role == Role.PM) {
+            filtered = all.stream()
+                    .filter(p -> p.getProjectManager() != null
+                            && p.getProjectManager().getId().equals(viewer.getId()))
+                    .toList();
+        } else { // EMPLOYEE / HOD
+            filtered = all.stream()
+                    .filter(this::projectHasActivePhaseWithLiveTasks)
+                    .toList();
+        }
+
+        List<ProjectDto> dtos = filtered.stream()
+                .map(this::toDtoOverall)
+                .toList();
+
+        return ApiResponse.success(dtos, "fetch-projects-success");
+    }
+
+    public ApiResponse<List<ProjectDto>> getDoneProjects(HttpServletRequest request) {
+        Account viewer = requireViewer(request);
+        Role role = viewer.getRole();
+
+        List<Project> allDone = projectQuery.getDoneProjects();
+
+        List<Project> filtered;
+        if (role == Role.ADMIN || role == Role.MANAGER) {
+            filtered = allDone;
+        } else if (role == Role.PM) {
+            filtered = allDone.stream()
+                    .filter(p -> p.getProjectManager() != null
+                            && p.getProjectManager().getId().equals(viewer.getId()))
+                    .toList();
+        } else {
+            // theo yêu cầu mới: EMP/HOD không cần thấy Done
+            filtered = List.of();
+        }
+
+        List<ProjectDto> dtos = filtered.stream()
+                .map(this::toDtoOverall)
+                .toList();
+        return ApiResponse.success(dtos, "fetch-done-projects-success");
+    }
+
+    public ApiResponse<List<ProjectDto>> search(HttpServletRequest request, String keyword) {
+        Account viewer = requireViewer(request);
+        Role role = viewer.getRole();
+
+        List<Project> all = projectQuery.searchProjects(keyword);
+
+        List<Project> filtered;
+        if (role == Role.ADMIN || role == Role.MANAGER) {
+            filtered = all;
+        } else if (role == Role.PM) {
+            filtered = all.stream()
+                    .filter(p -> p.getProjectManager() != null
+                            && p.getProjectManager().getId().equals(viewer.getId()))
+                    .toList();
+        } else { // EMPLOYEE / HOD
+            filtered = all.stream()
+                    .filter(this::projectHasActivePhaseWithLiveTasks)
+                    .toList();
+        }
+
+        List<ProjectDto> dtos = filtered.stream()
+                .map(this::toDtoOverall)
+                .toList();
+        return ApiResponse.success(dtos, "search-success");
+    }
+
+    public ApiResponse<List<ProjectDto>> filter(HttpServletRequest request, String status, String priority) {
+        Account viewer = requireViewer(request);
+        Role role = viewer.getRole();
+
+        List<Project> all = projectQuery.filter(status, priority);
+
+        List<Project> filtered;
+        if (role == Role.ADMIN || role == Role.MANAGER) {
+            filtered = all;
+        } else if (role == Role.PM) {
+            filtered = all.stream()
+                    .filter(p -> p.getProjectManager() != null
+                            && p.getProjectManager().getId().equals(viewer.getId()))
+                    .toList();
+        } else { // EMPLOYEE / HOD
+            filtered = all.stream()
+                    .filter(this::projectHasActivePhaseWithLiveTasks)
+                    .toList();
+        }
+
+        List<ProjectDto> dtos = filtered.stream()
+                .map(this::toDtoOverall)
+                .toList();
+        return ApiResponse.success(dtos, "filter-success");
+    }
+
+    /* ==================== DETAIL ==================== */
+
+    // ADMIN/MANAGER/PM: thấy full task
+    // EMP/HOD: chỉ trả task của chính họ (progress tổng thể vẫn theo toàn bộ project)
+    public ApiResponse<ProjectDto> getProjectDetail(Long id, HttpServletRequest request) {
+        Account viewer = requireViewer(request);
         Project project = projectRepository.findById(id).orElse(null);
         if (project == null) {
             return ApiResponse.notfound("project-not-found");
         }
-        return ApiResponse.success(toDto(project), "project-detail");
+
+        boolean onlyMine = (viewer.getRole() == Role.EMPLOYEE || viewer.getRole() == Role.HOD);
+
+        ProjectDto dto = toDtoForViewer(project, viewer, onlyMine);
+        return ApiResponse.success(dto, "project-detail");
     }
 
-    public ApiResponse<List<ProjectDto>> getDoneProjects() {
-        List<Project> projects = projectQuery.getDoneProjects();
-        return ApiResponse.success(
-                projects.stream().map(this::toDto).collect(Collectors.toList()),
-                "fetch-done-projects-success"
-        );
-    }
+    /* ==================== CRUD / LINK REPO ==================== */
 
-    public ApiResponse<List<ProjectDto>> search(HttpServletRequest request, String keyword) {
-        String username = jwtUtil.extractUsernameFromRequest(request);
-        Account account = accountRepository.findByUsername(username).orElse(null);
-        if (account == null) {
-            return ApiResponse.unauthorized("unauthorized");
-        }
-
-        List<Project> projects = projectQuery.searchProjects(keyword);
-
-        if ("PM".equals(String.valueOf(account.getRole()))) {
-            projects = projects.stream()
-                    .filter(p -> p.getProjectManager() != null
-                            && p.getProjectManager().getId().equals(account.getId()))
-                    .collect(Collectors.toList());
-        }
-
-        List<ProjectDto> dtos = projects.stream().map(this::toDto).collect(Collectors.toList());
-        return ApiResponse.success(dtos, "search-success");
-    }
-
-    public ApiResponse<List<ProjectDto>> filter(String status, String priority) {
-        List<Project> projects = projectQuery.filter(status, priority);
-        return ApiResponse.success(
-                projects.stream().map(this::toDto).collect(Collectors.toList()),
-                "filter-success"
-        );
-    }
-
+    @Transactional
     public ApiResponse<?> createProject(CreateProjectDto dto, HttpServletRequest request) {
         Document document = documentRepository.findById(dto.getDocumentId())
                 .orElseThrow(() -> new IllegalArgumentException("Document not found"));
@@ -130,46 +215,55 @@ public class ProjectService {
         if (document.getProject() != null) {
             return ApiResponse.errorServer("Document này đã được gắn với một Project rồi");
         }
-
         if (document.getStatus() != DocumentStatus.SIGNED) {
             return ApiResponse.errorServer("Công văn chưa được ký duyệt. Không thể tạo dự án!");
         }
+
 
         Account pm = document.getPm(); // KHÔNG dùng getReceiver() nếu receiver là giám đốc
         if (pm == null) {
             return ApiResponse.errorServer("Document chưa chọn PM");
         }
 
-        Project project = Project.builder()
-                .name(document.getProjectName())
-                .description(document.getProjectDescription())
-                .createdAt(LocalDate.now())
+            String name = (dto.getName() != null && !dto.getName().isBlank())
+                    ? dto.getName().trim()
+                    : document.getProjectName();
 
-                .deadline(document.getProjectDeadline())
-                .deadline(dto.getDeadline())
+            String description = (dto.getDescription() != null && !dto.getDescription().isBlank())
+                    ? dto.getDescription().trim()
+                    : document.getProjectDescription();
 
-                .status(ProjectStatus.PLANNING)
-                .document(document)
-                .projectManager(pm)
-                .build();
+            LocalDate deadline = (dto.getDeadline() != null)
+                    ? dto.getDeadline()
+                    : document.getProjectDeadline();
 
-        projectRepository.save(project);
-        projectRepository.flush();
+            Project project = Project.builder()
+                    .name(name)
+                    .description(description)
+                    .createdAt(LocalDate.now())
+                    .deadline(deadline)
+                    .status(ProjectStatus.PLANNING)
+                    .document(document)
+                    .projectManager(pm)
+                    .build();
 
-        document.setProject(project);
-        document.setStatus(DocumentStatus.IN_PROGRESS);
-        documentRepository.save(document);
-        notificationService.createNotification(
-                NotificationType.PROJECT,
-                document.getId(),
-                false
-        );
+            projectRepository.save(project);
+            projectRepository.flush();
 
-        return ApiResponse.success(null, "project-created-successfully");
+            document.setProject(project);
+            document.setStatus(DocumentStatus.IN_PROGRESS);
+            documentRepository.save(document);
 
-    }
+            notificationService.createNotification(
+                    NotificationType.PROJECT,
+                    document.getId(),
+                    false
+            );
 
-    public ApiResponse<?> deleteProject(Long id) {
+            return ApiResponse.success(null, "project-created-successfully");
+        }
+
+    public ApiResponse<?> deleteProject( Long id ) {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found"));
 
@@ -197,7 +291,6 @@ public class ProjectService {
         }
 
         boolean hasRepo = project.getRepoOwner() != null && project.getRepoName() != null;
-
         if (!hasRepo) {
             return new ApiResponse<>(null, "no-repo-linked", 204);
         }
@@ -265,24 +358,6 @@ public class ProjectService {
         return ApiResponse.success(new ProjectUpdateDto(project), "project-updated-successfully");
     }
 
-    public void updateHiddenFlags() {
-        List<Project> completedProjects = projectQuery.getDoneProjects();
-        for (Project project : completedProjects) {
-            if (project.getCompletedAt() != null
-                    && project.getCompletedAt().isBefore(LocalDateTime.now().minusDays(30))) {
-                if (!project.isHidden()) {
-                    project.setHidden(true);
-                    projectRepository.save(project);
-                }
-            } else {
-                if (project.isHidden()) {
-                    project.setHidden(false);
-                    projectRepository.save(project);
-                }
-            }
-        }
-    }
-
     public ApiResponse<?> linkRepo(Long projectId, RepoRequestDto dto, HttpServletRequest request) {
         Optional<Project> projectOpt = projectRepository.findById(projectId);
         if (projectOpt.isEmpty()) {
@@ -327,7 +402,88 @@ public class ProjectService {
         }
     }
 
-    private ProjectDto toDto(Project project) {
+    /* ==================== KANBAN (PROJECT LIST CHO EMP/HOD) ==================== */
+
+    public ApiResponse<List<ProjectDto>> getKanbanProjects(HttpServletRequest request) {
+        Account viewer = requireViewer(request);
+        Role role = viewer.getRole();
+
+        List<Project> all = projectQuery.getAllVisible().stream()
+                .filter(pr -> pr.getStatus() != ProjectStatus.CANCELED)
+                .toList();
+
+        List<Project> filtered;
+        if (role == Role.ADMIN || role == Role.MANAGER) {
+            filtered = all;
+        } else if (role == Role.PM) {
+            filtered = all.stream()
+                    .filter(p -> p.getProjectManager() != null
+                            && p.getProjectManager().getId().equals(viewer.getId()))
+                    .toList();
+        } else { // EMPLOYEE / HOD
+            filtered = all.stream()
+                    .filter(this::projectHasActivePhaseWithLiveTasks)
+                    .toList();
+        }
+
+        List<ProjectDto> dtos = filtered.stream()
+                .map(this::toDtoOverall)
+                .toList();
+        return ApiResponse.success(dtos, "kanban-projects");
+    }
+
+    /* ==================== HELPERS ==================== */
+
+    private Account requireViewer(HttpServletRequest request) {
+        String username = jwtUtil.extractUsernameFromRequest(request);
+        return accountRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("invalid-account"));
+    }
+
+    /**
+     * Project thỏa điều kiện: có Phase IN_PROGRESS và trong đó có Task
+     * thuộc {PLANNING, IN_PROGRESS, IN_REVIEW, COMPLETED} và không hidden.
+     * Ưu tiên query qua TaskRepository để tránh N+1.
+     */
+    private boolean projectHasActivePhaseWithLiveTasks(Project p) {
+        if (p.getId() == null) return false;
+        var allowed = List.of(TaskStatus.PLANNING, TaskStatus.IN_PROGRESS,
+                TaskStatus.IN_REVIEW, TaskStatus.COMPLETED);
+        try {
+            return taskRepository.existsLiveTaskInActivePhase(p.getId(), allowed);
+        } catch (Exception e) {
+            // fallback khi repository chưa sẵn sàng hoặc lỗi runtime
+            if (p.getPhases() == null) return false;
+            return p.getPhases().stream()
+                    .filter(ph -> ph != null && ph.getStatus() == server.models.enums.PhaseStatus.IN_PROGRESS)
+                    .anyMatch(ph -> ph.getTasks() != null && ph.getTasks().stream()
+                            .filter(Objects::nonNull)
+                            .anyMatch(t -> t.getStatus() != TaskStatus.CANCELED && !t.isHidden()));
+        }
+    }
+
+    private boolean isTaskAssignedTo(Task t, Account viewer) {
+        return viewer != null
+                && viewer.getEmployee() != null
+                && t.getAssignee() != null
+                && Objects.equals(t.getAssignee().getId(), viewer.getEmployee().getId());
+    }
+
+    /** Dùng cho list: progress tổng thể project, không lọc task */
+    private ProjectDto toDtoOverall(Project project) {
+        return toDtoInternal(project, null, false, true);
+    }
+
+    /** Dùng cho detail: EMP/HOD chỉ xem task của mình; các role khác xem full */
+    private ProjectDto toDtoForViewer(Project project, Account viewer, boolean onlyMine) {
+        return toDtoInternal(project, viewer, onlyMine, false);
+    }
+
+    /**
+     * @param overallProgress nếu true -> tính progress toàn project (bỏ qua onlyMine)
+     *                        nếu false + onlyMine=true -> tasks trả về chỉ của viewer, nhưng progress vẫn theo toàn bộ project
+     */
+    private ProjectDto toDtoInternal(Project project, Account viewer, boolean onlyMine, boolean overallProgress) {
         ProjectDto dto = new ProjectDto();
         dto.setId(project.getId());
         dto.setName(project.getName());
@@ -336,7 +492,7 @@ public class ProjectService {
         dto.setDeadline(project.getDeadline());
         dto.setStatus(project.getStatus().toString());
 
-        // ✅ Trả repoLink luôn cho FE (ưu tiên cột repoLink; fallback owner/name)
+        // repo link hiển thị
         String link = project.getRepoLink();
         if ((link == null || link.isBlank())
                 && project.getRepoOwner() != null && project.getRepoName() != null) {
@@ -352,20 +508,14 @@ public class ProjectService {
         if (project.getProjectManager() != null && project.getProjectManager().getEmployee() != null) {
             var emp = project.getProjectManager().getEmployee();
             dto.setPmId(project.getProjectManager().getId());
-            dto.setPmName(emp.getFirstName() + " " + emp.getLastName());
+            dto.setPmName((emp.getFirstName() + " " + emp.getLastName()).trim());
         }
 
-        // Gom task hợp lệ (không tính CANCELED) để tính progress
-        List<Task> allTasks = new ArrayList<>();
-        if (project.getPhases() != null) {
-            project.getPhases().forEach(phase -> {
-                if (phase.getTasks() != null) allTasks.addAll(phase.getTasks());
-            });
-        }
+        // progress tổng thể (không lọc)
+        List<Task> allTasks = collectAllTasks(project);
         List<Task> validTasks = allTasks.stream()
                 .filter(t -> t.getStatus() != TaskStatus.CANCELED)
                 .toList();
-
         int total = validTasks.size();
         int done = (int) validTasks.stream().filter(t -> t.getStatus() == TaskStatus.COMPLETED).count();
 
@@ -374,8 +524,28 @@ public class ProjectService {
         dto.setProgress(total == 0 ? 0 : (int) Math.round((done * 100.0) / total));
         dto.setCompletedAt(project.getCompletedAt());
 
-        dto.setTasks(validTasks.stream().map(this::toTaskDto).collect(Collectors.toList()));
+        // danh sách task trả về trong DTO
+        List<Task> tasksForDto;
+        if (onlyMine && viewer != null) {
+            tasksForDto = validTasks.stream()
+                    .filter(t -> isTaskAssignedTo(t, viewer))
+                    .toList();
+        } else {
+            tasksForDto = validTasks;
+        }
+        dto.setTasks(tasksForDto.stream().map(this::toTaskDto).collect(Collectors.toList()));
+
         return dto;
+    }
+
+    private List<Task> collectAllTasks(Project project) {
+        List<Task> all = new ArrayList<>();
+        if (project.getPhases() != null) {
+            project.getPhases().forEach(ph -> {
+                if (ph.getTasks() != null) all.addAll(ph.getTasks());
+            });
+        }
+        return all;
     }
 
     private TaskDto toTaskDto(Task task) {
@@ -390,13 +560,8 @@ public class ProjectService {
         return dto;
     }
 
-    /**
-     * Lấy danh sách Project cho Kanban Board (Employee)
-     */
-    public ApiResponse<List<ProjectDto>> getKanbanProjects(HttpServletRequest request) {
-        String username = jwtUtil.extractUsernameFromRequest(request);
-        Account me = accountRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("invalid-account"));
+    /* ==================== HIDDEN FLAGS ==================== */
+
 
         List<Project> projects = projectQuery.getAllVisible().stream()
                 .filter(pr -> pr.getStatus() != ProjectStatus.CANCELED)
@@ -413,5 +578,23 @@ public class ProjectService {
 
         List<ProjectDto> dtos = projects.stream().map(this::toDto).collect(Collectors.toList());
         return ApiResponse.success(dtos, "kanban-projects");
+
+    public void updateHiddenFlags() {
+        List<Project> completedProjects = projectQuery.getDoneProjects();
+        for (Project project : completedProjects) {
+            if (project.getCompletedAt() != null
+                    && project.getCompletedAt().isBefore(LocalDateTime.now().minusDays(30))) {
+                if (!project.isHidden()) {
+                    project.setHidden(true);
+                    projectRepository.save(project);
+                }
+            } else {
+                if (project.isHidden()) {
+                    project.setHidden(false);
+                    projectRepository.save(project);
+                }
+            }
+        }
+
     }
 }

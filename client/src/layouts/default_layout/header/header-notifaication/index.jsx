@@ -37,6 +37,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useNotificationRealtime } from "~/hooks/useNotificationRealtime";
 import CustomAvatar from "~/components/custom-avatar";
+import { useTranslation } from "react-i18next";
 
 const getTypeIcon = (type) => {
   switch (type) {
@@ -104,6 +105,7 @@ export default function HeaderNotification() {
   const account = useSelector((state) => state.account.value);
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
   const theme = useTheme();
+  const { t } = useTranslation("noti_page");
 
   const navigateToDetail = useCallback(
     (noti) => {
@@ -133,6 +135,15 @@ export default function HeaderNotification() {
     },
     [navigate]
   );
+
+  function parseContent(content) {
+    if (!content) return null;
+    try {
+      return JSON.parse(content);
+    } catch {
+      return null;
+    }
+  }
 
   const handleNewNotification = useCallback(
     (newNoti) => {
@@ -447,7 +458,7 @@ export default function HeaderNotification() {
                             display: "block",
                           }}
                         >
-                          {noti.title}
+                          {t(noti.title)}
                         </Typography>
                       </Box>
                     }
@@ -466,7 +477,12 @@ export default function HeaderNotification() {
                             mb: 0.5,
                           }}
                         >
-                          {noti.content}
+                          {(() => {
+                            const parsed = parseContent(noti.content);
+                            return parsed?.key
+                              ? t(parsed.key, parsed.params || {})
+                              : noti.content;
+                          })()}
                         </Typography>
                         <Typography
                           component="span"
@@ -520,7 +536,7 @@ export default function HeaderNotification() {
               },
             }}
           >
-            View all notifications
+            {t("all-notifications")}
           </Button>
         </Box>
       </Menu>
