@@ -23,7 +23,7 @@ import FundDetails from "~/pages/accountant/fund-detail";
 import TransactionList from "~/pages/accountant/fund-transaction-list";
 import CreateSalaryPage from "~/pages/accountant/salary";
 import SalaryDetail from "~/pages/accountant/salary-detail";
-
+import ProjectKanbanBoard from "~/components/project/KanbanForm";
 // Employees
 import EmployeesListPage from "~/pages/employees";
 import CreateEmployeePage from "~/pages/employees/create";
@@ -31,7 +31,6 @@ import EmployeeDetailsPage from "~/pages/employees/details";
 import EmployeeExcelImport from "~/pages/employees/excel_import";
 import CashAdvanceList from "~/pages/accountant/CashAdvanceList";
 
-import ProjectKanbanBoard from "~/components/project/KanbanForm";
 const roleRoutes = [
   // Accounts
   {
@@ -52,27 +51,30 @@ const roleRoutes = [
     path: "/management/documents",
     component: DocumentList,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT","SECRETARY"],
+    roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
   },
   {
     path: "/management/documents/:id",
     component: DocumentDetail,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT","SECRETARY"],
+    roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
   },
 
   {
     path: "/management/documents/:id/update",
     component: DocumentUpdate,
     layout: DefaultLayout,
-    roles: ["ADMIN","SECRETARY"],
+    roles: ["ADMIN"],
+
   },
   {
     path: "/management/documents/:id/histories",
     component: DocumentHistoryList,
     layout: DefaultLayout,
-    roles: ["MANAGER", "ADMIN","SECRETARY"],
+    roles: ["MANAGER", "ADMIN"],
   },
+
+
   // Kanban (Project & Phase) — mở cho HOD/EMPLOYEE để họ xem/drag theo rule
   {
     path: "/projects/:id/kanban",
@@ -87,8 +89,7 @@ const roleRoutes = [
     roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
   },
 
-
-  // Departments
+    // Departments
   {
     path: "/departments/add",
     component: AddDepartmentPage,
@@ -172,6 +173,8 @@ const roleRoutes = [
     layout: DefaultLayout,
     roles: ["ADMIN", "MANAGER", "HR"],
   },
+
+
 ];
 
 export default roleRoutes;

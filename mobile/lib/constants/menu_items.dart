@@ -89,13 +89,6 @@ const List<MenuSection> menuItems = [
         route: "/management/documents",
         roles: ["ADMIN", "MANAGER", "PM"],
       ),
-      // Tasks chỉ dành cho HOD & EMPLOYEE
-      MenuItemData(
-        label: "Tasks",
-        icon: Icons.task_alt,
-        route: "/utilities/tasks",
-        roles: ["HOD", "EMPLOYEE"],
-      ),
       MenuItemData(
         label: "Leave Request",
         icon: Icons.description,

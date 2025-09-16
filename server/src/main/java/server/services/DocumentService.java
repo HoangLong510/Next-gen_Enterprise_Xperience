@@ -1,10 +1,10 @@
-package server.services;
+        package server.services;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.xwpf.usermodel.*;
-import org.springframework.beans.factory.annotation.Value;
+        import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
@@ -13,15 +13,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.zwobble.mammoth.DocumentConverter;
 import org.zwobble.mammoth.Result;
 import server.dtos.*;
-import server.models.*;
-import server.models.Document;
+        import server.models.*;
+        import server.models.Document;
 import server.models.accountant.fund.Fund;
 import server.models.enums.*;
-import server.repositories.*;
-import server.repositories.accountant.fund.FundRepository;
+        import server.repositories.*;
+        import server.repositories.accountant.fund.FundRepository;
 import server.specification.DocumentSpecifications;
 import org.springframework.data.domain.*;
-import server.utils.ApiResponse;
+        import server.utils.ApiResponse;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -205,12 +205,12 @@ public class DocumentService {
         var acc = accountRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        boolean privileged = acc.getRole() == Role.ADMIN || acc.getRole() == Role.MANAGER || acc.getRole() == Role.SECRETARY;
+        boolean privileged = acc.getRole() == Role.ADMIN || acc.getRole() == Role.MANAGER;
         if (!privileged && !documentRepository.hasAccess(id, username)) {
             throw new AccessDeniedException("Forbidden");
         }
 
-        boolean includeNote = acc.getRole() == Role.MANAGER || acc.getRole() == Role.ADMIN || acc.getRole() == Role.SECRETARY;
+        boolean includeNote = acc.getRole() == Role.MANAGER || acc.getRole() == Role.ADMIN;
         return mapToResponse(doc, includeNote);
     }
 

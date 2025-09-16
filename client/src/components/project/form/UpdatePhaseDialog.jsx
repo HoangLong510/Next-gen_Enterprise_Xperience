@@ -26,7 +26,7 @@ import { useTranslation } from "react-i18next";
 import { updatePhase } from "~/services/phase.service";
 import { formatStatus } from "~/utils/project.utils";
 
-// ===== Schema (thêm check với maxTaskDeadline + nextPhaseDeadline) =====
+// ===== Schema builder: check previous, tasks, next phase, project =====
 const makeSchema = (projectDeadline, previousDeadline, maxTaskDeadline, nextPhaseDeadline) =>
   yup.object({
     name: yup.string().nullable().transform((v) => v ?? ""),
@@ -64,8 +64,8 @@ export default function UpdatePhaseDialog({
   phase,                // PhaseDto (có tasks)
   projectDeadline,      // YYYY-MM-DD
   previousDeadline,     // YYYY-MM-DD
-  nextPhaseStatus,      // trạng thái phase kế tiếp để xét reopen
-  nextPhaseDeadline,    // ⬅️ DEADLINE của phase kế tiếp (nếu có)
+  nextPhaseStatus,      // trạng thái phase kế tiếp (để xét reopen)
+  nextPhaseDeadline,    // YYYY-MM-DD (deadline của phase kế tiếp, nếu có)
   onUpdated,
 }) {
   const dispatch = useDispatch();
@@ -105,7 +105,7 @@ export default function UpdatePhaseDialog({
     },
   });
 
-  // Theo dõi deadline đang nhập (để tương thích nếu cần)
+  // Theo dõi deadline đang nhập (nếu cần re-render helper)
   useWatch({ control, name: "deadline" });
 
   useEffect(() => {
@@ -138,18 +138,18 @@ export default function UpdatePhaseDialog({
     if (!cur) return map;
 
     if (cur === "PLANNING") {
-      if (!Array.isArray(phase?.tasks) || phase.tasks.length === 0) map.IN_PROGRESS = true;
+      if (!Array.isArray(phase?.tasks) || phase.tasks.length === 0) map.IN_PROGRESS = true; // cần có task
       map.COMPLETED = true;
     }
 
     if (cur === "IN_PROGRESS") {
-      if (Array.isArray(phase?.tasks) && phase.tasks.length > 0) map.PLANNING = true;
-      if (incompleteCount > 0) map.COMPLETED = true;
+      if (Array.isArray(phase?.tasks) && phase.tasks.length > 0) map.PLANNING = true; // không lùi khi đã có task
+      if (incompleteCount > 0) map.COMPLETED = true; // chưa xong task thì không completed
     }
 
     if (cur === "COMPLETED") {
       map.PLANNING = true; // không quay về planning
-      map.IN_PROGRESS = !canReopenFromCompleted; // false = cho phép reopen
+      map.IN_PROGRESS = !canReopenFromCompleted; // chỉ cho reopen khi thoả điều kiện
       map.COMPLETED = false;
     }
 
@@ -181,7 +181,7 @@ export default function UpdatePhaseDialog({
       dispatch(
         setPopup({
           type: "error",
-          message: tErrors(msgKey) || "Deadline cannot be earlier than task deadline",
+          message: tErrors(msgKey) || tMessages(msgKey) || "Invalid deadline",
         })
       );
       return false;
@@ -195,7 +195,7 @@ export default function UpdatePhaseDialog({
       dispatch(
         setPopup({
           type: "error",
-          message: tErrors(msgKey) || "Deadline cannot be after next phase deadline",
+          message: tErrors(msgKey) || tMessages(msgKey) || "Invalid deadline",
         })
       );
       return false;
@@ -208,14 +208,24 @@ export default function UpdatePhaseDialog({
   const doSubmit = async (payload) => {
     const res = await updatePhase(phase.id, payload);
     if (res.status === 200) {
-      dispatch(setPopup({ type: "success", message: res.message || tMessages("updated-successfully") }));
+      dispatch(
+        setPopup({
+          type: "success",
+          message:
+            tMessages(res.message) ||
+            tErrors(res.message) ||
+            res.message ||
+            tMessages("updated-successfully"),
+        })
+      );
       onUpdated?.();
       onClose?.();
     } else {
       dispatch(
         setPopup({
           type: "error",
-          message: tErrors(res.message) || res.message || tMessages("server-is-busy"),
+          message:
+            tErrors(res.message) || tMessages(res.message) || res.message || tMessages("server-is-busy"),
         })
       );
     }
@@ -245,7 +255,7 @@ export default function UpdatePhaseDialog({
   // ===== UI =====
   // Sàn hiển thị: max(today, previousDeadline, maxTaskDeadline)
   const minDateStr = (() => {
-    const todayStr = today.format("YYYY-MM-DD");
+    const todayStr = dayjs().format("YYYY-MM-DD");
     const arr = [todayStr, previousDeadline, maxTaskDeadline].filter(Boolean).sort();
     return arr[arr.length - 1] || todayStr;
   })();
@@ -299,12 +309,7 @@ export default function UpdatePhaseDialog({
                       "Phase has been completed. Deadline is locked."
                     : errors.deadline
                     ? tErrors(errors.deadline?.message) || errors.deadline?.message
-                    : [
-                        maxTaskDeadline ? `${tPhases("note") || "Note"}: ≥ ${maxTaskDeadline} (latest task)` : null,
-                        nextPhaseDeadline ? `${tPhases("note") || "Note"}: ≤ ${nextPhaseDeadline} (next phase)` : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" • ")
+                    : ""
                 }
                 InputLabelProps={{ shrink: true }}
                 inputProps={{
@@ -335,21 +340,11 @@ export default function UpdatePhaseDialog({
             )}
           />
 
-          {/* Hints */}
+          {/* Hint khi đang IN_PROGRESS mà còn việc chưa xong */}
           {phase?.status === "IN_PROGRESS" && incompleteCount > 0 && (
             <Typography variant="caption" color="error.main">
               {tMessages("phase-has-unfinished-tasks", { count: incompleteCount }) ||
                 `Còn ${incompleteCount} công việc chưa hoàn thành (không tính công việc đã hủy), nên không thể đặt phase thành Completed.`}
-            </Typography>
-          )}
-
-          {phase?.status === "COMPLETED" && (
-            <Typography variant="caption" color="text.secondary">
-              {(!nextPhaseOk || !effectiveDeadlineOk
-                ? tMessages("reopen-constraints-not-met") ||
-                  "Để mở lại: Phase kế tiếp phải còn ở Planning và deadline của phase này chưa quá hạn."
-                : tMessages("reopen-constraints-ok") ||
-                  "Bạn có thể mở lại sang In Progress vì thoả điều kiện: phase sau đang Planning và deadline hợp lệ.")}
             </Typography>
           )}
         </Stack>
