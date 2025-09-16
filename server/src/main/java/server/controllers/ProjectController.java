@@ -22,10 +22,14 @@ import java.util.Map;
 public class ProjectController {
 
     private final ProjectService projectService;
+
+
     private final QuickTaskService quickTaskService;
     private final UploadFileService uploadFileService;
 
-    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','SECRETARY')")
+    // ✅ Lấy tất cả dự án đang hoạt động (theo role, EMP/HOD dùng rule mới)
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE','SECRETARY')")
+
     @GetMapping
     public ApiResponse<List<ProjectDto>> getAllVisible(HttpServletRequest request) {
         return projectService.getAllVisible(request);
@@ -74,7 +78,6 @@ public class ProjectController {
     ) {
         return projectService.createProject(dto, request);
     }
-
     @PreAuthorize("""
   hasAnyAuthority('ADMIN','MANAGER','SECRETARY') or
   (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))

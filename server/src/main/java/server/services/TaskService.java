@@ -410,7 +410,7 @@ public class TaskService {
         dto.setId(task.getId());
         dto.setName(task.getName());
         dto.setDescription(task.getDescription());
-        dto.setImageUrl(task.getImageUrl());
+//        dto.setImageUrl(task.getImageUrl());
         dto.setDeadline(task.getDeadline());
         dto.setStatus(task.getStatus().name());
         dto.setSize(task.getSize() != null ? task.getSize().name() : null);
