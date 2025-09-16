@@ -16,7 +16,6 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  Checkbox,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -31,7 +30,6 @@ import {
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import SendIcon from "@mui/icons-material/Send";
 import dayjs from "dayjs";
 import { useDispatch, useSelector } from "react-redux";
 import { setPopup } from "~/libs/features/popup/popupSlice";
@@ -40,72 +38,69 @@ import api from "~/utils/axios";
 import {
   listAdvancesApi,
   updateCashAdvanceStatusApi,
-  sendAdvancesToChiefApi,
   chiefApproveAdvanceApi,
+  chiefRejectAdvanceApi,
   directorApproveAdvanceApi,
-  sendAdvancesToDirectorApi,
+  directorRejectAdvanceApi,
 } from "~/services/cash-advance.service";
 
 import { renderAsync } from "docx-preview";
+import SignatureCanvas from "react-signature-canvas";
 
-const API_BASE = (api?.defaults?.baseURL || "").replace(/\/$/, "");
-const normalizeUrl = (u = "") => {
-  if (!u) return "";
-  if (/^https?:\/\//i.test(u)) return encodeURI(u);
-  if (u.startsWith("/uploads")) return encodeURI(`${API_BASE}${u}`);
-  const right = u.startsWith("/") ? u : `/${u}`;
-  return encodeURI(`${API_BASE}${right}`);
-};
+/* ================== Helper chữ ký ================== */
+function trimCanvasSafe(src) {
+  if (!src) return null;
+  const ctx = src.getContext("2d");
+  const { width: w, height: h } = src;
+  const data = ctx.getImageData(0, 0, w, h).data;
 
-const canSendToDirector = (r) =>
-  r.status === "APPROVED" && !!r.chiefApprovedAt && !r.sentToDirectorAt;
+  let top = h,
+    left = w,
+    right = 0,
+    bottom = 0,
+    hasInk = false;
 
-const sendToDirector = async () => {
-  if (selected.length === 0) return;
-
-  const idToRow = new Map(rows.map((r) => [r.id, r]));
-  const allEligible = selected.every((id) =>
-    canSendToDirector(idToRow.get(id))
-  );
-  if (!allEligible) {
-    dispatch(
-      setPopup({
-        type: "error",
-        message:
-          "Only select requests approved by Chief and not yet sent to Director.",
-      })
-    );
-    return;
-  }
-
-  try {
-    setLoading(true);
-    const res = await sendAdvancesToDirectorApi({ requestIds: selected });
-    if (res?.status === 200) {
-      dispatch(
-        setPopup({
-          type: "success",
-          message: res?.message || "Sent to Director",
-        })
-      );
-      fetchData();
-    } else {
-      dispatch(
-        setPopup({ type: "error", message: res?.message || "Send failed" })
-      );
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const a = data[(y * w + x) * 4 + 3];
+      if (a !== 0) {
+        hasInk = true;
+        if (x < left) left = x;
+        if (x > right) right = x;
+        if (y < top) top = y;
+        if (y > bottom) bottom = y;
+      }
     }
-  } catch {
-    dispatch(
-      setPopup({ type: "error", message: "Server error while sending" })
-    );
-  } finally {
-    setLoading(false);
   }
-};
+  if (!hasInk) return null;
 
-/* File Preview Dialog */
+  const tw = right - left + 1;
+  const th = bottom - top + 1;
+  const out = document.createElement("canvas");
+  out.width = tw;
+  out.height = th;
+  const octx = out.getContext("2d");
+  octx.putImageData(ctx.getImageData(left, top, tw, th), 0, 0);
+  return out;
+}
+
+function getSignatureDataUrl(sigRef) {
+  const base = sigRef?.current?.getCanvas?.();
+  if (!base) return null;
+  const trimmed = trimCanvasSafe(base);
+  return (trimmed || base).toDataURL("image/png");
+}
+
+/* ================== File Preview ================== */
 function FilePreviewDialog({ open, onClose, url }) {
-  const href = useMemo(() => normalizeUrl(url || ""), [url]);
+  const API_BASE = (api?.defaults?.baseURL || "").replace(/\/$/, "");
+  const href = useMemo(() => {
+    if (!url) return "";
+    if (/^https?:\/\//i.test(url)) return encodeURI(url);
+    if (url.startsWith("/uploads")) return encodeURI(`${API_BASE}${url}`);
+    return encodeURI(`${API_BASE}${url.startsWith("/") ? url : "/" + url}`);
+  }, [url]);
+
   const ext = useMemo(() => {
     const m = (href || "").toLowerCase().match(/\.([a-z0-9]+)(?:\?|#|$)/);
     return m ? m[1] : "";
@@ -143,7 +138,7 @@ function FilePreviewDialog({ open, onClose, url }) {
             useMathMLPolyfill: true,
           });
         }
-      } catch (e) {
+      } catch {
         if (alive) {
           setDocxErr("Unable to preview DOCX. Please open the file directly.");
         }
@@ -195,7 +190,7 @@ function FilePreviewDialog({ open, onClose, url }) {
         ) : (
           <Box p={2}>
             <Typography variant="body2">
-              Preview not supported for this file type. Open directly:
+              Preview not supported. Open directly:
             </Typography>
             <Link href={href} target="_blank" rel="noreferrer">
               {href}
@@ -210,38 +205,76 @@ function FilePreviewDialog({ open, onClose, url }) {
   );
 }
 
+/* ================== Review Dialog ================== */
 function ReviewDialog({ open, onClose, onSubmit, mode, loading }) {
   const [note, setNote] = useState("");
+  const sigRef = useRef(null);
+
   useEffect(() => {
-    if (!open) setNote("");
+    if (!open) {
+      setNote("");
+      sigRef.current?.clear();
+    }
   }, [open]);
 
-  const showNote = mode === "REJECTED";
+  const needSignature = ["CHIEF_APPROVED", "DIRECTOR_APPROVED"].includes(mode);
+  const showNote = mode.includes("REJECTED");
+
+  const handleSubmit = () => {
+    let signature = null;
+    if (needSignature) {
+      signature = getSignatureDataUrl(sigRef);
+      if (!signature) {
+        alert("Please sign before approving.");
+        return;
+      }
+    }
+    onSubmit(note, signature);
+  };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        {mode === "APPROVED" ? "Approve Cash Advance" : "Reject Cash Advance"}
+        {mode.includes("APPROVED")
+          ? "Approve Cash Advance"
+          : "Reject Cash Advance"}
       </DialogTitle>
       <DialogContent dividers>
         {showNote ? (
+          <TextField
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Enter a note..."
+            fullWidth
+            multiline
+            minRows={3}
+          />
+        ) : needSignature ? (
           <>
             <Typography variant="body2" sx={{ mb: 1 }}>
-              Note (optional)
+              Please sign below to approve this request:
             </Typography>
-            <TextField
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Enter a note..."
-              fullWidth
-              multiline
-              minRows={3}
-            />
+            <Paper
+              variant="outlined"
+              sx={{ p: 1, width: "100%", height: 160, bgcolor: "#fff" }}
+            >
+              <SignatureCanvas
+                ref={sigRef}
+                canvasProps={{
+                  width: 600,
+                  height: 140,
+                  style: { width: "100%", height: "140px" },
+                }}
+                backgroundColor="#fff"
+                penColor="black"
+              />
+            </Paper>
+            <Button onClick={() => sigRef.current?.clear()} sx={{ mt: 1 }}>
+              Clear signature
+            </Button>
           </>
         ) : (
-          <Typography variant="body2">
-            You are about to approve this request.
-          </Typography>
+          <Typography>You are about to approve this request.</Typography>
         )}
       </DialogContent>
       <DialogActions>
@@ -249,14 +282,14 @@ function ReviewDialog({ open, onClose, onSubmit, mode, loading }) {
           Cancel
         </Button>
         <Button
-          onClick={() => onSubmit(note)}
+          onClick={handleSubmit}
           variant="contained"
-          color={mode === "APPROVED" ? "success" : "error"}
+          color={mode.includes("APPROVED") ? "success" : "error"}
           disabled={loading}
         >
           {loading
             ? "Submitting..."
-            : mode === "APPROVED"
+            : mode.includes("APPROVED")
             ? "Approve"
             : "Reject"}
         </Button>
@@ -266,10 +299,12 @@ function ReviewDialog({ open, onClose, onSubmit, mode, loading }) {
 }
 
 const STATUS_COLOR = (s) =>
-  s === "APPROVED"
+  s === "APPROVED" || s === "APPROVED_DIRECTOR"
     ? "success"
     : s === "REJECTED"
     ? "error"
+    : s?.startsWith("APPROVED")
+    ? "info"
     : s === "PENDING"
     ? "info"
     : "default";
@@ -277,10 +312,9 @@ const STATUS_COLOR = (s) =>
 /* ================== Main ================== */
 export default function CashAdvanceList() {
   const dispatch = useDispatch();
-
   const me = useSelector((state) => state.account.value);
-  console.log(me?.role);
   const myRole = me?.role;
+
   const isAccountant = myRole === "ACCOUNTANT" || myRole === "ADMIN";
   const isChief = myRole === "CHIEFACCOUNTANT" || myRole === "ADMIN";
   const isDirector = myRole === "MANAGER" || myRole === "ADMIN";
@@ -288,8 +322,6 @@ export default function CashAdvanceList() {
   const [view, setView] = useState("ALL");
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const [selected, setSelected] = useState([]);
 
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerUrl, setViewerUrl] = useState("");
@@ -301,52 +333,25 @@ export default function CashAdvanceList() {
   const fetchData = async () => {
     try {
       setLoading(true);
-
-      let params = {};
-      switch (view) {
-        case "ALL":
-          params = { status: "ALL" };
-          break;
-        case "MY":
-          params = { scope: "MY", status: "ALL" };
-          break;
-        case "PENDING":
-        case "APPROVED":
-        case "REJECTED":
-          params = { status: view };
-          break;
-        default:
-          params = { status: "ALL" };
-      }
+      let params = { status: view === "ALL" ? "ALL" : view };
+      if (view === "MY") params = { scope: "MY", status: "ALL" };
 
       const res = await listAdvancesApi(params);
       let data = Array.isArray(res?.data) ? res.data : [];
-
       const order = { PENDING: 1, APPROVED: 2, REJECTED: 3 };
       data.sort((a, b) => (order[a.status] || 99) - (order[b.status] || 99));
-
       setRows(data);
     } catch {
       setRows([]);
       dispatch(setPopup({ type: "error", message: "Failed to load list" }));
     } finally {
       setLoading(false);
-      setSelected([]);
     }
   };
 
   useEffect(() => {
     fetchData();
   }, [view]);
-
-  const toggleAll = () =>
-    setSelected((prev) =>
-      prev.length === rows.length ? [] : rows.map((r) => r.id)
-    );
-  const toggleOne = (id) =>
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
 
   const openFile = (url) => {
     setViewerUrl(url || "");
@@ -359,14 +364,26 @@ export default function CashAdvanceList() {
     setReviewOpen(true);
   };
 
-  const submitReview = async (note) => {
+  const submitReview = async (note, signature) => {
     if (!reviewId) return;
     try {
       setReviewing(true);
-      const res = await updateCashAdvanceStatusApi(reviewId, {
-        status: reviewMode,
-        note: note?.trim() || undefined,
-      });
+      let res;
+      if (reviewMode === "APPROVED") {
+        res = await updateCashAdvanceStatusApi(reviewId, {
+          status: "APPROVED",
+          note: note?.trim() || undefined,
+        });
+      } else if (reviewMode === "CHIEF_APPROVED") {
+        res = await chiefApproveAdvanceApi(reviewId, note, signature);
+      } else if (reviewMode === "CHIEF_REJECTED") {
+        res = await chiefRejectAdvanceApi(reviewId, note);
+      } else if (reviewMode === "DIRECTOR_APPROVED") {
+        res = await directorApproveAdvanceApi(reviewId, note, signature);
+      } else if (reviewMode === "DIRECTOR_REJECTED") {
+        res = await directorRejectAdvanceApi(reviewId, note);
+      }
+
       if (res?.status === 200) {
         dispatch(
           setPopup({
@@ -378,10 +395,7 @@ export default function CashAdvanceList() {
         fetchData();
       } else {
         dispatch(
-          setPopup({
-            type: "error",
-            message: res?.message || "Update failed",
-          })
+          setPopup({ type: "error", message: res?.message || "Update failed" })
         );
       }
     } catch {
@@ -392,101 +406,6 @@ export default function CashAdvanceList() {
       setReviewing(false);
     }
   };
-
-  const sendToChief = async () => {
-    if (selected.length === 0) return;
-    try {
-      setLoading(true);
-      const res = await sendAdvancesToChiefApi({ requestIds: selected });
-      if (res?.status === 200)
-        dispatch(
-          setPopup({
-            type: "success",
-            message: res?.message || "Sent to Chief Accountant",
-          })
-        );
-      else
-        dispatch(
-          setPopup({ type: "error", message: res?.message || "Send failed" })
-        );
-      fetchData();
-    } catch {
-      dispatch(
-        setPopup({ type: "error", message: "Server error while sending" })
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Điều kiện hiển thị nút duyệt của KTT
-  const canChiefApprove = (r) =>
-    r.status === "APPROVED" &&
-    !!r.sentToChiefAt &&
-    !r.chiefApprovedAt &&
-    (!r.chiefAssigneeId || r.chiefAssigneeId === me?.id);
-
-  // Điều kiện hiển thị nút duyệt của Giám đốc
-  const canDirectorApprove = (r) =>
-    r.status === "APPROVED" &&
-    !!r.chiefApprovedAt &&
-    !!r.sentToDirectorAt &&
-    !r.directorApprovedAt &&
-    (!r.directorAssigneeId || r.directorAssigneeId === me?.id);
-
-  const onChiefApprove = async (id) => {
-    try {
-      setLoading(true);
-      const res = await chiefApproveAdvanceApi(id);
-      if (res?.status === 200) {
-        dispatch(
-          setPopup({
-            type: "success",
-            message: res?.message || "Chief approved",
-          })
-        );
-        fetchData();
-      } else {
-        dispatch(
-          setPopup({ type: "error", message: res?.message || "Approve failed" })
-        );
-      }
-    } catch {
-      dispatch(
-        setPopup({ type: "error", message: "Server error while approving" })
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const onDirectorApprove = async (id) => {
-    try {
-      setLoading(true);
-      const res = await directorApproveAdvanceApi(id);
-      if (res?.status === 200) {
-        dispatch(
-          setPopup({
-            type: "success",
-            message: res?.message || "Director approved",
-          })
-        );
-        fetchData();
-      } else {
-        dispatch(
-          setPopup({ type: "error", message: res?.message || "Approve failed" })
-        );
-      }
-    } catch {
-      dispatch(
-        setPopup({ type: "error", message: "Server error while approving" })
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const allChecked = selected.length > 0 && selected.length === rows.length;
 
   return (
     <Box p={2}>
@@ -499,7 +418,6 @@ export default function CashAdvanceList() {
         <Typography variant="h5" fontWeight={700} sx={{ flex: 1 }}>
           Cash Advance Requests
         </Typography>
-
         <FormControl size="small" sx={{ minWidth: 160 }}>
           <InputLabel id="view">Status</InputLabel>
           <Select
@@ -515,61 +433,15 @@ export default function CashAdvanceList() {
             <MenuItem value="MY">My Requests</MenuItem>
           </Select>
         </FormControl>
-
         <Button variant="outlined" onClick={fetchData}>
           {loading ? <CircularProgress size={18} /> : "Reload"}
         </Button>
-
-        {isAccountant && (
-          <Tooltip title="Select rows to send to the Chief Accountant (backend checks permissions)">
-            <span>
-              <Button
-                variant="contained"
-                startIcon={<SendIcon />}
-                onClick={sendToChief}
-                disabled={loading || selected.length === 0}
-              >
-                Send to Chief Accountant
-              </Button>
-            </span>
-          </Tooltip>
-        )}
-        {isChief && (
-          <Tooltip title="Select rows to send to the Director (backend checks permissions)">
-            <span>
-              <Button
-                startIcon={<SendIcon />}
-                onClick={sendToDirector}
-                disabled={
-                  loading ||
-                  selected.length === 0 ||
-                  !selected.every((id) =>
-                    canSendToDirector(rows.find((r) => r.id === id))
-                  )
-                }
-              >
-                Send to Director
-              </Button>
-            </span>
-          </Tooltip>
-        )}
       </Stack>
 
       <Paper>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell padding="checkbox">
-                {isAccountant ? (
-                  <Checkbox
-                    checked={allChecked}
-                    indeterminate={
-                      selected.length > 0 && selected.length < rows.length
-                    }
-                    onChange={toggleAll}
-                  />
-                ) : null}
-              </TableCell>
               <TableCell>ID</TableCell>
               <TableCell>Project / Phase / Task</TableCell>
               <TableCell>Amount</TableCell>
@@ -584,15 +456,6 @@ export default function CashAdvanceList() {
           <TableBody>
             {rows.map((r) => (
               <TableRow key={r.id} hover>
-                <TableCell padding="checkbox">
-                  {isAccountant || isChief ? (
-                    <Checkbox
-                      checked={selected.includes(r.id)}
-                      onChange={() => toggleOne(r.id)}
-                      disabled={isChief && !canSendToDirector(r)}
-                    />
-                  ) : null}
-                </TableCell>
                 <TableCell>{r.id}</TableCell>
                 <TableCell sx={{ maxWidth: 260 }}>
                   <Typography
@@ -648,8 +511,8 @@ export default function CashAdvanceList() {
                     : "-"}
                 </TableCell>
                 <TableCell align="right">
-                  {/* ACCOUNTANT: duyệt PENDING */}
-                  {isAccountant && (
+                  {/* ACCOUNTANT */}
+                  {isAccountant && r.status === "PENDING" && (
                     <>
                       <Tooltip title="Approve (Accountant)">
                         <span>
@@ -657,7 +520,7 @@ export default function CashAdvanceList() {
                             size="small"
                             color="success"
                             onClick={() => onReview(r.id, "APPROVED")}
-                            disabled={r.status !== "PENDING"}
+                            disabled={loading}
                           >
                             <CheckIcon />
                           </IconButton>
@@ -669,7 +532,7 @@ export default function CashAdvanceList() {
                             size="small"
                             color="error"
                             onClick={() => onReview(r.id, "REJECTED")}
-                            disabled={r.status !== "PENDING"}
+                            disabled={loading}
                           >
                             <CloseIcon />
                           </IconButton>
@@ -677,46 +540,80 @@ export default function CashAdvanceList() {
                       </Tooltip>
                     </>
                   )}
-
-                  {/* CHIEF ACCOUNTANT: duyệt khi đã gửi lên chief */}
-                  {isChief && canChiefApprove(r) && (
-                    <Tooltip title="Approve (Chief Accountant)">
-                      <span>
-                        <IconButton
-                          size="small"
-                          color="success"
-                          onClick={() => onChiefApprove(r.id)}
-                          disabled={loading}
-                        >
-                          <CheckIcon />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  )}
-
-                  {/* MANAGER/DIRECTOR: duyệt khi đã gửi lên director & chief đã approved */}
-                  {isDirector && canDirectorApprove(r) && (
-                    <Tooltip title="Approve (Director)">
-                      <span>
-                        <IconButton
-                          size="small"
-                          color="success"
-                          onClick={() => onDirectorApprove(r.id)}
-                          disabled={loading}
-                        >
-                          <CheckIcon />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  )}
+                  {/* CHIEF */}
+                  {isChief &&
+                    r.status === "APPROVED_ACCOUNTANT" &&
+                    !r.chiefApprovedAt && (
+                      <>
+                        <Tooltip title="Approve (Chief Accountant)">
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={() => onReview(r.id, "CHIEF_APPROVED")}
+                              disabled={loading}
+                            >
+                              <CheckIcon />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        <Tooltip title="Reject (Chief Accountant)">
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => onReview(r.id, "CHIEF_REJECTED")}
+                              disabled={loading}
+                            >
+                              <CloseIcon />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </>
+                    )}
+                  {/* DIRECTOR */}
+                  {isDirector &&
+                    r.status === "APPROVED_CHIEF" &&
+                    !!r.chiefApprovedAt &&
+                    !r.directorApprovedAt && (
+                      <>
+                        <Tooltip title="Approve (Director)">
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={() =>
+                                onReview(r.id, "DIRECTOR_APPROVED")
+                              }
+                              disabled={loading}
+                            >
+                              <CheckIcon />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        <Tooltip title="Reject (Director)">
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() =>
+                                onReview(r.id, "DIRECTOR_REJECTED")
+                              }
+                              disabled={loading}
+                            >
+                              <CloseIcon />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </>
+                    )}
                 </TableCell>
               </TableRow>
             ))}
-
             {rows.length === 0 && !loading && (
               <TableRow>
                 <TableCell
-                  colSpan={10}
+                  colSpan={9}
                   align="center"
                   sx={{ py: 6, color: "text.secondary" }}
                 >

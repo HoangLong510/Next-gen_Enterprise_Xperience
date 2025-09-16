@@ -1,4 +1,3 @@
-// src/components/project/KanbanForm.jsx
 "use client";
 
 import React, {
@@ -91,6 +90,8 @@ import {
   formatNumber,
   numToWords,
 } from "~/utils/money";
+import { translateReason } from "~/utils/translateApi";
+import dayjs from "dayjs";
 
 function trimCanvasSafe(src) {
   if (!src) return null;
@@ -719,7 +720,8 @@ export default function KanbanForm() {
 
   const handleSubmitAdvance = async () => {
     try {
-      if (!advanceTask?.id) return setAdvanceError("You have not selected a task.");
+      if (!advanceTask?.id)
+        return setAdvanceError("You have not selected a task.");
       const amountNum = Number(advanceAmount || 0);
       if (!amountNum || amountNum <= 0)
         return setAdvanceError("Advance amount must be > 0.");
@@ -738,20 +740,27 @@ export default function KanbanForm() {
         setAdvanceError("Could not get signature. Please re-sign.");
         return;
       }
+
+      const translatedReason = await translateReason(advanceReason.trim());
+
+      function formatVietnameseDate(date) {
+        return dayjs(date).format("[ngày] DD [tháng] MM [năm] YYYY");
+      }
+      const formattedDeadline = formatVietnameseDate(advanceDeadline);
+
       const payload = {
         taskId: advanceTask.id,
-        unitName: "Next-Gen Enterprise Experience",
-        departmentOrAddress: "181 Cao Thang, Ward 12, District 10, Ho Chi Minh",
+        unitName: "Công ty Cổ phần Trải nghiệm Doanh nghiệp Next-Gen",
+        departmentOrAddress: "181 Cao Thắng, Phường 12, Quận 10, TP.HCM",
         recipient,
         amount: amountNum,
         amountText: numToWords(amountNum),
-        reason: advanceReason.trim(),
-        repaymentDeadline: advanceDeadline,
+        reason: translatedReason,
+        repaymentDeadlineStr: formattedDeadline,
         signatureDataUrl,
       };
-
-      const res = await createCashAdvanceApi(payload);
       console.log(payload);
+      const res = await createCashAdvanceApi(payload);
       if (res?.status !== 200) {
         setAdvanceError(res?.message || "Sending proposal failed.");
         return;
@@ -766,7 +775,10 @@ export default function KanbanForm() {
       sigRef?.current?.clear();
       await refreshMeta();
       dispatch(
-        setPopup({ type: "success", message: "The advance request has been sent." })
+        setPopup({
+          type: "success",
+          message: "The advance request has been sent.",
+        })
       );
     } catch (e) {
       console.error(e);
@@ -893,7 +905,7 @@ export default function KanbanForm() {
               sx={{
                 width: { xs: 320, sm: 360, md: 420 },
                 minWidth: 280,
-                ml: "auto", 
+                ml: "auto",
               }}
             >
               <InputLabel id="project-filter-label">Project</InputLabel>
@@ -1075,7 +1087,7 @@ export default function KanbanForm() {
           onUploading={() => {}}
           onUploaded={async (files) => {
             await uploadEvidence(pendingTask.id, files);
-            await refreshMeta(); 
+            await refreshMeta();
           }}
           projectPmId={projectInfo?.pmId ?? selectedProjectInfo?.pmId}
           repoLinked={projectInfo?.repoLink ?? selectedProjectInfo?.repoLink}
@@ -1199,9 +1211,7 @@ export default function KanbanForm() {
                 >
                   <Typography variant="body2">
                     {Number(advanceAmount) > 0
-                      ? `In words: ${numToWords(
-                          Number(advanceAmount)
-                        )}`
+                      ? `In words: ${numToWords(Number(advanceAmount))}`
                       : "Text will appear here"}
                   </Typography>
                 </Grid>
@@ -1282,7 +1292,7 @@ export default function KanbanForm() {
               disabled={advanceBusy}
               onClick={handleSubmitAdvance}
             >
-            Send to accountant
+              Send to accountant
             </Button>
           </DialogActions>
         </Dialog>

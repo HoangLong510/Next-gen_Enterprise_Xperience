@@ -38,6 +38,8 @@ public class CashAdvanceDto {
 
     private LocalDateTime sentToDirectorAt;
     private LocalDateTime directorApprovedAt;
-
+    private String signatureDataUrl;
+    private String chiefSignatureDataUrl;
+    private String directorSignatureDataUrl;
     private String rejectNote;
 }

@@ -319,49 +319,91 @@ public class NotificationService {
         return acc.getUsername();
     }
 
-    /* ===================== CASH ADVANCE NOTIFICATIONS ===================== */
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void notifyCashAdvanceSentToChief(Account chief, int count) {
-        if (chief == null || count <= 0) return;
-        String title = "cash-advance-awaiting-chief-review";
-        String content = "you-have-" + count + "-cash-advance-request(s)-awaiting-review";
-        saveAndSendNotification(chief, null, title, content, NotificationType.CASH_ADVANCE, null);
+    /* ===================== CASH ADVANCE WORKFLOW NOTIFICATIONS ===================== */
+    // NotificationService.java
+    public void notifyCashAdvanceCreated(CashAdvanceRequest r, Account creator, List<Account> accountants) {
+        if (r == null || creator == null || accountants == null || accountants.isEmpty()) return;
+        String title = "new-cash-advance-request";
+        String content = "cash-advance-#" + r.getId() + "-was-created-by-"
+                + slug(getAccountDisplayName(creator)) + "-please-review";
+        notifyMany(accountants, creator, title, content, NotificationType.CASH_ADVANCE, r.getId());
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void notifyCashAdvanceSentToDirector(Account director, int count) {
-        if (director == null || count <= 0) return;
+    // Kế toán duyệt thành công -> gửi cho kế toán trưởng
+    public void notifyCashAdvanceApprovedByAccountant(CashAdvanceRequest r, Account accountant, Account chief) {
+        if (r == null || chief == null) return;
+        String title = "cash-advance-awaiting-chief-approval";
+        String content = "cash-advance-#" + r.getId() + "-was-approved-by-"
+                + slug(getAccountDisplayName(accountant)) + "-please-review";
+        saveAndSendNotification(chief, accountant, title, content, NotificationType.CASH_ADVANCE, r.getId());
+    }
+
+    // Kế toán từ chối -> gửi lại cho nhân viên
+    public void notifyCashAdvanceRejectedByAccountant(CashAdvanceRequest r, Account accountant) {
+        notifyCashAdvanceRejected(r, accountant);
+    }
+
+    // Kế toán trưởng duyệt -> gửi cho Giám đốc/Manager
+    public void notifyCashAdvanceApprovedByChief(CashAdvanceRequest r, Account chief, Account director) {
+        if (r == null || director == null) return;
         String title = "cash-advance-awaiting-final-approval";
-        String content = "you-have-" + count + "-cash-advance-request(s)-awaiting-final-approval";
-        saveAndSendNotification(director, null, title, content, NotificationType.CASH_ADVANCE, null);
+        String content = "cash-advance-#" + r.getId() + "-was-approved-by-"
+                + slug(getAccountDisplayName(chief)) + "-please-review";
+        saveAndSendNotification(director, chief, title, content, NotificationType.CASH_ADVANCE, r.getId());
     }
 
-    // Chief phê duyệt: báo cho người tạo
-    public void notifyCashAdvanceChiefApproved(CashAdvanceRequest r, Account chief) {
-        if (r == null || r.getCreatedBy() == null) return;
-        Account requester = r.getCreatedBy();
-        String title = "cash-advance-approved-by-chief";
-        String content = "your-cash-advance-#" + r.getId() + "-was-approved-by-" + slug(getAccountDisplayName(chief));
-        saveAndSendNotification(requester, chief, title, content, NotificationType.CASH_ADVANCE, r.getId());
+    // Kế toán trưởng từ chối -> gửi lại cho kế toán + nhân viên
+    public void notifyCashAdvanceRejectedByChief(CashAdvanceRequest r, Account chief, Account accountant) {
+        // gửi nhân viên
+        notifyCashAdvanceRejected(r, chief);
+        // gửi kế toán
+        if (accountant != null) {
+            String title = "cash-advance-rejected-by-chief";
+            String content = "cash-advance-#" + r.getId() + "-was-rejected-by-"
+                    + slug(getAccountDisplayName(chief));
+            saveAndSendNotification(accountant, chief, title, content, NotificationType.CASH_ADVANCE, r.getId());
+        }
     }
 
-    // Manager phê duyệt: báo cho người tạo
-    public void notifyCashAdvanceDirectorApproved(CashAdvanceRequest r, Account director) {
+    // Giám đốc duyệt -> gửi cho nhân viên
+    public void notifyCashAdvanceApprovedByDirector(CashAdvanceRequest r, Account director) {
         if (r == null || r.getCreatedBy() == null) return;
         Account requester = r.getCreatedBy();
         String title = "cash-advance-final-approved";
-        String content = "your-cash-advance-#" + r.getId() + "-was-finally-approved-by-" + slug(getAccountDisplayName(director));
+        String content = "your-cash-advance-#" + r.getId() + "-was-finally-approved-by-"
+                + slug(getAccountDisplayName(director));
         saveAndSendNotification(requester, director, title, content, NotificationType.CASH_ADVANCE, r.getId());
     }
 
-    // Bị từ chối: báo cho người tạo (kèm note nếu có)
+    // Giám đốc từ chối -> gửi cho nhân viên + kế toán + kế toán trưởng
+    public void notifyCashAdvanceRejectedByDirector(CashAdvanceRequest r, Account director, Account accountant, Account chief) {
+        // gửi nhân viên
+        notifyCashAdvanceRejected(r, director);
+        // gửi kế toán
+        if (accountant != null) {
+            String title = "cash-advance-rejected-by-director";
+            String content = "cash-advance-#" + r.getId() + "-was-rejected-by-"
+                    + slug(getAccountDisplayName(director));
+            saveAndSendNotification(accountant, director, title, content, NotificationType.CASH_ADVANCE, r.getId());
+        }
+        // gửi kế toán trưởng
+        if (chief != null) {
+            String title = "cash-advance-rejected-by-director";
+            String content = "cash-advance-#" + r.getId() + "-was-rejected-by-"
+                    + slug(getAccountDisplayName(director));
+            saveAndSendNotification(chief, director, title, content, NotificationType.CASH_ADVANCE, r.getId());
+        }
+    }
+
+    // Bị từ chối: báo cho nhân viên (người tạo)
     public void notifyCashAdvanceRejected(CashAdvanceRequest r, Account actor) {
         if (r == null || r.getCreatedBy() == null) return;
         Account requester = r.getCreatedBy();
-        String note = (r.getRejectNote() == null || r.getRejectNote().isBlank()) ? "" : "-" + slug(r.getRejectNote());
+        String note = (r.getRejectNote() == null || r.getRejectNote().isBlank())
+                ? "" : "-" + slug(r.getRejectNote());
         String title = "cash-advance-rejected";
-        String content = "your-cash-advance-#" + r.getId() + "-was-rejected-by-" + slug(getAccountDisplayName(actor)) + note;
+        String content = "your-cash-advance-#" + r.getId() + "-was-rejected-by-"
+                + slug(getAccountDisplayName(actor)) + note;
         saveAndSendNotification(requester, actor, title, content, NotificationType.CASH_ADVANCE, r.getId());
     }
 

@@ -21,10 +21,10 @@ public class CashAdvanceController {
 
     private final CashAdvanceService cashAdvanceService;
 
-    // Payload đơn giản cho các quyết định approve/reject ở từng cấp
     public static class DecisionPayload {
-        public Boolean approve; // true = approve, false = reject
-        public String note;     // optional, dùng khi reject
+        public Boolean approve;
+        public String note;
+        public String signatureDataUrl;
     }
 
     /* ================== Create ================== */
@@ -115,7 +115,8 @@ public class CashAdvanceController {
         Account me = (Account) auth.getPrincipal();
         boolean approve = payload != null && Boolean.TRUE.equals(payload.approve);
         String note = payload != null ? payload.note : null;
-        return cashAdvanceService.chiefApprove(me, id, approve, note);
+        String signature = payload != null ? payload.signatureDataUrl : null;
+        return cashAdvanceService.chiefApprove(me, id, approve, note, signature);
     }
 
     @PostMapping("/{id}/director-decision")
@@ -125,7 +126,8 @@ public class CashAdvanceController {
         Account me = (Account) auth.getPrincipal();
         boolean approve = payload != null && Boolean.TRUE.equals(payload.approve);
         String note = payload != null ? payload.note : null;
-        return cashAdvanceService.directorApprove(me, id, approve, note);
+        String signature = payload != null ? payload.signatureDataUrl : null;
+        return cashAdvanceService.directorApprove(me, id, approve, note, signature);
     }
 
     /* ================== Deprecated (tương thích ngược) ================== */

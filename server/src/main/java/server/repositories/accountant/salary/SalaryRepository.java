@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import server.models.Employee;
 import server.models.accountant.salary.Salary;
+import server.models.enums.SalaryStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,5 +36,6 @@ public interface SalaryRepository extends JpaRepository<Salary, Long> {
     );
     boolean existsByEmployeeIdAndMonthAndYear(Long employeeId, int month, int year);
 
+    List<Salary> findByYearAndMonthAndStatus(Integer year, Integer month, SalaryStatus status);
 }
 

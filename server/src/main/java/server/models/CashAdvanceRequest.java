@@ -51,6 +51,16 @@ public class CashAdvanceRequest {
     @Column(columnDefinition = "TEXT")
     private String recipient;
 
+    // 🔹 Bổ sung từ DTO
+    @Column(name = "unit_name", columnDefinition = "TEXT")
+    private String unitName;
+
+    @Column(name = "department_or_address", columnDefinition = "TEXT")
+    private String departmentOrAddress;
+
+    @Column(name = "repayment_deadline_str", columnDefinition = "TEXT")
+    private String repaymentDeadlineStr;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private CashAdvanceStatus status = CashAdvanceStatus.PENDING;
@@ -108,6 +118,12 @@ public class CashAdvanceRequest {
 
     @Column(name = "signature_data_url", columnDefinition = "LONGTEXT")
     private String signatureDataUrl;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String chiefSignatureDataUrl;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String directorSignatureDataUrl;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

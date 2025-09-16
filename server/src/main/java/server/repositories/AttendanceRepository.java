@@ -15,13 +15,17 @@ import java.util.List;
 public interface AttendanceRepository extends JpaRepository<Attendance, Long>, JpaSpecificationExecutor<Attendance> {
     boolean existsByAccountAndCheckInTimeBetween(Account account, LocalDateTime start, LocalDateTime end);
 
-    @Query("SELECT COUNT(DISTINCT DATE(a.checkInTime)) FROM Attendance a " +
+    @Query("SELECT COUNT(DISTINCT FUNCTION('DATE', a.checkInTime)) " +
+            "FROM Attendance a " +
             "WHERE a.account.id = :accountId " +
-            "AND a.faceMatch = true AND a.locationValid = true " +
-            "AND MONTH(a.checkInTime) = :month AND YEAR(a.checkInTime) = :year")
-    int countWorkingDays(@Param("accountId") Long accountId,
-                         @Param("month") int month,
-                         @Param("year") int year);
+            "AND YEAR(a.checkInTime) = :year " +
+            "AND MONTH(a.checkInTime) = :month " +
+            "AND (a.status = 'CHECKED_OUT' OR a.status = 'RESOLVED')")
+    int countValidWorkingDays(@Param("accountId") Long accountId,
+                              @Param("year") int year,
+                              @Param("month") int month);
+
+
     // Lấy các bản ghi của 1 account trong 1 tháng
     List<Attendance> findByAccountAndCheckInTimeBetween(Account account, LocalDateTime start, LocalDateTime end);
 

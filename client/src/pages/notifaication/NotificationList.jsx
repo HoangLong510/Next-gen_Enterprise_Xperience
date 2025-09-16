@@ -132,6 +132,9 @@ export default function NotificationList() {
       case "ATTENDANCE":
         navigate(`/attendance/${noti.referenceId}`);
         break;
+      case "CASH_ADVANCE":
+        navigate(`/payment-request`);
+        break;
       default:
         navigate("/notifications");
     }

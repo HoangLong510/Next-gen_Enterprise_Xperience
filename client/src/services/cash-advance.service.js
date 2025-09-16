@@ -31,10 +31,7 @@ export const downloadCashAdvanceTemplateApi = async (taskId) => {
 export const downloadAdvanceTemplate = (taskId) => {
   try {
     return window.open(
-      `${api.defaults.baseURL.replace(
-        /\/$/,
-        ""
-      )}/cash-advances/template?taskId=${taskId}`,
+      `${api.defaults.baseURL.replace(/\/$/, "")}/cash-advances/template?taskId=${taskId}`,
       "_blank"
     );
   } catch (error) {
@@ -123,8 +120,10 @@ export const listDirectorPendingAdvancesApi = async () => {
 };
 
 /* ================== Decisions per role ================== */
-export const accountantDecisionApi = async (id, approve, note) => {
+// Accountant
+export const updateCashAdvanceStatusApi = async (id, { status, note }) => {
   try {
+    const approve = status === "APPROVED";
     const res = await api.post(`/cash-advances/${id}/accountant-decision`, {
       approve,
       note,
@@ -135,26 +134,29 @@ export const accountantDecisionApi = async (id, approve, note) => {
   }
 };
 
-export const chiefDecisionApi = async (id, approve, note) => {
-  try {
-    const res = await api.post(`/cash-advances/${id}/chief-decision`, {
-      approve,
-      note,
-    });
-    return ok(res);
-  } catch (error) {
-    return fail(error);
-  }
-};
+// Chief Accountant
+export const chiefApproveAdvanceApi = (id, note, signature) =>
+  api
+    .post(`/cash-advances/${id}/chief-decision`, { approve: true, note, signatureDataUrl: signature })
+    .then(ok)
+    .catch(fail);
 
-export const directorDecisionApi = async (id, approve, note) => {
-  try {
-    const res = await api.post(`/cash-advances/${id}/director-decision`, {
-      approve,
-      note,
-    });
-    return ok(res);
-  } catch (error) {
-    return fail(error);
-  }
-};
+
+export const chiefRejectAdvanceApi = (id, note) =>
+  api
+    .post(`/cash-advances/${id}/chief-decision`, { approve: false, note,  })
+    .then(ok)
+    .catch(fail);
+
+// Director
+export const directorApproveAdvanceApi = (id, note, signature) =>
+  api
+    .post(`/cash-advances/${id}/director-decision`, { approve: true, note, signatureDataUrl: signature })
+    .then(ok)
+    .catch(fail);
+
+export const directorRejectAdvanceApi = (id, note) =>
+  api
+    .post(`/cash-advances/${id}/director-decision`, { approve: false, note })
+    .then(ok)
+    .catch(fail);
