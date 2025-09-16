@@ -204,6 +204,7 @@ public class TaskService {
         } else {
             // PM/Manager/Admin vẫn ẩn task hidden, còn CANCELED giữ lại để FE show cột
             taskStream = taskStream.filter(t -> t != null && !t.isHidden());
+
         }
 
         List<Task> tasks = taskStream.collect(Collectors.toList());

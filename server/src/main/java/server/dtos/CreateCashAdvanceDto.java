@@ -10,6 +10,6 @@ public class CreateCashAdvanceDto {
     private String departmentOrAddress;
     private String recipient;
     private String amountText;
-    private String repaymentDeadline;
+    private String repaymentDeadlineStr;
     private String signatureDataUrl;
 }

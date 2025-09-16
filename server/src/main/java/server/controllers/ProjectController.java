@@ -155,6 +155,7 @@ public class ProjectController {
 
     // ✅ Lấy danh sách Project cho Kanban Board
     @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
+
     @GetMapping("/kanban")
     public ApiResponse<List<ProjectDto>> getKanbanProjects(HttpServletRequest request) {
         return projectService.getKanbanProjects(request);

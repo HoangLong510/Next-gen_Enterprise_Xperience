@@ -13,15 +13,22 @@ public class SalarySummaryDTO {
     private String code;
     private String role;
     private String department;
-    private String createdBy;
-    private String createdByAvatar;
-    private LocalDateTime createdAt;
-    private String fileUrl;
-    private Double total;
-    private Integer month;
-    private Integer year;
+
     private Double baseSalary;
     private Double actualSalary;
-    private SalaryStatus status;
 
+    private Double totalAllowance;
+    private Double totalDeduction;
+
+    private Double total;
+    private Long otherAllowance;
+    private Long otherDeduction;
+
+    private SalaryStatus status;
+    private Integer month;
+    private Integer year;
+
+    private String createdBy;
+    private LocalDateTime createdAt;
+    private String fileUrl;
 }
