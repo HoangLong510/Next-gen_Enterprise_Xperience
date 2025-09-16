@@ -1,51 +1,50 @@
 {
-  "username-is-required": "Username is required",
-  "username-must-be-between-5-and-30-characters": "Username must be between 5 and 30 characters",
-  "username-must-start-with-a-lowercase-letter-and-contain-only-lowercase-letters-and-numbers": "Username must start with a lowercase letter and contain only lowercase letters and numbers",
-  "username-does-not-exist": "Username does not exist",
-  "username-already-exists": "Username already exists",
-  "account-is-disabled": "Account is disabled",
+	"username-is-required": "Username is required",
+	"username-must-be-between-5-and-30-characters": "Username must be between 5 and 30 characters",
+	"username-must-start-with-a-lowercase-letter-and-contain-only-lowercase-letters-and-numbers": "Username must start with a lowercase letter and contain only lowercase letters and numbers",
+	"username-does-not-exist": "Username does not exist",
+	"username-already-exists": "Username already exists",
+	"account-is-disabled": "Account is disabled",
 
-  "password-is-required": "Password is required",
-  "password-does-not-match": "Password does not match",
-  "password-must-be-between-6-and-30-characters": "Password must be between 6 and 30 characters",
+	"password-is-required": "Password is required",
+	"password-does-not-match": "Password does not match",
+	"password-must-be-between-6-and-30-characters": "Password must be between 6 and 30 characters",
 
-  "do-not-set-the-same-password-as-the-old-one": "Do not set the same password as the old one",
+	"do-not-set-the-same-password-as-the-old-one": "Do not set the same password as the old one",
 
-  "confirm-password-is-required": "Confirm password is required",
-  "confirm-password-does-not-match": "Confirm password does not match",
+	"confirm-password-is-required": "Confirm password is required",
+	"confirm-password-does-not-match": "Confirm password does not match",
 
-  "first-name-is-required": "First name is required",
-  "first-name-must-be-between-2-and-30-characters": "First name must be between 2 and 30 characters",
-  "first-name-must-contain-only-letters-and-spaces": "First name must contain only letters and spaces",
+	"first-name-is-required": "First name is required",
+	"first-name-must-be-between-2-and-30-characters": "First name must be between 2 and 30 characters",
+	"first-name-must-contain-only-letters-and-spaces": "First name must contain only letters and spaces",
 
-  "last-name-is-required": "Last name is required",
-  "last-name-must-be-between-2-and-30-characters": "Last name must be between 2 and 30 characters",
-  "last-name-must-contain-only-letters-and-spaces": "Last name must contain only letters and spaces",
+	"last-name-is-required": "Last name is required",
+	"last-name-must-be-between-2-and-30-characters": "Last name must be between 2 and 30 characters",
+	"last-name-must-contain-only-letters-and-spaces": "Last name must contain only letters and spaces",
 
-  "email-is-required": "Email is required",
-  "email-already-exists": "Email already exists",
-  "email-does-not-exist": "Email does not exist",
-  "invalid-email-address": "Invalid email address",
+	"email-is-required": "Email is required",
+	"email-already-exists": "Email already exists",
+	"email-does-not-exist": "Email does not exist",
+	"invalid-email-address": "Invalid email address",
 
-  "phone-is-required": "Phone is required",
-  "phone-already-exists": "Phone already exists",
-  "phone-does-not-exist": "Phone does not exist",
-  "invalid-phone-number": "Invalid phone number",
+	"phone-is-required": "Phone is required",
+	"phone-already-exists": "Phone already exists",
+	"phone-does-not-exist": "Phone does not exist",
+	"invalid-phone-number": "Invalid phone number",
 
-  "address-is-required": "Address is required",
+	"address-is-required": "Address is required",
 
-  "gender-is-required": "Gender is required",
-  "invalid-gender": "Invalid gender",
+	"gender-is-required": "Gender is required",
+	"invalid-gender": "Invalid gender",
 
-  "date-of-birth-cannot-be-null": "Date of birth cannot be null",
-  "date-of-birth-must-be-in-the-past": "Date of birth must be in the past",
+	"date-of-birth-cannot-be-null": "Date of birth cannot be null",
+	"date-of-birth-must-be-in-the-past": "Date of birth must be in the past",
 
-  "invalid-image-type": "Invalid image type, only JPG, PNG, GIF files are supported",
-  "file-is-empty": "File is empty",
-  "file-too-large": "File too large, only supports files under 5mb in size",
+	"invalid-image-type": "Invalid image type, only JPG, PNG, GIF files are supported",
+	"file-is-empty": "File is empty",
+	"file-too-large": "File too large, only supports files under 5mb in size",
 
-<<<<<<< Updated upstream
 	"department-already-exists": "Department already exists",
 	"hod-id-not-found": "Head of department not found",
 	"hod-role-is-invalid": "Head of department role is invalid",
@@ -62,39 +61,4 @@
 	"deadline-before-previous-phase": "Deadline cannot be before the previous phase",
 	"deadline-after-project-deadline": "Deadline cannot be after the project's deadline",
 	"invalid-role": "Role is invalid"
-=======
-  "department-already-exists": "Department already exists",
-  "hod-id-not-found": "Head of department not found",
-  "hod-role-is-invalid": "Head of department role is invalid",
-  "the-hod-has-a-department": "The head of department has a department",
-  "department-name-is-required": "Department name is required",
-  "department-description-is-required": "Department description is required",
-  "hod-is-required": "Head of department is required",
-
-  "phase-name-is-required": "Phase name is required",
-  "phase-name-must-be-at-least-3-characters": "Phase name must be at least 3 characters",
-  "phase-name-must-be-at-most-100-characters": "Phase name must be at most 100 characters",
-  "deadline-is-required": "Deadline is required",
-  "invalid-date-format": "Invalid date format",
-  "deadline-before-today": "Deadline cannot be before today",
-  "deadline-before-previous-phase": "Deadline cannot be before the previous phase",
-  "deadline-after-project-deadline": "Deadline cannot be after the project's deadline",
-
-  "deadline-after-phase-deadline": "Deadline cannot be after phase deadline",
-  "deadline-before-task-deadline": "Deadline cannot be earlier than the latest task deadline",
-  "deadline-after-next-phase-deadline": "Deadline cannot be after the next phase's deadline",
-  "deadline-cannot-be-in-the-past": "Deadline cannot be in the past",
-
-  "task-name-is-required": "Task name is required",
-  "task-name-must-be-at-least-3-characters": "Task name must be at least 3 characters",
-  "task-name-must-be-at-most-100-characters": "Task name must be at most 100 characters",
-
-  "description-is-required": "Description is required",
-  "description-must-be-at-least-10-characters": "Description must be at least 10 characters",
-  "description-must-be-at-most-1000-characters": "Description must be at most 1000 characters",
-
-  "size-is-required": "Size is required",
-  "invalid-size": "Invalid size",
-  "assignee-is-required": "Assignee is required"
->>>>>>> Stashed changes
 }

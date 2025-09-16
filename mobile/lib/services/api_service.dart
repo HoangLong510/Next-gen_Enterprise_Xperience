@@ -9,7 +9,7 @@ class ApiService {
     BaseOptions(
       baseUrl: const String.fromEnvironment(
         'API_URL',
-        defaultValue: 'http://10.0.2.2:4040/api', // GIỮ /api vì BE đang mount /api
+        defaultValue: 'http://10.0.2.2:4040/api',
       ),
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
@@ -72,6 +72,7 @@ class ApiService {
             if (!_isRefreshing) {
               _isRefreshing = true;
               try {
+                print("Attempting to refresh token...");
                 final res = await _dio.get(
                   '/auth/refresh-token',
                   options: Options(
@@ -86,8 +87,10 @@ class ApiService {
                 await prefs.setString('accessToken', newAccessToken);
                 await prefs.setString('refreshToken', newRefreshToken);
 
+                print("Token refreshed. Retrying queued requests...");
+
                 // Gửi lại tất cả các request đang chờ
-                for (final c in _waitingQueue) {
+                for (final completer in _waitingQueue) {
                   try {
                     final clone = Options(
                       method: originalRequest.method,
@@ -95,8 +98,6 @@ class ApiService {
                         ...originalRequest.headers,
                         'Authorization': 'Bearer $newAccessToken',
                       },
-                      responseType: originalRequest.responseType,
-                      contentType: originalRequest.contentType,
                     );
                     final response = await _dio.request(
                       originalRequest.path,
@@ -104,21 +105,23 @@ class ApiService {
                       queryParameters: originalRequest.queryParameters,
                       options: clone,
                     );
-                    if (!c.isCompleted) c.complete(response);
+                    if (!completer.isCompleted) completer.complete(response);
                   } catch (e) {
-                    if (!c.isCompleted) c.completeError(e);
+                    if (!completer.isCompleted) completer.completeError(e);
                   }
                 }
               } catch (e) {
                 // Refresh thất bại → logout toàn bộ
                 await _clearTokenAndRedirect();
-                for (final c in _waitingQueue) {
-                  if (!c.isCompleted) c.completeError(e);
+                for (final completer in _waitingQueue) {
+                  if (!completer.isCompleted) completer.completeError(e);
                 }
               } finally {
                 _waitingQueue.clear();
                 _isRefreshing = false;
               }
+            } else {
+              print("Waiting for token refresh to complete...");
             }
 
             // Đợi request hiện tại được xử lý lại
@@ -139,18 +142,4 @@ class ApiService {
 
   // Public getter cho Dio client
   static Dio get client => _dio;
-
-  /// ===== helper ghép URL ảnh/public từ đường dẫn BE trả về (ví dụ "/uploads/a.jpg") =====
-  /// GIỮ nguyên "/api" vì baseUrl đang là .../api
-  static String absoluteUrl(String url) {
-    if (url.isEmpty) return url;
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-
-    var base = _dio.options.baseUrl; // vd: http://10.0.2.2:4040/api
-    if (base.endsWith('/')) {
-      base = base.substring(0, base.length - 1);
-    }
-    final rel = url.startsWith('/') ? url.substring(1) : url;
-    return '$base/$rel';              // -> http://10.0.2.2:4040/api/uploads/a.jpg
-  }
 }

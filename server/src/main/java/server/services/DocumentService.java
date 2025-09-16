@@ -107,10 +107,6 @@ public class DocumentService {
             builder.projectName(request.getProjectName());
             builder.projectDescription(request.getProjectDescription());
             builder.projectDeadline(request.getProjectDeadline());
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
             builder.pm(pm);
         }
 
@@ -148,10 +144,6 @@ public class DocumentService {
             placeholders.put("moTaDuAn", saved.getProjectDescription() != null ? saved.getProjectDescription() : "");
             placeholders.put("hanHoanThanh", saved.getProjectDeadline() != null ?
                     saved.getProjectDeadline().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "");
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
             // Lấy tên PM
             if (saved.getPm() != null && saved.getPm().getEmployee() != null) {
                 var emp = saved.getPm().getEmployee();
@@ -244,10 +236,6 @@ public class DocumentService {
 
         dto.setProjectName(doc.getProjectName());
         dto.setProjectDescription(doc.getProjectDescription());
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
         dto.setProjectDeadline(doc.getProjectDeadline() != null ? doc.getProjectDeadline().toString() : null);
 
         // PM
@@ -370,10 +358,6 @@ public class DocumentService {
             placeholders.put("hanHoanThanh", doc.getProjectDeadline() != null
                     ? doc.getProjectDeadline().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                     : "");
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
             // Lấy tên PM
             if (doc.getPm() != null && doc.getPm().getEmployee() != null) {
                 var emp = doc.getPm().getEmployee();
