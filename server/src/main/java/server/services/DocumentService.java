@@ -205,12 +205,12 @@ public class DocumentService {
         var acc = accountRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        boolean privileged = acc.getRole() == Role.ADMIN || acc.getRole() == Role.MANAGER;
+        boolean privileged = acc.getRole() == Role.ADMIN || acc.getRole() == Role.MANAGER || acc.getRole() == Role.SECRETARY;
         if (!privileged && !documentRepository.hasAccess(id, username)) {
             throw new AccessDeniedException("Forbidden");
         }
 
-        boolean includeNote = acc.getRole() == Role.MANAGER || acc.getRole() == Role.ADMIN;
+        boolean includeNote = acc.getRole() == Role.MANAGER || acc.getRole() == Role.ADMIN || acc.getRole() == Role.SECRETARY;
         return mapToResponse(doc, includeNote);
     }
 

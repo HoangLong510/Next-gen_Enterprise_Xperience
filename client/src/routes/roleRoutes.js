@@ -51,25 +51,25 @@ const roleRoutes = [
     path: "/management/documents",
     component: DocumentList,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
+    roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT","SECRETARY"],
   },
   {
     path: "/management/documents/:id",
     component: DocumentDetail,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
+    roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT","SECRETARY"],
   },
   {
     path: "/management/documents/:id/update",
     component: DocumentUpdate,
     layout: DefaultLayout,
-    roles: ["ADMIN"],
+    roles: ["ADMIN","SECRETARY"],
   },
   {
     path: "/management/documents/:id/histories",
     component: DocumentHistoryList,
     layout: DefaultLayout,
-    roles: ["MANAGER", "ADMIN"],
+    roles: ["MANAGER", "ADMIN","SECRETARY"],
   },
 
   

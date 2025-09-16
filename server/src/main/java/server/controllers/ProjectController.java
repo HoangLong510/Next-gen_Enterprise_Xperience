@@ -25,13 +25,13 @@ public class ProjectController {
     private final QuickTaskService quickTaskService;
     private final UploadFileService uploadFileService;
 
-    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','SECRETARY')")
     @GetMapping
     public ApiResponse<List<ProjectDto>> getAllVisible(HttpServletRequest request) {
         return projectService.getAllVisible(request);
     }
     @PreAuthorize("""
-      hasAnyAuthority('ADMIN','MANAGER') or
+      hasAnyAuthority('ADMIN','MANAGER','SECRETARY') or
       (hasAuthority('PM') and @projectService.isProjectManager(#id, authentication.name))
     """)
     // Lấy chi tiết dự án
@@ -48,7 +48,7 @@ public class ProjectController {
 
     // Tìm kiếm dự án theo từ khoá
 // ProjectController.java
-    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','SECRETARY')")
     @GetMapping("/search")
     public ApiResponse<List<ProjectDto>> search(
             HttpServletRequest request,
@@ -76,7 +76,7 @@ public class ProjectController {
     }
 
     @PreAuthorize("""
-  hasAnyAuthority('ADMIN','MANAGER') or
+  hasAnyAuthority('ADMIN','MANAGER','SECRETARY') or
   (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))
 """)
     @PostMapping("/{projectId}/quick-task")
@@ -91,7 +91,7 @@ public class ProjectController {
     }
 
     @PreAuthorize("""
-  hasAnyAuthority('ADMIN','MANAGER') or
+  hasAnyAuthority('ADMIN','MANAGER','SECRETARY') or
   (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))
 """)
     @PostMapping("/{projectId}/quick-tasks")
@@ -141,7 +141,7 @@ public class ProjectController {
     }
     // ProjectController.java
     @PreAuthorize("""
-  hasAnyAuthority('ADMIN','MANAGER') or
+  hasAnyAuthority('ADMIN','MANAGER','SECRETARY') or
   (hasAuthority('PM') and @projectService.isProjectManager(#id, authentication.name))
 """)
 

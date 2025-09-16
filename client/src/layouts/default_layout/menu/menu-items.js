@@ -107,7 +107,7 @@ export const menuItems = [
         label: "Projects",
         icon: WorkIcon,
         href: "/management/projects",
-        roles: ["ADMIN", "MANAGER", "PM"],
+        roles: ["ADMIN", "MANAGER", "PM","SECRETARY", "HOD", "EMPLOYEE"],
       },
       {
         label: "Dispatches",
