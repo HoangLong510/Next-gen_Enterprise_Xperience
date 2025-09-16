@@ -91,7 +91,6 @@ const handleApiError = (error) => {
   if (error.response) return error.response.data;
   return { status: 500, message: "server-is-busy" };
 };
-
 export const createQuickTask = async (projectId, name) => {
   try {
     const payload = name ? { name } : {}; 
@@ -165,3 +164,4 @@ export const uploadPublicImageApi = async (file) => {
     return { status: 500, message: "server-is-busy" };
   }
 };
+

@@ -41,10 +41,9 @@
 	"date-of-birth-cannot-be-null": "Ngày sinh không được bỏ trống",
 	"date-of-birth-must-be-in-the-past": "Ngày sinh phải là ngày quá khứ",
 
-	"invalid-image-type": "Loại hình ảnh không hợp lệ, chỉ hỗ trợ các tệp JPG, PNG, GIF",
-	"file-is-empty": "Tập tin trống",
-	"file-too-large": "Tệp quá lớn, chỉ hỗ trợ các tệp có kích thước dưới 5mb",
-
+  "invalid-image-type": "Loại hình ảnh không hợp lệ, chỉ hỗ trợ các tệp JPG, PNG, GIF",
+  "file-is-empty": "Tập tin trống",
+  "file-too-large": "Tệp quá lớn, chỉ hỗ trợ các tệp có kích thước dưới 5mb",
 	"department-already-exists": "Phòng ban đã tồn tại",
 	"hod-id-not-found": "Không thể tìm thấy trưởng phòng này",
 	"hod-role-is-invalid": "Vai trò của trưởng phòng không hợp lệ",
@@ -60,5 +59,39 @@
 	"deadline-before-today": "Hạn không được trước hôm nay",
 	"deadline-before-previous-phase": "Hạn không được trước phase liền trước",
 	"deadline-after-project-deadline": "Hạn không được vượt quá hạn của dự án",
-	"invalid-role": "Vai trò không hợp lệ"
+	"invalid-role": "Vai trò không hợp lệ",
+
+  "department-already-exists": "Phòng ban đã tồn tại",
+  "hod-id-not-found": "Không thể tìm thấy trưởng phòng này",
+  "hod-role-is-invalid": "Vai trò của trưởng phòng không hợp lệ",
+  "the-hod-has-a-department": "Trưởng phòng này đã có phòng ban khác",
+  "department-name-is-required": "Tên phòng ban là bắt buộc",
+  "department-description-is-required": "Mô tả của phòng ban là bắt buộc",
+  "hod-is-required": "Trưởng phòng là bắt buộc",
+
+  "phase-name-is-required": "Tên phase là bắt buộc",
+  "phase-name-must-be-at-least-3-characters": "Tên phase tối thiểu 3 ký tự",
+  "phase-name-must-be-at-most-100-characters": "Tên phase tối đa 100 ký tự",
+  "deadline-is-required": "Hạn phase là bắt buộc",
+  "invalid-date-format": "Định dạng ngày không hợp lệ",
+  "deadline-before-today": "Hạn không được trước hôm nay",
+  "deadline-before-previous-phase": "Hạn không được trước phase liền trước",
+  "deadline-after-project-deadline": "Hạn không được vượt quá hạn của dự án",
+
+  "deadline-after-phase-deadline": "Hạn chót không được sau hạn chót của giai đoạn",
+  "deadline-before-task-deadline": "Hạn chót không được trước hạn chót muộn nhất của công việc",
+  "deadline-after-next-phase-deadline": "Hạn chót không được sau hạn chót của phase kế tiếp",
+  "deadline-cannot-be-in-the-past": "Hạn chót không được ở trong quá khứ",
+
+  "task-name-is-required": "Tên công việc là bắt buộc",
+  "task-name-must-be-at-least-3-characters": "Tên công việc tối thiểu 3 ký tự",
+  "task-name-must-be-at-most-100-characters": "Tên công việc tối đa 100 ký tự",
+
+  "description-is-required": "Mô tả là bắt buộc",
+  "description-must-be-at-least-10-characters": "Mô tả tối thiểu 10 ký tự",
+  "description-must-be-at-most-1000-characters": "Mô tả tối đa 1000 ký tự",
+
+  "size-is-required": "Kích thước là bắt buộc",
+  "invalid-size": "Kích thước không hợp lệ",
+  "assignee-is-required": "Người được giao là bắt buộc"
 }
