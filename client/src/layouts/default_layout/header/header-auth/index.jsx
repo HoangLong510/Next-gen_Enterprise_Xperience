@@ -434,41 +434,6 @@ export default function HeaderAuth() {
           </Typography>
         </MenuItem>
 
-        <MenuItem
-          onClick={handleClose}
-          sx={{
-            p: 2,
-            borderRadius: 2,
-            margin: "4px 16px",
-            transition: "all 0.2s ease-in-out",
-            color: "text.secondary",
-            "&:hover": {
-              backgroundColor: (theme) =>
-                alpha(theme.palette.primary.main, 0.08),
-              color: "primary.main",
-              transform: "translateX(4px)",
-              "& .MuiListItemIcon-root": {
-                color: "primary.main",
-                transform: "scale(1.1)",
-              },
-            },
-          }}
-        >
-          <ListItemIcon
-            sx={{
-              color: "text.secondary",
-              transition: "all 0.2s ease-in-out",
-            }}
-          >
-            <Lock fontSize="small" />
-          </ListItemIcon>
-          <Typography
-            variant="body2"
-            sx={{ fontSize: "0.875rem", fontWeight: 500 }}
-          >
-            {t("change-password")}
-          </Typography>
-        </MenuItem>
 
         <MenuItem
           onClick={() => dispatch(setPopupLogout())}
@@ -541,7 +506,7 @@ export default function HeaderAuth() {
             variant="body2"
             sx={{ fontSize: "0.875rem", fontWeight: 500 }}
           >
-            Chấm công
+            Check in
           </Typography>
         </MenuItem>
       </Menu>

@@ -23,7 +23,8 @@ app.get("/translate", async (req, res) => {
   }
 });
 
-const PORT = 5000;
+// 👇 cho phép PORT từ env, mặc định 6000
+const PORT = process.env.PORT || 6000;
 app.listen(PORT, () => {
   console.log(`Translate service running at http://localhost:${PORT}`);
 });

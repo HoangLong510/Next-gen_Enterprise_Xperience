@@ -27,6 +27,8 @@ import 'package:mobile/screens/login_page.dart';
 import 'package:mobile/screens/logout_page.dart';
 import 'package:mobile/screens/notifaications/notification_list_page.dart';
 import 'package:mobile/screens/profile_page.dart';
+import 'package:mobile/screens/salaries/salary_detail_page.dart';
+import 'package:mobile/screens/salaries/salary_summary_page.dart';
 import 'package:mobile/screens/transaction/transactions_page.dart';
 import 'package:mobile/widgets/custom_layout.dart';
 
@@ -415,7 +417,33 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         ],
         child: const BankAndTopupPage(),
       );
+    //Salary
+    case "/accountant/salaries/summary":
+      return _buildPage(
+        allowRoles: [
+          "ADMIN",
+          "MANAGER",
+          "ACCOUNTANT",
+          "CHIEFACCOUNTANT",
+          "CHIEF_ACCOUNTANT",
+        ],
+        child: const SalarySummaryPage(),
+      );
 
+    // Salary detail (cần truyền salaryId qua settings.arguments)
+    case "/accountant/salaries/detail":
+      final salaryId = settings.arguments as int?;
+      if (salaryId == null) return _errorPage("Thiếu salaryId");
+      return _buildPage(
+        allowRoles: [
+          "ADMIN",
+          "MANAGER",
+          "ACCOUNTANT",
+          "CHIEFACCOUNTANT",
+          "CHIEF_ACCOUNTANT",
+        ],
+        child: SalaryDetailPage(salaryId: salaryId),
+      );
     // Auth
     case "/login":
       return MaterialPageRoute(builder: (_) => const LoginPage());

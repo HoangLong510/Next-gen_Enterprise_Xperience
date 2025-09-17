@@ -31,35 +31,6 @@ const List<MenuSection> menuItems = [
         route: "/management/finance",
         roles: ["ADMIN", "MANAGER", "ACCOUNTANT"],
       ),
-      MenuItemData(
-        label: "Accounts",
-        icon: Icons.manage_accounts,
-        route: "/management/accounts",
-        roles: ["ADMIN"],
-      ),
-      MenuItemData(
-        label: "Settings",
-        icon: Icons.settings,
-        route: "/management/settings",
-        roles: ["ADMIN"],
-      ),
-    ],
-  ),
-  MenuSection(
-    title: "Employees",
-    items: [
-      MenuItemData(
-        label: "List",
-        icon: Icons.assignment_ind,
-        route: "/employees",
-        roles: ["ADMIN", "MANAGER"],
-      ),
-      MenuItemData(
-        label: "Contracts",
-        icon: Icons.file_present,
-        route: "/employees/contracts",
-        roles: ["ADMIN", "MANAGER"],
-      ),
     ],
   ),
   MenuSection(
@@ -114,23 +85,24 @@ const List<MenuSection> menuItems = [
           "CHIEF_ACCOUNTANT",
         ],
       ),
+      
+      MenuItemData(
+      label: "Salary Summary",
+      icon: Icons.receipt_long,
+      route: "/accountant/salaries/summary",
+      roles: [
+        "ADMIN",
+        "MANAGER",
+        "ACCOUNTANT",
+        "CHIEFACCOUNTANT",
+        "CHIEF_ACCOUNTANT",
+      ],
+    ),
     ],
   ),
   MenuSection(
     title: "Utilities",
     items: [
-      MenuItemData(
-        label: "Bank & Top-up",
-        icon: Icons.account_balance_wallet,
-        route: "/accountant/bank-topup",
-        roles: ["ADMIN", "ACCOUNTANT", "CHIEFACCOUNTANT", "CHIEF_ACCOUNTANT"],
-      ),
-      MenuItemData(
-        label: "Departments",
-        icon: Icons.diversity_1,
-        route: "/departments",
-        roles: ["ADMIN", "MANAGER", "HOD", "EMPLOYEE","SECRETARY"],
-      ),
       MenuItemData(
         label: "Projects",
         icon: Icons.account_tree,
