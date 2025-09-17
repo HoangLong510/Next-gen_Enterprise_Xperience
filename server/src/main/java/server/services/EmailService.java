@@ -216,7 +216,7 @@ public class EmailService {
                 +"Đại diện Công Ty TNHH NEX, phòng quản lý nhân sự xin thông báo:\n\n"
                 + "Đơn xin nghỉ phép của bạn đã được duyệt cho thời gian:\n"
                 + detail + "\n\n"
-                + "Chúc bạn nghỉ phép vui vẻ!\n\nTrân trọng!");
+                + "Trân trọng!");
 
         mailSender.send(message);
     }
@@ -295,7 +295,7 @@ public class EmailService {
 
         message.setText(
                 "Xin chào " + fullName + ",\n\n" +
-                        "Đại diện Công Ty TNHH NEX, tôi xin chân trọng thông báo:\n\n" +
+                        "Đại diện Công Ty TNHH NEX, tôi xin thông báo:\n\n" +
                         "Hợp đồng lao động của bạn đã có hiệu lực (ACTIVE).\n\n" +
                         "• Mã HĐ: " + (contractCode != null ? contractCode : "—") + "\n" +
                         "• Loại: " + typeLabel + "\n" +
@@ -332,7 +332,7 @@ public class EmailService {
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(toEmail);
-        message.setSubject("Thông báo: HR từ chối xác nhận đơn nghỉ phép");
+        message.setSubject("Thông báo: HR đã từ chối xác nhận đơn nghỉ phép của bạn");
         message.setText(
                 "Xin chào " + aName + ",\n\n" +
                         "Đơn nghỉ phép của bạn đã bị HR từ chối xác nhận.\n" +
@@ -426,7 +426,6 @@ public class EmailService {
     }
 
     private String buildRequestUrl(Long requestId) {
-        // FE có thể điều chỉnh path nếu bạn dùng route khác
         if (requestId == null) return client_url;
         return client_url + "/leave-requests/" + requestId;
     }
@@ -688,10 +687,10 @@ public class EmailService {
     @Async
     public void sendMonthEndPendingReminderToApproverAsync(
             String toEmail,
-            String approverName,          // tên người duyệt hoặc "Phòng Nhân sự"
-            String applicantName,         // tên người nộp đơn
+            String approverName,
+            String applicantName,
             Long requestId,
-            LeaveStatus status,           // PENDING hoặc PENDING_HR
+            LeaveStatus status,
             LeaveType leaveType,
             LocalDate startDate,
             LocalDate endDate,
@@ -739,15 +738,15 @@ public class EmailService {
         mailSender.send(msg);
     }
 
-// ========== NHẮC NHỞ CUỐI THÁNG: GỬI NGƯỜI NỘP ĐƠN (SENDER) ==========
+// ========== NHẮC NHỞ CUỐI THÁNG MÀ ĐƠN VẪN CHƯA ĐƯỢC DUYỆT: GỬI NGƯỜI NỘP ĐƠN (SENDER) ==========
 
     @Async
     public void sendMonthEndPendingReminderToApplicantAsync(
             String toEmail,
             String applicantName,
-            String approverNameOrDept,    // tên người duyệt hoặc "Phòng Nhân sự"
+            String approverNameOrDept,
             Long requestId,
-            LeaveStatus status,           // PENDING hoặc PENDING_HR
+            LeaveStatus status,
             LeaveType leaveType,
             LocalDate startDate,
             LocalDate endDate,

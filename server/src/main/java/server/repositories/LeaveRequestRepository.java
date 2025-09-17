@@ -5,28 +5,27 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import server.models.Account;
 import server.models.LeaveRequest;
 import server.models.enums.LeaveStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 @Repository
 public interface LeaveRequestRepository
         extends JpaRepository<LeaveRequest, Long>, JpaSpecificationExecutor<LeaveRequest> {
 
-    // Các hàm filter phục vụ phân quyền sẽ viết ở Service/Specs
     List<LeaveRequest> findByStatus(LeaveStatus status);
 
-    // (đã có sẵn trong JpaRepository, nhưng giữ lại cũng không sao)
     List<LeaveRequest> findAll();
 
     List<LeaveRequest> findBySenderIdAndStatus(Long senderId, LeaveStatus status);
 
     List<LeaveRequest> findByBatchIdOrderByStartDateAsc(String batchId);
 
-    // Đếm số đơn nghỉ đã duyệt của từng ngày trong 1 tháng, theo phòng ban
     @Query("SELECT lr FROM LeaveRequest lr " +
             "WHERE lr.sender.employee.department.id = :departmentId " +
             "AND lr.status = 'APPROVED' " +
@@ -43,4 +42,24 @@ public interface LeaveRequestRepository
             LocalDateTime startInclusive,
             LocalDateTime endExclusive
     );
+
+    @Query("""
+       SELECT lr FROM LeaveRequest lr
+       WHERE lr.createdAt >= :start AND lr.createdAt < :end
+         AND lr.status IN :statuses
+       """)
+    List<LeaveRequest> findForExpiry(LocalDateTime start,
+                                     LocalDateTime end,
+                                     Collection<LeaveStatus> statuses);
+
+    @Query("""
+       SELECT COUNT(lr) FROM LeaveRequest lr
+       WHERE lr.sender = :sender
+         AND lr.status = :status
+         AND lr.updatedAt >= :start AND lr.updatedAt < :end
+       """)
+    long countMyStatusUpdatedInMonth(@Param("sender") Account sender,
+                                     @Param("status") LeaveStatus status,
+                                     @Param("start") LocalDateTime start,
+                                     @Param("end") LocalDateTime end);
 }

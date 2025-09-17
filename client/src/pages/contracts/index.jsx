@@ -25,6 +25,8 @@ import {
   Select,
   MenuItem,
   FormHelperText,
+  TableContainer,
+  Divider,
 } from "@mui/material";
 import {
   Add,
@@ -33,6 +35,10 @@ import {
   Visibility,
   BorderColor,
   Download,
+  HelpOutline,
+  FilterList,
+  Search,
+  CleaningServices,
 } from "@mui/icons-material";
 import {
   fetchContractListApi,
@@ -42,10 +48,13 @@ import {
   updateContractApi,
   signContractApi,
   exportContractWordApi,
+  importContractsExcelApi,
+  submitContractApi,
+  getMySignatureSampleApi,
+  searchContractsApi, // //ghi chú: API search dùng start/end (overlap)
 } from "~/services/contract.service";
 import { fetchEmployeeListApi } from "~/services/employee.service";
 import { fetchAccountDataApi } from "~/services/auth.service";
-import { getMySignatureSampleApi } from "~/services/contract.service";
 import { useForm, Controller } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -53,7 +62,8 @@ import SignatureCanvas from "react-signature-canvas";
 import { useDispatch } from "react-redux";
 import { setPopup } from "~/libs/features/popup/popupSlice";
 
-// Helpers
+/* ============================ Helper: UI mapping ============================ */
+// //ghi chú: Đổi màu status -> Chip color
 const statusColor = (s) =>
   s === "ACTIVE"
     ? "success"
@@ -63,40 +73,55 @@ const statusColor = (s) =>
     ? "default"
     : "error";
 
+// //ghi chú: Label loại HĐ
 const typeLabel = (t) =>
   t === "PERMANENT"
-    ? "Chính thức"
+    ? "Permanent"
     : t === "PROBATION"
-    ? "Thử việc"
+    ? "Probation"
     : t === "TEMPORARY"
-    ? "Thời vụ"
+    ? "Temporary"
     : t;
 
-// ---- FE schema: nhẹ nhàng, khớp rule BE ----
+/* ============================ Helper: date/format =========================== */
+// //ghi chú: Lấy mốc 0h hôm nay
 const today0 = () => {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   return d;
 };
+
+// //ghi chú: FE validation schema (text tiếng Anh để đồng bộ UI)
 const schema = yup.object().shape({
   contractCode: yup
     .string()
     .trim()
-    .required("Mã hợp đồng là bắt buộc")
-    .matches(/^$|^NEX-\d{4}-\d{4}$/, "Format phải là NEX-YYYY-SSSS (vd: NEX-2025-0001)"),
+    .required("Contract code is required")
+    .matches(
+      /^$|^NEX-\d{4}-\d{4}$/,
+      "Format must be NEX-YYYY-SSSS (e.g., NEX-2025-0001)"
+    ),
   employeeId: yup
     .number()
-    .typeError("Select an employee")
-    .required("Select an employee"),
+    .typeError("Please select an employee")
+    .required("Please select an employee"),
   startDate: yup
     .date()
     .typeError("Select start date")
     .required("Select start date")
-    .test("not-past", "Start date cannot be in the past", (v) => {
-      if (!v) return true;
-      const sv = new Date(v); sv.setHours(0,0,0,0);
-      return sv.getTime() >= today0().getTime();
-    }),
+    .test(
+      "not-too-old",
+      "Start date cannot be more than 30 days in the past",
+      (v) => {
+        if (!v) return true;
+        const sd = new Date(v);
+        sd.setHours(0, 0, 0, 0);
+        const today = today0();
+        const earliest = new Date(today);
+        earliest.setDate(earliest.getDate() - 30); // 30 ngày
+        return sd.getTime() >= earliest.getTime(); // sd >= today-30d (OK cả hôm nay & tương lai)
+      }
+    ),
   endDate: yup
     .date()
     .typeError("Select end date")
@@ -118,27 +143,37 @@ const schema = yup.object().shape({
     .required("Basic salary is required"),
 });
 
+/* ================================ Component ================================= */
 export default function ContractPage() {
   const dispatch = useDispatch();
 
+  // //ghi chú: State: danh sách + phân trang + tài khoản
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
   const [account, setAccount] = useState(null);
 
-  // Create / Edit form
+  // //ghi chú: State: bộ lọc (khớp tham số BE) — chỉ còn 2 mốc ngày
+  const [name, setName] = useState("");
+  const [status, setStatus] = useState("");
+  const [cType, setCType] = useState("");
+  const [start, setStart] = useState(""); // yyyy-MM-dd
+  const [end, setEnd] = useState(""); // yyyy-MM-dd
+  const [isSearching, setIsSearching] = useState(false); // đang xem kết quả search -> ẩn paging
+
+  // //ghi chú: Form dialog (create/edit)
   const [openForm, setOpenForm] = useState(false);
-  const [formMode, setFormMode] = useState("add"); // add | edit
+  const [formMode, setFormMode] = useState("add"); // "add" | "edit"
   const [selected, setSelected] = useState(null);
   const [employees, setEmployees] = useState([]);
 
-  // View detail dialog
+  // //ghi chú: Detail dialog
   const [openDetail, setOpenDetail] = useState(false);
   const [detail, setDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  // Sign dialog
+  // //ghi chú: Sign dialog
   const [signOpen, setSignOpen] = useState(false);
   const [signTarget, setSignTarget] = useState(null);
   const [signaturePad, setSignaturePad] = useState(null);
@@ -148,13 +183,22 @@ export default function ContractPage() {
   const [signing, setSigning] = useState(false);
   const [signError, setSignError] = useState("");
 
-  // hook-form
+  // //ghi chú: Confirm dialog (xác nhận hành động nguy hiểm)
+  const [confirm, setConfirm] = useState({
+    open: false,
+    title: "",
+    message: "",
+    processing: false,
+    onConfirm: /** @type {null | (() => Promise<void> | void)} */ (null),
+  });
+
+  /* ================================ RHF setup ================================ */
+  // //ghi chú: React Hook Form
   const {
     handleSubmit,
     control,
     reset,
     formState: { errors },
-    watch,
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -168,6 +212,33 @@ export default function ContractPage() {
     },
   });
 
+  /* ============================= Small utilities ============================ */
+  // //ghi chú: Mở dialog confirm
+  const askConfirm = ({ title = "Confirm", message, onConfirm }) =>
+    setConfirm({ open: true, title, message, onConfirm, processing: false });
+
+  // //ghi chú: Đóng dialog confirm
+  const handleConfirmClose = () =>
+    setConfirm((c) => (c.processing ? c : { ...c, open: false }));
+
+  // //ghi chú: OK dialog confirm -> chạy hành động
+  const handleConfirmOk = async () => {
+    if (!confirm.onConfirm) return handleConfirmClose();
+    setConfirm((c) => ({ ...c, processing: true }));
+    try {
+      await confirm.onConfirm();
+    } finally {
+      setConfirm({
+        open: false,
+        title: "",
+        message: "",
+        processing: false,
+        onConfirm: null,
+      });
+    }
+  };
+
+  // //ghi chú: Chuyển Date -> YYYY-MM-DD
   const toISODate = (d) => {
     if (!d) return null;
     if (typeof d === "string") return d;
@@ -177,23 +248,161 @@ export default function ContractPage() {
     return `${yyyy}-${mm}-${dd}`;
   };
 
-  // Helpers tính khoảng theo rule BE
+  // //ghi chú: Số ngày bao gồm 2 đầu mốc
   const inclusiveDays = (startISO, endISO) => {
     const sd = new Date(startISO);
     const ed = new Date(endISO);
     const diff = Math.floor((ed - sd) / 86400000);
-    return diff + 1; // inclusive
+    return diff + 1;
   };
+
+  // //ghi chú: Số tháng inclusive theo rule BE
   const inclusiveMonths = (startISO, endISO) => {
     const s = new Date(startISO);
     const e = new Date(endISO);
-    // chênh lệch theo tháng, inclusive (giống BE)
-    return (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth()) + 1;
+    return (
+      (e.getFullYear() - s.getFullYear()) * 12 +
+      (e.getMonth() - s.getMonth()) +
+      1
+    );
   };
 
-  // Submit form
+  // //ghi chú: Helper hiển thị tên nhân viên + chức danh
+  const employeeName = (e) =>
+    e?.fullName ||
+    e?.name ||
+    [e?.firstName, e?.lastName].filter(Boolean).join(" ").trim() ||
+    `#${e?.id}`;
+
+  // //ghi chú: Gợi ý lấy role thô từ nhiều nguồn khác nhau trong object
+  const pickRawRole = (e) => {
+    const candidates = [
+      e?.employeeRole,
+      e?.role,
+      e?.accountRole,
+      e?.account?.role,
+      e?.position?.role,
+      e?.title,
+    ];
+    const arrays = [
+      e?.roles,
+      e?.account?.roles,
+      e?.authorities,
+      e?.account?.authorities,
+    ];
+    for (const r of candidates) {
+      if (!r) continue;
+      if (typeof r === "string") return r;
+      if (typeof r?.name === "string") return r.name;
+    }
+    for (const arr of arrays) {
+      if (!Array.isArray(arr) || arr.length === 0) continue;
+      const f = arr[0];
+      if (typeof f === "string") return f;
+      if (typeof f?.name === "string") return f.name;
+    }
+    return "";
+  };
+
+  // //ghi chú: Chuẩn hoá role -> label in hoa
+  const roleLabel = (r) => {
+    let s = String(r || "").trim();
+    if (s.startsWith("ROLE_")) s = s.slice(5);
+    return s.replace(/_/g, " ").toUpperCase();
+  };
+
+  // //ghi chú: Label hiển thị trong dropdown nhân viên
+  const employeeLabel = (e) => {
+    const name = employeeName(e);
+    const role = roleLabel(pickRawRole(e));
+    return role ? `${name} – ${role}` : name;
+  };
+
+  /* ================================ Actions ================================= */
+
+  // //ghi chú: Search theo bộ lọc — gọi đúng BE /contracts/search với start/end
+  const runSearch = async () => {
+    setLoading(true);
+    const params = {
+      name: name || undefined,
+      status: status || undefined,
+      type: cType || undefined,
+      start: start || undefined,
+      end: end || undefined,
+    };
+    const res = await searchContractsApi(params);
+    setLoading(false);
+    if (res.status === 200) {
+      const items = Array.isArray(res.data) ? res.data : [];
+      setRows(items);
+      setPage(1);
+      setPageCount(1);
+      setIsSearching(true);
+    } else {
+      dispatch(
+        setPopup({ type: "error", message: res.message || "Search failed" })
+      );
+    }
+  };
+
+  // //ghi chú: Xoá filter & về mặc định (list có phân trang)
+  const clearFilters = () => {
+    setName("");
+    setStatus("");
+    setCType("");
+    setStart("");
+    setEnd("");
+    setIsSearching(false);
+    loadData(); // gọi lại list mặc định
+  };
+
+  // //ghi chú: Gửi hợp đồng: DRAFT -> PENDING
+  const handleSubmitContract = (id) => {
+    askConfirm({
+      title: "Submit Contract",
+      message:
+        "Are you sure you want to submit this contract for manager signature?",
+      onConfirm: async () => {
+        const res = await submitContractApi(id);
+        if (res.status === 200) {
+          dispatch(
+            setPopup({
+              type: "success",
+              message: res.message || "Submitted successfully",
+            })
+          );
+          loadData();
+        } else {
+          dispatch(
+            setPopup({ type: "error", message: res.message || "Submit failed" })
+          );
+        }
+      },
+    });
+  };
+
+  // //ghi chú: Import Excel: tạo nhiều HĐ
+  const handleImportExcel = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const res = await importContractsExcelApi(file);
+    if (res.status === 200) {
+      dispatch(
+        setPopup({
+          type: "success",
+          message: res.message || "Imported successfully",
+        })
+      );
+      loadData();
+    } else {
+      dispatch(
+        setPopup({ type: "error", message: res.message || "Import failed" })
+      );
+    }
+  };
+
+  // //ghi chú: Submit form tạo/cập nhật HĐ
   const onSubmit = async (formData) => {
-    // Chuẩn hóa dữ liệu gửi
     const payload = {
       ...formData,
       employeeId: Number(formData.employeeId || 0),
@@ -201,58 +410,83 @@ export default function ContractPage() {
       endDate: toISODate(formData.endDate),
       basicSalary:
         formData.basicSalary === "" ? null : Number(formData.basicSalary),
-      // contractCode: cho BE tự sinh nếu để trống
       contractCode:
         (formData.contractCode || "").trim() === ""
           ? null
           : String(formData.contractCode).trim(),
     };
 
-    // FE checks nhẹ cho trải nghiệm (BE vẫn là nguồn sự thật)
-
-    // 1) startDate không quá khứ (today OK)
+    // cho phép quá khứ nhưng không quá 30 ngày
     if (payload.startDate) {
-      const sd = new Date(payload.startDate); sd.setHours(0,0,0,0);
-      if (sd.getTime() < today0().getTime()) {
-        dispatch(setPopup({ type: "error", message: "Start date cannot be in the past" }));
+      const sd = new Date(payload.startDate);
+      sd.setHours(0, 0, 0, 0);
+      const earliest = new Date(today0());
+      earliest.setDate(earliest.getDate() - 30);
+      if (sd.getTime() < earliest.getTime()) {
+        dispatch(
+          setPopup({
+            type: "error",
+            message: "Start date cannot be more than 30 days in the past",
+          })
+        );
         return;
       }
     }
 
-    // 2) endDate > startDate (strict)
+    // //ghi chú: end > start (strict)
     if (payload.startDate && payload.endDate) {
       const sd = new Date(payload.startDate);
       const ed = new Date(payload.endDate);
       if (!(ed.getTime() > sd.getTime())) {
-        dispatch(setPopup({ type: "error", message: "End date must be AFTER start date" }));
+        dispatch(
+          setPopup({
+            type: "error",
+            message: "End date must be AFTER start date",
+          })
+        );
         return;
       }
     }
 
-    // 3) Ràng buộc theo loại
+    // //ghi chú: Ràng buộc theo loại HĐ
     if (payload.type && payload.startDate && payload.endDate) {
       if (payload.type === "PROBATION") {
         const d = inclusiveDays(payload.startDate, payload.endDate);
         if (d > 64) {
-          dispatch(setPopup({ type: "error", message: "Probation cannot exceed 64 days" }));
+          dispatch(
+            setPopup({
+              type: "error",
+              message: "Probation cannot exceed 64 days",
+            })
+          );
           return;
         }
       }
       if (payload.type === "TEMPORARY") {
         const m = inclusiveMonths(payload.startDate, payload.endDate);
         if (m > 12) {
-          dispatch(setPopup({ type: "error", message: "Temporary cannot exceed 12 months" }));
+          dispatch(
+            setPopup({
+              type: "error",
+              message: "Temporary cannot exceed 12 months",
+            })
+          );
           return;
         }
       }
     }
 
-    // 4) Lương > 0
-    if (payload.basicSalary == null || isNaN(payload.basicSalary) || payload.basicSalary <= 0) {
+    // //ghi chú: Lương > 0
+    if (
+      payload.basicSalary == null ||
+      isNaN(payload.basicSalary) ||
+      payload.basicSalary <= 0
+    ) {
       dispatch(setPopup({ type: "error", message: "Salary must be > 0" }));
       return;
     }
 
+    // //ghi chú: Gọi API tạo/sửa
     const res =
       formMode === "add"
         ? await createContractApi(payload)
@@ -260,23 +494,16 @@ export default function ContractPage() {
 
     if (res.status === 200 || res.status === 201) {
       dispatch(
-        setPopup({
-          type: "success",
-          message: res.message || "Success",
-        })
+        setPopup({ type: "success", message: res.message || "Success" })
       );
       setOpenForm(false);
       loadData();
     } else {
-      dispatch(
-        setPopup({
-          type: "error",
-          message: res.message || "Error",
-        })
-      );
+      dispatch(setPopup({ type: "error", message: res.message || "Error" }));
     }
   };
 
+  // //ghi chú: Mở form tạo
   const openAdd = () => {
     setFormMode("add");
     reset({
@@ -291,11 +518,11 @@ export default function ContractPage() {
     setOpenForm(true);
   };
 
+  // //ghi chú: Sửa HĐ -> load detail vào form
   const handleEdit = async (id) => {
     setFormMode("edit");
     setSelected(rows.find((r) => r.id === id));
     setOpenForm(true);
-    // Load detail to fill form
     setLoadingDetail(true);
     const res = await fetchContractDetailApi(id);
     setLoadingDetail(false);
@@ -320,22 +547,28 @@ export default function ContractPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    const confirm = window.confirm("Xoá hợp đồng này?");
-    if (!confirm) return;
-    const res = await deleteContractApi(id);
-    if (res.status === 200) {
-      dispatch(
-        setPopup({ type: "success", message: res.message || "Deleted" })
-      );
-      loadData();
-    } else {
-      dispatch(
-        setPopup({ type: "error", message: res.message || "Delete failed" })
-      );
-    }
+  // //ghi chú: Xoá HĐ (chỉ HR: DRAFT/PENDING)
+  const handleDelete = (id) => {
+    askConfirm({
+      title: "Delete Contract",
+      message: "Are you sure you want to delete this contract?",
+      onConfirm: async () => {
+        const res = await deleteContractApi(id);
+        if (res.status === 200) {
+          dispatch(
+            setPopup({ type: "success", message: res.message || "Deleted" })
+          );
+          loadData();
+        } else {
+          dispatch(
+            setPopup({ type: "error", message: res.message || "Delete failed" })
+          );
+        }
+      },
+    });
   };
 
+  // //ghi chú: Xem chi tiết HĐ
   const handleView = async (id) => {
     setOpenDetail(true);
     setLoadingDetail(true);
@@ -354,13 +587,13 @@ export default function ContractPage() {
     }
   };
 
+  // //ghi chú: Mở dialog ký + nạp chữ ký mẫu
   const openSignDialog = async (row) => {
     setSignTarget(row);
     setUseSavedSignature(false);
     setSignError("");
     setSignOpen(true);
 
-    // load chữ ký đã lưu (nếu có)
     setLoadingSignature(true);
     const res = await getMySignatureSampleApi();
     setLoadingSignature(false);
@@ -368,12 +601,11 @@ export default function ContractPage() {
     else setSavedSignature(null);
   };
 
+  // //ghi chú: Xác nhận ký -> gửi chữ ký cho BE
   const handleConfirmSign = async () => {
     if (!signTarget) return;
 
-    // Xác định nhánh ký theo rule BE:
-    // - MANAGER ký khi HĐ đang PENDING
-    // - Bất kỳ role: nếu là chính chủ và status SIGNED_BY_MANAGER => ký nhánh EMPLOYEE
+    // //ghi chú: Rule ký theo role
     let signerRole = null;
     if (account?.role === "MANAGER" && signTarget.status === "PENDING") {
       signerRole = "MANAGER";
@@ -383,20 +615,20 @@ export default function ContractPage() {
     ) {
       signerRole = "EMPLOYEE";
     } else {
-      setSignError("Bạn không đủ điều kiện để ký hợp đồng này.");
+      setSignError("You are not eligible to sign this contract.");
       return;
     }
 
-    // build signature content
+    // //ghi chú: Build chữ ký base64
     let signatureBase64 = null;
     if (useSavedSignature && savedSignature) {
       signatureBase64 = savedSignature;
     } else {
       if (!signaturePad || signaturePad.isEmpty()) {
-        setSignError("Bạn phải ký tên trước khi xác nhận!");
+        setSignError("Please sign before confirming.");
         return;
       }
-      signatureBase64 = signaturePad.toDataURL(); // base64 PNG
+      signatureBase64 = signaturePad.toDataURL();
     }
 
     setSigning(true);
@@ -409,39 +641,40 @@ export default function ContractPage() {
 
     if (res.status !== 200) {
       dispatch(
-        setPopup({ type: "error", message: res.message || "Ký thất bại" })
+        setPopup({ type: "error", message: res.message || "Signing failed" })
       );
       return;
     }
-    dispatch(setPopup({ type: "success", message: res.message || "Đã ký" }));
+    dispatch(setPopup({ type: "success", message: res.message || "Signed" }));
     setSignOpen(false);
     loadData();
   };
 
-  // Quy tắc hiển thị nút ký
+  /* ============================ Permission helpers ========================== */
+  // //ghi chú: Có quyền ký?
   const canSign = (row) => {
     const role = account?.role;
     if (!role) return false;
-
-    // MANAGER ký trước khi chuyển trạng thái
     if (role === "MANAGER" && row.status === "PENDING") return true;
-
-    // Bất kỳ role: nếu là chính chủ và đã có chữ ký Manager
-    if (row.status === "SIGNED_BY_MANAGER" && row.employeeId === account?.employee?.id) {
+    if (
+      row.status === "SIGNED_BY_MANAGER" &&
+      row.employeeId === account?.employee?.id
+    )
       return true;
-    }
     return false;
   };
 
-  // Chỉ HR mới có thể thêm/sửa/xoá (khớp BE)
+  // //ghi chú: HR thì mới được sửa/xoá
   const isHR = account?.role === "HR";
-  const canEdit = (row) => isHR && ["PENDING", "EXPIRED"].includes(row.status);
-  const canDelete = (row) => isHR && row.status === "PENDING";
+  const canEdit = (row) =>
+    isHR && ["DRAFT", "PENDING", "EXPIRED"].includes(row.status);
+  const canDelete = (row) => isHR && ["DRAFT", "PENDING"].includes(row.status);
 
-  // Fetch data
+  /* ================================== Data ================================== */
+  // //ghi chú: Nạp danh sách HĐ
   const loadData = async () => {
     setLoading(true);
-    const res = await fetchContractListApi({ page }); // BE hiện chưa phân trang
+    const res = await fetchContractListApi({ page });
     setLoading(false);
 
     if (res.status === 200) {
@@ -458,34 +691,30 @@ export default function ContractPage() {
     }
   };
 
+  // //ghi chú: Nạp danh sách nhân viên cho dropdown
   const loadEmployees = async () => {
     const res = await fetchEmployeeListApi();
-    if (res.status === 200) {
-      setEmployees(res.data || []);
-    } else {
-      setEmployees([]);
-    }
+    if (res.status === 200) setEmployees(res.data || []);
+    else setEmployees([]);
   };
 
+  // //ghi chú: Nạp thông tin tài khoản
   const loadAccount = async () => {
     const res = await fetchAccountDataApi();
-    if (res.status === 200) {
-      setAccount(res.data);
-    } else {
-      setAccount(null);
-    }
+    if (res.status === 200) setAccount(res.data);
+    else setAccount(null);
   };
 
-  // Export contract to Word
+  // //ghi chú: Export file Word
   const handleExport = async (row) => {
     const res = await exportContractWordApi(row.id);
     if (res.status !== 200) {
-      dispatch(setPopup({ type: "error", message: "Xuất Word thất bại" }));
+      dispatch(setPopup({ type: "error", message: "Export Word failed" }));
       return;
     }
 
-    // Lấy tên file từ Content-Disposition (nếu có), fallback theo mã HĐ
-    let filename = `hop-dong-${row.contractCode || row.id}.docx`;
+    // //ghi chú: Lấy tên file từ header nếu có
+    let filename = `contract-${row.contractCode || row.id}.docx`;
     const cd =
       res.headers?.["content-disposition"] ||
       res.headers?.["Content-Disposition"];
@@ -494,7 +723,7 @@ export default function ContractPage() {
       if (m) filename = decodeURIComponent(m[1] || m[2]);
     }
 
-    // Tải file
+    // //ghi chú: Tải file
     const blob = new Blob([res.data], {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     });
@@ -507,177 +736,337 @@ export default function ContractPage() {
     a.remove();
     window.URL.revokeObjectURL(url);
 
-    dispatch(setPopup({ type: "success", message: "Đã xuất Word" }));
+    dispatch(setPopup({ type: "success", message: "Exported" }));
   };
 
-  // Tên đầy đủ + role cho dropdown
-  const employeeName = (e) =>
-    e?.fullName ||
-    e?.name ||
-    [e?.firstName, e?.lastName].filter(Boolean).join(" ").trim() ||
-    `#${e?.id}`;
-  const pickRawRole = (e) => {
-    const candidates = [
-      e?.employeeRole,
-      e?.role,
-      e?.accountRole,
-      e?.account?.role,
-      e?.position?.role,
-      e?.title,
-    ];
-    const arrays = [e?.roles, e?.account?.roles, e?.authorities, e?.account?.authorities];
-    for (const r of candidates) {
-      if (!r) continue;
-      if (typeof r === "string") return r;
-      if (typeof r?.name === "string") return r.name;
-    }
-    for (const arr of arrays) {
-      if (!Array.isArray(arr) || arr.length === 0) continue;
-      const f = arr[0];
-      if (typeof f === "string") return f;
-      if (typeof f?.name === "string") return f.name;
-    }
-    return "";
-  };
-  const roleLabel = (r) => {
-    let s = String(r || "").trim();
-    if (s.startsWith("ROLE_")) s = s.slice(5);
-    return s.replace(/_/g, " ").toUpperCase();
-  };
-  const employeeLabel = (e) => {
-    const name = employeeName(e);
-    const role = roleLabel(pickRawRole(e));
-    return role ? `${name} – ${role}` : name;
-  };
-
+  /* ================================ Effects ================================= */
   useEffect(() => {
     loadAccount();
   }, []);
 
   useEffect(() => {
-    loadData();
+    if (!isSearching) loadData(); // //ghi chú: nếu đang xem kết quả search thì không gọi list phân trang
     loadEmployees();
-  }, [page]);
+  }, [page, isSearching]);
 
+  /* ================================= Render ================================= */
   return (
-    <Box sx={{ p: 2 }}>
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Typography variant="h5" fontWeight={700}>
-            Quản lý hợp đồng lao động
-          </Typography>
-          {account?.role === "HR" && ( // chỉ HR được tạo
+    <Box sx={{ p: 2, maxWidth: 1400, mx: "auto" }}>
+      {/* Header */}
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2.5,
+          mb: 2.5,
+          borderRadius: 3,
+          background:
+            "linear-gradient(180deg, rgba(250,250,250,1) 0%, rgba(245,246,248,1) 100%)",
+        }}
+      >
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          gap={2}
+        >
+          <Box>
+            <Typography variant="h5" fontWeight={800}>
+              Employment Contracts
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Create, track and manage employee contracts
+            </Typography>
+          </Box>
+
+          {/* //ghi chú: Chỉ HR được tạo hợp đồng */}
+          {account?.role === "HR" && (
             <Button
               variant="contained"
               startIcon={<Add />}
               onClick={openAdd}
-              sx={{ borderRadius: 2 }}
+              sx={{ borderRadius: 2, px: 2.5 }}
             >
-              Thêm hợp đồng
+              New Contract
             </Button>
           )}
         </Stack>
       </Paper>
 
-      <Paper sx={{ p: 0 }}>
+      {/* =============================== Filters =============================== */}
+      <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 3 }}>
+        <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
+          <FilterList fontSize="small" />
+          <Typography fontWeight={700}>Filters</Typography>
+        </Stack>
+
+        <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+          <TextField
+            label="Employee name (contains)"
+            placeholder="Enter name..."
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            size="small"
+            fullWidth
+          />
+
+          <FormControl fullWidth size="small">
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={status}
+              label="Status"
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="DRAFT">DRAFT</MenuItem>
+              <MenuItem value="PENDING">PENDING</MenuItem>
+              <MenuItem value="SIGNED_BY_MANAGER">SIGNED_BY_MANAGER</MenuItem>
+              <MenuItem value="ACTIVE">ACTIVE</MenuItem>
+              <MenuItem value="EXPIRED">EXPIRED</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth size="small">
+            <InputLabel>Type</InputLabel>
+            <Select
+              value={cType}
+              label="Type"
+              onChange={(e) => setCType(e.target.value)}
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="PERMANENT">PERMANENT</MenuItem>
+              <MenuItem value="PROBATION">PROBATION</MenuItem>
+              <MenuItem value="TEMPORARY">TEMPORARY</MenuItem>
+            </Select>
+          </FormControl>
+        </Stack>
+
+        {/* //ghi chú: chỉ còn 2 ô ngày Start/End, lọc theo overlap */}
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={2}
+          sx={{ mt: 2 }}
+        >
+          <TextField
+            label="Start"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+            size="small"
+            fullWidth
+          />
+          <TextField
+            label="End"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={end}
+            onChange={(e) => setEnd(e.target.value)}
+            size="small"
+            fullWidth
+          />
+        </Stack>
+
+        <Stack
+          direction="row"
+          justifyContent="flex-end"
+          spacing={1.5}
+          sx={{ mt: 2 }}
+        >
+          <Button
+            variant="outlined"
+            startIcon={<CleaningServices />}
+            onClick={clearFilters}
+          >
+            Clear
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Search />}
+            onClick={runSearch}
+          >
+            Search
+          </Button>
+        </Stack>
+      </Paper>
+
+      {/* Table */}
+      <TableContainer
+        component={Paper}
+        sx={{ borderRadius: 3 }}
+        variant="outlined"
+      >
         <Table>
           <TableHead>
-            <TableRow>
-              <TableCell>Mã HĐ</TableCell>
-              <TableCell>Nhân viên</TableCell>
-              <TableCell>Loại</TableCell>
-              <TableCell>Lương cơ bản</TableCell>
-              <TableCell>Ngày bắt đầu</TableCell>
-              <TableCell>Ngày kết thúc</TableCell>
-              <TableCell align="center">Trạng thái</TableCell>
+            <TableRow
+              sx={{ "& th": { fontWeight: 700, bgcolor: "primary.light" } }}
+            >
+              <TableCell width={160}>Contract No.</TableCell>
+              <TableCell>Employee</TableCell>
+              <TableCell width={150}>Type</TableCell>
+              <TableCell width={160}>Base Salary</TableCell>
+              <TableCell width={150}>Start Date</TableCell>
+              <TableCell width={150}>End Date</TableCell>
+              <TableCell align="center" width={140}>
+                Status
+              </TableCell>
               <TableCell align="center" width={280}>
-                Thao tác
+                Actions
               </TableCell>
             </TableRow>
           </TableHead>
+
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={8} align="center">
-                  <CircularProgress size={26} />
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    gap={1.5}
+                    justifyContent="center"
+                    py={2}
+                  >
+                    <CircularProgress size={22} />
+                    <Typography variant="body2" color="text.secondary">
+                      Loading contracts...
+                    </Typography>
+                  </Stack>
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} align="center">
-                  Không có dữ liệu
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ py: 2 }}
+                  >
+                    No data
+                  </Typography>
                 </TableCell>
               </TableRow>
             ) : (
               rows.map((row) => (
-                <TableRow key={row.id} hover>
-                  <TableCell>{row.contractCode}</TableCell>
+                <TableRow
+                  key={row.id}
+                  hover
+                  sx={{
+                    "&:nth-of-type(odd)": { bgcolor: "rgba(0,0,0,0.02)" }, // row zebra nhẹ
+                    "& td": { borderColor: "rgba(0,0,0,0.06)" },
+                  }}
+                >
                   <TableCell>
-                    {row.employeeRole
-                      ? `${row.employeeName} – ${row.employeeRole}`
-                      : row.employeeName}
+                    <Typography fontWeight={600}>{row.contractCode}</Typography>
                   </TableCell>
+
+                  <TableCell>
+                    <Typography>{row.employeeName}</Typography>
+                    {row.employeeRole && (
+                      <Typography variant="caption" color="text.secondary">
+                        {row.employeeRole}
+                      </Typography>
+                    )}
+                  </TableCell>
+
                   <TableCell>{typeLabel(row.type)}</TableCell>
+
                   <TableCell>
                     {row.basicSalary != null
                       ? row.basicSalary.toLocaleString()
                       : ""}
                   </TableCell>
+
                   <TableCell>{row.startDate}</TableCell>
                   <TableCell>{row.endDate}</TableCell>
+
                   <TableCell align="center">
                     <Chip
                       label={row.status}
                       color={statusColor(row.status)}
                       size="small"
-                      sx={{ fontWeight: 600 }}
+                      sx={{ fontWeight: 700, borderRadius: 1 }}
+                      variant="filled"
                     />
                   </TableCell>
+
                   <TableCell align="center">
-                    <Tooltip title="Xem chi tiết">
-                      <IconButton onClick={() => handleView(row.id)}>
-                        <Visibility />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Xuất Word">
-                      <IconButton onClick={() => handleExport(row)}>
-                        <Download />
-                      </IconButton>
-                    </Tooltip>
-
-                    {canEdit(row) && (
-                      <Tooltip title="Sửa">
+                    <Stack
+                      direction="row"
+                      justifyContent="center"
+                      spacing={0.5}
+                    >
+                      {/* View detail */}
+                      <Tooltip title="View details">
                         <IconButton
-                          color="secondary"
-                          onClick={() => handleEdit(row.id)}
+                          size="small"
+                          onClick={() => handleView(row.id)}
                         >
-                          <Edit />
+                          <Visibility fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                    )}
 
-                    {canDelete(row) && (
-                      <Tooltip title="Xóa">
+                      {/* Export Word */}
+                      <Tooltip title="Export Word">
                         <IconButton
-                          color="error"
-                          onClick={() => handleDelete(row.id)}
+                          size="small"
+                          onClick={() => handleExport(row)}
                         >
-                          <Delete />
+                          <Download fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                    )}
 
-                    {/* Nút ký theo rule mới */}
-                    {canSign(row) && (
-                      <Tooltip title="Ký hợp đồng">
-                        <IconButton
-                          color="primary"
-                          onClick={() => openSignDialog(row)}
-                        >
-                          <BorderColor />
-                        </IconButton>
-                      </Tooltip>
-                    )}
+                      {/* HR: Edit (DRAFT, PENDING, EXPIRED) */}
+                      {canEdit(row) && (
+                        <Tooltip title="Edit">
+                          <IconButton
+                            size="small"
+                            color="secondary"
+                            onClick={() => handleEdit(row.id)}
+                          >
+                            <Edit fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+
+                      {/* HR: Delete (DRAFT, PENDING) */}
+                      {canDelete(row) && (
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDelete(row.id)}
+                          >
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+
+                      {/* HR: Submit (DRAFT -> PENDING) */}
+                      {isHR && row.status === "DRAFT" && (
+                        <Tooltip title="Submit for signature">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleSubmitContract(row.id)}
+                          >
+                            <BorderColor fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+
+                      {/* Sign (Manager or Employee) */}
+                      {canSign(row) && (
+                        <Tooltip title="Sign contract">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => openSignDialog(row)}
+                          >
+                            <BorderColor fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))
@@ -685,163 +1074,215 @@ export default function ContractPage() {
           </TableBody>
         </Table>
 
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-          <Pagination
-            count={pageCount}
-            page={page}
-            onChange={(_, value) => setPage(value)}
-          />
-        </Box>
-      </Paper>
+        <Divider />
 
-      {/* Create / Edit Dialog */}
-      <Dialog open={openForm} onClose={() => setOpenForm(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{formMode === "add" ? "Tạo hợp đồng" : "Cập nhật hợp đồng"}</DialogTitle>
-        <DialogContent dividers>
-          <Box component="form" noValidate autoComplete="off" sx={{ mt: 1 }}>
-            <Controller
-              name="contractCode"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Mã hợp đồng"
-                  placeholder="NEX-2025-0001"
-                  fullWidth
-                  margin="normal"
-                  error={!!errors.contractCode}
-                  helperText={errors.contractCode?.message || "Định dạng: NEX-YYYY-SSSS"}
-                  InputProps={{ sx: { borderRadius: 2 } }}
-                />
-              )}
-            />
-
-            <FormControl fullWidth margin="normal" error={!!errors.employeeId}>
-              <InputLabel>Nhân viên</InputLabel>
-              <Controller
-                name="employeeId"
-                control={control}
-                render={({ field }) => (
-                  <Select {...field} label="Nhân viên">
-                    <MenuItem value="">
-                      <em>-- Chọn nhân viên --</em>
-                    </MenuItem>
-                    {employees.map((e) => (
-                      <MenuItem key={e.id} value={e.id}>
-                        {employeeLabel(e)}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                )}
-              />
-              <FormHelperText>{errors.employeeId?.message}</FormHelperText>
-            </FormControl>
-
-            <Stack direction="row" spacing={2}>
-              <Controller
-                name="startDate"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    type="date"
-                    label="Ngày bắt đầu"
-                    fullWidth
-                    margin="normal"
-                    InputLabelProps={{ shrink: true }}
-                    error={!!errors.startDate}
-                    helperText={errors.startDate?.message}
-                    InputProps={{ sx: { borderRadius: 2 } }}
-                  />
-                )}
-              />
-
-              <Controller
-                name="endDate"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    type="date"
-                    label="Ngày kết thúc"
-                    fullWidth
-                    margin="normal"
-                    InputLabelProps={{ shrink: true }}
-                    error={!!errors.endDate}
-                    helperText={errors.endDate?.message}
-                    InputProps={{ sx: { borderRadius: 2 } }}
-                  />
-                )}
-              />
-            </Stack>
-
-            <FormControl fullWidth margin="normal" error={!!errors.type}>
-              <InputLabel>Loại hợp đồng</InputLabel>
-              <Controller
-                name="type"
-                control={control}
-                render={({ field }) => (
-                  <Select {...field} label="Loại hợp đồng">
-                    <MenuItem value="">
-                      <em>-- Chọn loại --</em>
-                    </MenuItem>
-                    <MenuItem value="PERMANENT">Chính thức</MenuItem>
-                    <MenuItem value="PROBATION">Thử việc (≤ 64 ngày)</MenuItem>
-                    <MenuItem value="TEMPORARY">Thời vụ (≤ 12 tháng)</MenuItem>
-                  </Select>
-                )}
-              />
-              <FormHelperText>{errors.type?.message}</FormHelperText>
-            </FormControl>
-
-            <Controller
-              name="basicSalary"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Lương cơ bản"
-                  fullWidth
-                  margin="normal"
-                  type="number"
-                  inputProps={{ step: "0.01", min: "0" }}
-                  error={!!errors.basicSalary}
-                  helperText={errors.basicSalary?.message}
-                  InputProps={{ sx: { borderRadius: 2 } }}
-                />
-              )}
-            />
-
-            <Controller
-              name="note"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Ghi chú"
-                  fullWidth
-                  margin="normal"
-                  multiline
-                  rows={3}
-                  error={!!errors.note}
-                  helperText={errors.note?.message}
-                  InputProps={{ sx: { borderRadius: 2 } }}
-                />
-              )}
+        {/* Pagination */}
+        {!isSearching && (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "flex-end",
+              py: 1.5,
+              pr: 1.5,
+            }}
+          >
+            <Pagination
+              count={pageCount}
+              page={page}
+              onChange={(_, value) => setPage(value)}
+              color="primary"
+              size="medium"
+              siblingCount={1}
+              boundaryCount={1}
             />
           </Box>
+        )}
+      </TableContainer>
+
+      {/* ============================= Create / Edit ============================ */}
+      <Dialog
+        open={openForm}
+        onClose={() => setOpenForm(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          {formMode === "add" ? "Create Contract" : "Update Contract"}
+        </DialogTitle>
+        <DialogContent dividers sx={{ pt: 2 }}>
+          {/* //ghi chú: Nút import Excel */}
+          <Button
+            variant="outlined"
+            component="label"
+            sx={{ borderRadius: 2, mb: 1 }}
+          >
+            Import Excel
+            <input
+              type="file"
+              hidden
+              accept=".xlsx,.xls"
+              onChange={handleImportExcel}
+            />
+          </Button>
+
+          {/* Contract Code */}
+          <Controller
+            name="contractCode"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Contract Code"
+                placeholder="NEX-2025-0001"
+                fullWidth
+                margin="normal"
+                error={!!errors.contractCode}
+                helperText={
+                  errors.contractCode?.message || "Format: NEX-YYYY-SSSS"
+                }
+                InputProps={{ sx: { borderRadius: 2 } }}
+              />
+            )}
+          />
+
+          {/* Employee */}
+          <FormControl fullWidth margin="normal" error={!!errors.employeeId}>
+            <InputLabel>Employee</InputLabel>
+            <Controller
+              name="employeeId"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  label="Employee"
+                  MenuProps={{ PaperProps: { elevation: 2 } }}
+                >
+                  <MenuItem value="">
+                    <em>— Select employee —</em>
+                  </MenuItem>
+                  {employees.map((e) => (
+                    <MenuItem key={e.id} value={e.id}>
+                      {employeeLabel(e)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              )}
+            />
+            <FormHelperText>{errors.employeeId?.message}</FormHelperText>
+          </FormControl>
+
+          {/* Dates */}
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <Controller
+              name="startDate"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  type="date"
+                  label="Start Date"
+                  fullWidth
+                  margin="normal"
+                  InputLabelProps={{ shrink: true }}
+                  error={!!errors.startDate}
+                  helperText={errors.startDate?.message}
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                />
+              )}
+            />
+            <Controller
+              name="endDate"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  type="date"
+                  label="End Date"
+                  fullWidth
+                  margin="normal"
+                  InputLabelProps={{ shrink: true }}
+                  error={!!errors.endDate}
+                  helperText={errors.endDate?.message}
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                />
+              )}
+            />
+          </Stack>
+
+          {/* Type */}
+          <FormControl fullWidth margin="normal" error={!!errors.type}>
+            <InputLabel>Contract Type</InputLabel>
+            <Controller
+              name="type"
+              control={control}
+              render={({ field }) => (
+                <Select {...field} label="Contract Type">
+                  <MenuItem value="">
+                    <em>— Select type —</em>
+                  </MenuItem>
+                  <MenuItem value="PERMANENT">Permanent</MenuItem>
+                  <MenuItem value="PROBATION">Probation (≤ 64 days)</MenuItem>
+                  <MenuItem value="TEMPORARY">Temporary (≤ 12 months)</MenuItem>
+                </Select>
+              )}
+            />
+            <FormHelperText>{errors.type?.message}</FormHelperText>
+          </FormControl>
+
+          {/* Salary */}
+          <Controller
+            name="basicSalary"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Base Salary"
+                fullWidth
+                margin="normal"
+                type="number"
+                inputProps={{ step: "0.01", min: "0" }}
+                error={!!errors.basicSalary}
+                helperText={errors.basicSalary?.message}
+                InputProps={{ sx: { borderRadius: 2 } }}
+              />
+            )}
+          />
+
+          {/* Note */}
+          <Controller
+            name="note"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Notes"
+                fullWidth
+                margin="normal"
+                multiline
+                rows={3}
+                error={!!errors.note}
+                helperText={errors.note?.message}
+                InputProps={{ sx: { borderRadius: 2 } }}
+              />
+            )}
+          />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenForm(false)}>Đóng</Button>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setOpenForm(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleSubmit(onSubmit)}>
-            {formMode === "add" ? "Tạo" : "Cập nhật"}
+            {formMode === "add" ? "Create" : "Update"}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Detail Dialog */}
-      <Dialog open={openDetail} onClose={() => setOpenDetail(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Chi tiết hợp đồng</DialogTitle>
+      {/* ============================== Detail =============================== */}
+      <Dialog
+        open={openDetail}
+        onClose={() => setOpenDetail(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Contract Details</DialogTitle>
         <DialogContent dividers>
           {loadingDetail ? (
             <Stack alignItems="center" py={3}>
@@ -849,51 +1290,80 @@ export default function ContractPage() {
             </Stack>
           ) : !detail ? (
             <Typography align="center" color="text.secondary">
-              Không có dữ liệu
+              No data
             </Typography>
           ) : (
-            <Stack spacing={1}>
-              <Typography><b>Mã HĐ:</b> {detail.contractCode}</Typography>
-              <Typography><b>Nhân viên:</b> {detail.employeeName || detail.employeeId}</Typography>
-              <Typography><b>Loại:</b> {typeLabel(detail.type)}</Typography>
-              <Typography><b>Lương cơ bản:</b> {detail.basicSalary?.toLocaleString?.() || detail.basicSalary}</Typography>
-              <Typography><b>Ngày bắt đầu:</b> {detail.startDate}</Typography>
-              <Typography><b>Ngày kết thúc:</b> {detail.endDate}</Typography>
-              <Typography><b>Trạng thái:</b> {detail.status}</Typography>
-              {detail.note && <Typography><b>Ghi chú:</b> {detail.note}</Typography>}
+            <Stack spacing={1.25}>
+              <Typography>
+                <b>Contract No.:</b> {detail.contractCode}
+              </Typography>
+              <Typography>
+                <b>Employee:</b> {detail.employeeName || detail.employeeId}
+              </Typography>
+              <Typography>
+                <b>Type:</b> {typeLabel(detail.type)}
+              </Typography>
+              <Typography>
+                <b>Base Salary:</b>{" "}
+                {detail.basicSalary?.toLocaleString?.() || detail.basicSalary}
+              </Typography>
+              <Typography>
+                <b>Start Date:</b> {detail.startDate}
+              </Typography>
+              <Typography>
+                <b>End Date:</b> {detail.endDate}
+              </Typography>
+              <Typography>
+                <b>Status:</b> {detail.status}
+              </Typography>
+              {detail.note && (
+                <Typography>
+                  <b>Notes:</b> {detail.note}
+                </Typography>
+              )}
             </Stack>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDetail(false)}>Đóng</Button>
+          <Button onClick={() => setOpenDetail(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Sign Dialog */}
-      <Dialog open={signOpen} onClose={() => setSignOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Ký hợp đồng</DialogTitle>
+      {/* =============================== Sign ================================ */}
+      <Dialog
+        open={signOpen}
+        onClose={() => setSignOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Sign Contract</DialogTitle>
         <DialogContent dividers>
           {loadingSignature ? (
-            <Stack alignItems="center" py={3}>
+            <Stack alignItems="center" py={3} gap={1}>
               <CircularProgress size={26} />
+              <Typography variant="body2" color="text.secondary">
+                Checking saved signature...
+              </Typography>
             </Stack>
           ) : (
             <>
-              <Stack direction="row" spacing={2} mb={1}>
+              {/* //ghi chú: Switch giữa chữ ký đã lưu và ký trực tiếp */}
+              <Stack direction="row" spacing={1.5} mb={1}>
                 <Button
                   variant={useSavedSignature ? "contained" : "outlined"}
                   onClick={() => setUseSavedSignature(true)}
                 >
-                  Dùng chữ ký đã lưu
+                  Use saved signature
                 </Button>
                 <Button
                   variant={!useSavedSignature ? "contained" : "outlined"}
                   onClick={() => setUseSavedSignature(false)}
                 >
-                  Ký trực tiếp
+                  Sign in canvas
                 </Button>
               </Stack>
 
+              {/* //ghi chú: Ảnh chữ ký đã lưu */}
               {useSavedSignature ? (
                 savedSignature ? (
                   <Box
@@ -903,6 +1373,7 @@ export default function ContractPage() {
                       borderRadius: 2,
                       p: 2,
                       textAlign: "center",
+                      bgcolor: "#fff",
                     }}
                   >
                     <img
@@ -913,7 +1384,8 @@ export default function ContractPage() {
                   </Box>
                 ) : (
                   <Typography color="text.secondary">
-                    Bạn chưa có chữ ký đã lưu. Hãy ký trực tiếp để lưu dùng lần sau.
+                    No saved signature found. Please sign in canvas and it will
+                    be saved for later use.
                   </Typography>
                 )
               ) : (
@@ -922,7 +1394,11 @@ export default function ContractPage() {
                   canvasProps={{
                     width: 500,
                     height: 200,
-                    style: { border: "1px solid #ccc", borderRadius: 8, width: "100%" },
+                    style: {
+                      border: "1px solid #ccc",
+                      borderRadius: 8,
+                      width: "100%",
+                    },
                   }}
                   ref={(ref) => setSignaturePad(ref)}
                 />
@@ -938,10 +1414,49 @@ export default function ContractPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setSignOpen(false)} disabled={signing}>
-            Hủy
+            Cancel
           </Button>
-          <Button variant="contained" onClick={handleConfirmSign} disabled={signing}>
-            {signing ? "Đang ký..." : "Xác nhận ký"}
+          <Button
+            variant="contained"
+            onClick={handleConfirmSign}
+            disabled={signing}
+          >
+            {signing ? "Signing..." : "Confirm signature"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ============================== Confirm =============================== */}
+      <Dialog
+        open={confirm.open}
+        onClose={handleConfirmClose}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            fontWeight: 700,
+          }}
+        >
+          <HelpOutline fontSize="small" />
+          {confirm.title || "Confirm"}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography>{confirm.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleConfirmClose} disabled={confirm.processing}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleConfirmOk}
+            disabled={confirm.processing}
+          >
+            {confirm.processing ? "Processing..." : "OK"}
           </Button>
         </DialogActions>
       </Dialog>

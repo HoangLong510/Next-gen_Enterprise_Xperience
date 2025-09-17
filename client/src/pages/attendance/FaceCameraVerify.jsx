@@ -65,13 +65,26 @@ export default function FaceCameraVerify() {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: "user",
+        },
+        audio: false,
+      });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
     } catch (e) {
-      dispatch(setPopup({ type: "error", message: "Cannot access camera" }));
+      console.error("Camera error:", e);
+      dispatch(
+        setPopup({
+          type: "error",
+          message: e.message || "Cannot access camera",
+        })
+      );
     }
   };
 
@@ -95,9 +108,16 @@ export default function FaceCameraVerify() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    canvas.toBlob((blob) => {
-      setImageBlob(blob);
-    }, "image/jpeg");
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
+          setImageBlob(file); // gửi lên API sẽ có content-type chuẩn
+        }
+      },
+      "image/jpeg",
+      0.95
+    );
   };
 
   const submitCheckIn = () => {

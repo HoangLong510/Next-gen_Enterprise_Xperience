@@ -5,4 +5,5 @@ public enum ContractStatus {
     SIGNED_BY_MANAGER,     // Đã ký bởi Manager
     ACTIVE,                // Hợp đồng có hiệu lực (đủ 2 chữ ký: Manager + Employee)
     EXPIRED,               // Hết hạn
+    DRAFT,
 }

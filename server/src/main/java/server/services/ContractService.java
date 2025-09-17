@@ -5,13 +5,16 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.util.Units;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.usermodel.*;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import org.springframework.web.multipart.MultipartFile;
 import server.dtos.Contracts.ContractRequest;
 import server.dtos.Contracts.ContractResponse;
 import server.models.Account;
@@ -101,12 +104,10 @@ public class ContractService {
                 if (acc != null && acc.getRole() != null) {
                     dto.setEmployeeRole(acc.getRole().name());
                 }
-            } catch (Exception ignored) { /* mô hình không có getAccount() */ }
+            } catch (Exception ignored) {}
         }
 
-        // nếu ContractResponse của bạn có trường createdAt thì bật dòng dưới
-        // dto.setCreatedAt(e.getCreatedAt());
-
+        dto.setCreatedAt(e.getCreatedAt());
         dto.setStartDate(e.getStartDate());
         dto.setEndDate(e.getEndDate());
         dto.setType(e.getType() != null ? e.getType().name() : null);
@@ -157,13 +158,21 @@ public class ContractService {
 
     // ===== OTHER VALIDATION HELPERS =====
 
-    // endDate > startDate; startDate không được quá khứ (today OK)
+    private static final int BACKDATE_LIMIT_DAYS = 30;
+
+    // endDate > startDate; startDate được phép trong quá khứ nhưng không quá 30 ngày (today OK)
     private String validateDates(LocalDate start, LocalDate end) {
         if (start == null || end == null) return "start-and-end-date-required";
         if (!end.isAfter(start)) return "end-date-must-be-after-start-date";
-        if (start.isBefore(LocalDate.now())) return "start-date-in-past";
+
+        LocalDate today = LocalDate.now();
+        LocalDate earliest = today.minusDays(BACKDATE_LIMIT_DAYS); // cho phép backdate tối đa 30 ngày (inclusive)
+        if (start.isBefore(earliest)) {
+            return "start-date-too-far-in-past"; // message key BE trả về
+        }
         return null;
     }
+
 
     private boolean hasOverlapOnEmployee(Long excludeId, Long employeeId, LocalDate start, LocalDate end) {
         for (Contract c : contractRepository.findAll()) {
@@ -293,13 +302,31 @@ public class ContractService {
         if (err != null) return ApiResponse.badRequest(err);
 
         // default state when creating
-        e.setStatus(ContractStatus.PENDING);
+        e.setStatus(ContractStatus.DRAFT);
         e.setManagerSignature(null);
         e.setEmployeeSignature(null);
 
         Contract saved = contractRepository.save(e);
         return ApiResponse.created(mapToResponse(saved), "create-contract-success");
     }
+
+    public ApiResponse<ContractResponse> submitContract(Long id) {
+        Account cur = getCurrentAccount();
+        if (cur == null) return ApiResponse.unauthorized();
+        if (cur.getRole() != Role.HR) return ApiResponse.badRequest("only-hr-can-submit");
+
+        Contract c = contractRepository.findById(id).orElse(null);
+        if (c == null) return ApiResponse.notfound("contract-not-found");
+
+        if (c.getStatus() != ContractStatus.DRAFT) {
+            return ApiResponse.badRequest("only-draft-can-submit");
+        }
+
+        c.setStatus(ContractStatus.PENDING);
+        Contract saved = contractRepository.save(c);
+        return ApiResponse.success(mapToResponse(saved), "submit-contract-success");
+    }
+
 
     // Chỉ HR được cập nhật
     public ApiResponse<ContractResponse> update(Long id, ContractRequest req) {
@@ -311,8 +338,8 @@ public class ContractService {
         if (e == null) return ApiResponse.notfound("contract-not-found");
 
         // Chỉ cho update khi PENDING hoặc EXPIRED
-        if (e.getStatus() != ContractStatus.PENDING && e.getStatus() != ContractStatus.EXPIRED) {
-            return ApiResponse.badRequest("only-pending-or-expired-can-update");
+        if (e.getStatus() != ContractStatus.PENDING && e.getStatus() != ContractStatus.EXPIRED && e.getStatus() != ContractStatus.DRAFT) {
+            return ApiResponse.badRequest("only-pending-or-expired-or-draft-can-update");
         }
 
         String err = mapRequestToEntity(req, e, false); // isCreate = false
@@ -331,17 +358,14 @@ public class ContractService {
         Contract e = contractRepository.findById(id).orElse(null);
         if (e == null) return ApiResponse.notfound("contract-not-found");
 
-        if (e.getStatus() != ContractStatus.PENDING) {
-            return ApiResponse.badRequest("only-pending-can-delete");
+        if (e.getStatus() != ContractStatus.PENDING && e.getStatus() != ContractStatus.DRAFT) {
+            return ApiResponse.badRequest("only-pending-or-draft-can-delete");
         }
         contractRepository.delete(e);
         return ApiResponse.success(null, "delete-contract-success");
     }
 
-    /**
-     * Map + VALIDATE theo nghiệp vụ. Trả null nếu OK, trả message key nếu lỗi.
-     * @param isCreate true khi tạo mới; false khi cập nhật
-     */
+
     private String mapRequestToEntity(ContractRequest req, Contract e, boolean isCreate) {
         // ===== 1) CONTRACT CODE =====
         int currentYear = LocalDate.now().getYear();
@@ -515,15 +539,8 @@ public class ContractService {
         return contractRepository.bulkExpire(LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh")));
     }
 
-    // ================================================================
-    // =============== EXPORT WORD (template + chữ ký) ================
-    // ================================================================
 
-    /**
-     * Chuẩn hóa dữ liệu Contract -> Map<String,String> cho template Mau-hop-dong-lao-dong.docx
-     * Placeholder cần khớp (ví dụ): {mã hợp đồng}, {ngày}, {tháng}, {năm}, {tên giám đốc}, {tên nhân viên},
-     * {giới tính}, {ngày tháng năm sinh}, {địa chỉ}, {số điện thoại}, {loại hợp đồng}, {ngày bắt đầu}, {ngày kết thúc}, {lương}
-     */
+    // =============== EXPORT WORD (template + chữ ký) ================
     public Map<String, String> prepareContractDataForWord(Contract c) {
         Map<String, String> data = new HashMap<>();
         DateTimeFormatter dmySlash = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -731,5 +748,177 @@ public class ContractService {
         } catch (IllegalArgumentException ex) {
             return null;
         }
+    }
+
+    //upload file Excel
+    public List<ContractResponse> importContractsFromExcel(MultipartFile file) throws IOException {
+        Account cur = getCurrentAccount();
+        if (cur == null || cur.getRole() != Role.HR) {
+            throw new RuntimeException("only-hr-can-import");
+        }
+
+        List<ContractResponse> responses = new ArrayList<>();
+
+        try (InputStream is = file.getInputStream();
+             Workbook workbook = new XSSFWorkbook(is)) {
+
+            Sheet sheet = workbook.getSheetAt(0); // sheet đầu tiên
+            int rowNum = 1; // bỏ header
+            for (Row row : sheet) {
+                if (row.getRowNum() == 0) continue;
+
+                try {
+                    ContractRequest req = new ContractRequest();
+                    req.setContractCode(getStringCell(row, 0));
+
+                    // ---- Lấy Employee theo tên (cột 1) ----
+                    String empName = getStringCell(row, 1);
+                    if (empName == null || empName.isBlank()) {
+                        throw new RuntimeException("employee-name-empty");
+                    }
+
+                    Employee emp = employeeRepository.findAll().stream()
+                            .filter(e -> fullName(e).equalsIgnoreCase(empName.trim()))
+                            .findFirst()
+                            .orElse(null);
+
+
+                    if (emp == null) {
+                        throw new RuntimeException("employee-not-found: " + empName);
+                    }
+                    req.setEmployeeId(emp.getId());
+
+                    // ---- Ngày linh hoạt ----
+                    req.setStartDate(getLocalDateCell(row, 2));
+                    req.setEndDate(getLocalDateCell(row, 3));
+
+                    // ---- Các trường khác ----
+                    req.setType(getStringCell(row, 4));
+                    req.setBasicSalary(BigDecimal.valueOf(getNumericCell(row, 5)));
+                    req.setNote(getStringCell(row, 6));
+
+                    ApiResponse<ContractResponse> res = create(req);
+                    if (res.getStatus() == 201 || res.getStatus() == 200) {
+                        responses.add(res.getData());
+                    } else {
+                        throw new RuntimeException("Row " + (rowNum+1) + ": " + res.getMessage());
+                    }
+                } catch (Exception ex) {
+                    throw new RuntimeException("Row " + (rowNum+1) + " error: " + ex.getMessage());
+                }
+                rowNum++;
+            }
+        }
+        return responses;
+    }
+
+
+    // helper
+    private String getStringCell(Row row, int col) {
+        Cell cell = row.getCell(col);
+        return cell != null ? cell.toString().trim() : null;
+    }
+    private double getNumericCell(Row row, int col) {
+        Cell cell = row.getCell(col);
+        return (cell != null) ? cell.getNumericCellValue() : 0;
+    }
+
+    // Đọc ngày từ cell (hỗ trợ Date gốc của Excel và text nhiều định dạng)
+    private LocalDate getLocalDateCell(Row row, int col) {
+        Cell cell = row.getCell(col);
+        if (cell == null) return null;
+
+        // Nếu cell là numeric và là Date
+        if (cell.getCellType() == CellType.NUMERIC && org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(cell)) {
+            return cell.getDateCellValue().toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate();
+        }
+
+        // Nếu cell là text
+        if (cell.getCellType() == CellType.STRING) {
+            String text = cell.getStringCellValue().trim();
+            if (text.isEmpty()) return null;
+
+            List<String> patterns = List.of("dd/MM/yyyy", "dd-MM-yyyy", "yyyy/MM/dd", "yyyy-MM-dd");
+            for (String p : patterns) {
+                try {
+                    return LocalDate.parse(text, DateTimeFormatter.ofPattern(p));
+                } catch (Exception ignored) {}
+            }
+            throw new IllegalArgumentException("Invalid date format: " + text);
+        }
+        return null;
+    }
+
+    // --- Helpers parse enum an toàn, không ném exception ---
+    private ContractStatus parseStatusSafe(String s) {
+        if (s == null || s.isBlank()) return null;
+        try { return ContractStatus.valueOf(s.trim().toUpperCase()); }
+        catch (Exception ignored) { return null; }
+    }
+
+    private ContractType parseTypeSafe(String s) {
+        if (s == null || s.isBlank()) return null;
+        try { return ContractType.valueOf(s.trim().toUpperCase()); }
+        catch (Exception ignored) { return null; }
+    }
+
+    // ================= TÌM KIẾM & LỌC DANH SÁCH =================
+    public ApiResponse<List<ContractResponse>> searchByOverlap(
+            String nameKeyword,
+            String statusStr,
+            String typeStr,
+            LocalDate start,   // mốc bắt đầu lọc (có thể null)
+            LocalDate end      // mốc kết thúc lọc (có thể null)
+    ) {
+        Account cur = getCurrentAccount();
+        if (cur == null) return ApiResponse.unauthorized();
+
+        // 1) Danh sách theo phân quyền
+        final List<Contract> base;
+        if (cur.getRole() == Role.HR || cur.getRole() == Role.MANAGER) {
+            base = contractRepository.findAll();
+        } else {
+            final Long myEmpId = (cur.getEmployee() != null) ? cur.getEmployee().getId() : null;
+            base = contractRepository.findAll().stream()
+                    .filter(c -> c.getEmployee() != null
+                            && c.getEmployee().getId() != null
+                            && Objects.equals(c.getEmployee().getId(), myEmpId))
+                    .collect(Collectors.toList());
+        }
+
+        // 2) Biến final cho lambda
+        final String kw = (nameKeyword == null) ? "" : nameKeyword.trim().toLowerCase();
+        final ContractStatus status = parseStatusSafe(statusStr);
+        final ContractType type = parseTypeSafe(typeStr);
+        final LocalDate s = start;
+        final LocalDate e = end;
+
+        // 3) Lọc
+        final List<ContractResponse> result = base.stream()
+                .filter(c -> status == null || (c.getStatus() != null && c.getStatus() == status))
+                .filter(c -> type   == null || (c.getType()   != null && c.getType()   == type))
+                .filter(c -> {
+                    if (kw.isBlank()) return true;
+                    Employee emp = c.getEmployee();
+                    String full = ((safe(emp != null ? emp.getFirstName() : "") + " " +
+                            safe(emp != null ? emp.getLastName()  : "")).trim()).toLowerCase();
+                    return full.contains(kw);
+                })
+                // Overlap: [contract.start, contract.end] ∩ [s, e] ≠ ∅
+                .filter(c -> {
+                    if (s == null && e == null) return true;
+                    LocalDate cs = c.getStartDate();
+                    LocalDate ce = c.getEndDate();
+                    if (cs == null || ce == null) return false;
+                    if (s != null && ce.isBefore(s)) return false; // hợp đồng kết thúc trước mốc lọc
+                    if (e != null && cs.isAfter(e))  return false; // hợp đồng bắt đầu sau mốc lọc
+                    return true;
+                })
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
+        return ApiResponse.success(result, "list-contract-success");
     }
 }
