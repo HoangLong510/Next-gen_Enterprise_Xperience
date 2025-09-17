@@ -54,6 +54,13 @@ public class ProjectService {
      * - EMPLOYEE/HOD: true nếu Project có Phase IN_PROGRESS và trong đó có Task non-canceled
      *   (PLANNING/IN_PROGRESS/IN_REVIEW/COMPLETED)
      */
+    // ProjectService.java
+    private boolean isMemberOfProject(Project p, Account viewer) {
+        return viewer != null
+                && viewer.getEmployee() != null
+                && p.getId() != null
+                && projectRepository.existsByIdAndEmployees_Id(p.getId(), viewer.getEmployee().getId());
+    }
     public boolean hasProjectAccess(Long projectId, String username) {
         Optional<Account> accOpt = accountRepository.findByUsername(username);
         if (accOpt.isEmpty()) return false;
@@ -68,11 +75,15 @@ public class ProjectService {
                         && pr.getProjectManager().getUsername().equals(username);
             }
             if (role == Role.EMPLOYEE || role == Role.HOD) {
-                return projectHasActivePhaseWithLiveTasks(pr);
+                // ✅ MỚI: là member thì thấy, hoặc Project đang có active phase + live tasks
+                boolean member = viewer.getEmployee() != null
+                        && projectRepository.existsByIdAndEmployees_Id(projectId, viewer.getEmployee().getId());
+                return member || projectHasActivePhaseWithLiveTasks(pr);
             }
             return false;
         }).orElse(false);
     }
+
 
     public boolean isProjectManager(Long projectId, String username) {
         return projectRepository.findById(projectId)
@@ -82,6 +93,8 @@ public class ProjectService {
     }
 
     /* ==================== LIST / SEARCH / FILTER ==================== */
+
+    // ProjectService.java
 
     public ApiResponse<List<ProjectDto>> getAllVisible(HttpServletRequest request) {
         updateHiddenFlags();
@@ -100,17 +113,16 @@ public class ProjectService {
                             && p.getProjectManager().getId().equals(viewer.getId()))
                     .toList();
         } else { // EMPLOYEE / HOD
+            // ✅ MỚI: là member HOẶC project có active phase + live tasks
             filtered = all.stream()
-                    .filter(this::projectHasActivePhaseWithLiveTasks)
+                    .filter(p -> isMemberOfProject(p, viewer) || projectHasActivePhaseWithLiveTasks(p))
                     .toList();
         }
 
-        List<ProjectDto> dtos = filtered.stream()
-                .map(this::toDtoOverall)
-                .toList();
-
+        List<ProjectDto> dtos = filtered.stream().map(this::toDtoOverall).toList();
         return ApiResponse.success(dtos, "fetch-projects-success");
     }
+
 
     public ApiResponse<List<ProjectDto>> getDoneProjects(HttpServletRequest request) {
         Account viewer = requireViewer(request);
@@ -137,6 +149,8 @@ public class ProjectService {
         return ApiResponse.success(dtos, "fetch-done-projects-success");
     }
 
+    // ProjectService.java
+
     public ApiResponse<List<ProjectDto>> search(HttpServletRequest request, String keyword) {
         Account viewer = requireViewer(request);
         Role role = viewer.getRole();
@@ -153,15 +167,16 @@ public class ProjectService {
                     .toList();
         } else { // EMPLOYEE / HOD
             filtered = all.stream()
-                    .filter(this::projectHasActivePhaseWithLiveTasks)
+                    .filter(p -> isMemberOfProject(p, viewer) || projectHasActivePhaseWithLiveTasks(p))
                     .toList();
         }
 
-        List<ProjectDto> dtos = filtered.stream()
-                .map(this::toDtoOverall)
-                .toList();
+        List<ProjectDto> dtos = filtered.stream().map(this::toDtoOverall).toList();
         return ApiResponse.success(dtos, "search-success");
     }
+
+
+    // ProjectService.java
 
     public ApiResponse<List<ProjectDto>> filter(HttpServletRequest request, String status, String priority) {
         Account viewer = requireViewer(request);
@@ -179,15 +194,14 @@ public class ProjectService {
                     .toList();
         } else { // EMPLOYEE / HOD
             filtered = all.stream()
-                    .filter(this::projectHasActivePhaseWithLiveTasks)
+                    .filter(p -> isMemberOfProject(p, viewer) || projectHasActivePhaseWithLiveTasks(p))
                     .toList();
         }
 
-        List<ProjectDto> dtos = filtered.stream()
-                .map(this::toDtoOverall)
-                .toList();
+        List<ProjectDto> dtos = filtered.stream().map(this::toDtoOverall).toList();
         return ApiResponse.success(dtos, "filter-success");
     }
+
 
     /* ==================== DETAIL ==================== */
 
@@ -221,9 +235,9 @@ public class ProjectService {
         }
 
 
-        Account pm = document.getPm(); // KHÔNG dùng getReceiver() nếu receiver là giám đốc
+        Account pm = document.getPm();
         if (pm == null) {
-            return ApiResponse.errorServer("Document chưa chọn PM");
+            return ApiResponse.errorServer("Document không có người PM (pm_id).");
         }
 
             String name = (dto.getName() != null && !dto.getName().isBlank())
@@ -419,6 +433,8 @@ public class ProjectService {
 
     /* ==================== KANBAN (PROJECT LIST CHO EMP/HOD) ==================== */
 
+    // ProjectService.java
+
     public ApiResponse<List<ProjectDto>> getKanbanProjects(HttpServletRequest request) {
         Account viewer = requireViewer(request);
         Role role = viewer.getRole();
@@ -437,15 +453,14 @@ public class ProjectService {
                     .toList();
         } else { // EMPLOYEE / HOD
             filtered = all.stream()
-                    .filter(this::projectHasActivePhaseWithLiveTasks)
+                    .filter(p -> isMemberOfProject(p, viewer) || projectHasActivePhaseWithLiveTasks(p))
                     .toList();
         }
 
-        List<ProjectDto> dtos = filtered.stream()
-                .map(this::toDtoOverall)
-                .toList();
+        List<ProjectDto> dtos = filtered.stream().map(this::toDtoOverall).toList();
         return ApiResponse.success(dtos, "kanban-projects");
     }
+
 
     /* ==================== HELPERS ==================== */
 
@@ -577,6 +592,23 @@ public class ProjectService {
 
     /* ==================== HIDDEN FLAGS ==================== */
 
+
+        List<Project> projects = projectQuery.getAllVisible().stream()
+                .filter(pr -> pr.getStatus() != ProjectStatus.CANCELED)
+                .filter(pr -> pr.getPhases() != null && pr.getPhases().stream()
+                        .anyMatch(p -> p != null
+                                && p.getStatus() == PhaseStatus.IN_PROGRESS
+                                && p.getTasks() != null
+                                && p.getTasks().stream().anyMatch(t ->
+                                t != null
+                                        && t.getAssignee().getAccount() != null
+                                        && t.getAssignee().getAccount().getId().equals(me.getId())
+                                        && t.getStatus() != TaskStatus.CANCELED)))
+                .collect(Collectors.toList());
+
+        List<ProjectDto> dtos = projects.stream().map(this::toDto).collect(Collectors.toList());
+        return ApiResponse.success(dtos, "kanban-projects");
+
     public void updateHiddenFlags() {
         List<Project> completedProjects = projectQuery.getDoneProjects();
         for (Project project : completedProjects) {
@@ -593,5 +625,6 @@ public class ProjectService {
                 }
             }
         }
+
     }
 }

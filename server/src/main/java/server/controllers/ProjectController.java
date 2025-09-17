@@ -34,14 +34,16 @@ public class ProjectController {
     public ApiResponse<List<ProjectDto>> getAllVisible(HttpServletRequest request) {
         return projectService.getAllVisible(request);
     }
-    @PreAuthorize("@projectService.isProjectManager(#id, authentication.name)")
+
+    @PreAuthorize("@projectService.hasProjectAccess(#id, authentication.name)")
     // Lấy chi tiết dự án
     @GetMapping("/{id}")
-    public ApiResponse<ProjectDto> getProjectDetail(@PathVariable Long id , HttpServletRequest request) {
+    public ApiResponse<ProjectDto> getProjectDetail(@PathVariable Long id, HttpServletRequest request) {
         return projectService.getProjectDetail(id, request);
     }
 
-    // Lấy các dự án đã hoàn tất
+    // ✅ Lấy các dự án đã hoàn tất (EMP/HOD sẽ bị lọc rỗng theo rule mới)
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
     @GetMapping("/done")
     public ApiResponse<List<ProjectDto>> getDoneProjects(HttpServletRequest request) {
         return projectService.getDoneProjects(request);
@@ -49,7 +51,7 @@ public class ProjectController {
 
     // Tìm kiếm dự án theo từ khoá
 // ProjectController.java
-    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','SECRETARY')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
     @GetMapping("/search")
     public ApiResponse<List<ProjectDto>> search(
             HttpServletRequest request,
@@ -59,13 +61,16 @@ public class ProjectController {
     }
 
     // Lọc dự án theo trạng thái và độ ưu tiên
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
     @GetMapping("/filter")
     public ApiResponse<List<ProjectDto>> filter(
+            HttpServletRequest request,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String priority,
             HttpServletRequest request
     ) {
-        return projectService.filter(request,status, priority);
+
+        return projectService.filter(request, status, priority);
     }
 
     // Tạo mới dự án từ tài liệu được duyệt
@@ -141,17 +146,19 @@ public class ProjectController {
         return projectService.linkRepo(id, dto, request);
     }
     // ProjectController.java
-    @PreAuthorize("""
-  hasAnyAuthority('ADMIN','MANAGER','SECRETARY') or
-  (hasAuthority('PM') and @projectService.isProjectManager(#id, authentication.name))
-""")
 
+    @PreAuthorize("""
+      hasAnyAuthority('ADMIN','MANAGER') or
+      (hasAuthority('PM') and @projectService.isProjectManager(#id, authentication.name))
+    """)
     @GetMapping("/{id}/repo")
     public ApiResponse<?> getProjectRepo(@PathVariable Long id, HttpServletRequest request) {
         return projectService.getProjectRepo(id, request);
     }
 
-    // Lấy danh sách Project cho Kanban Board (Employee)
+    // ✅ Lấy danh sách Project cho Kanban Board
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
+
     @GetMapping("/kanban")
     public ApiResponse<List<ProjectDto>> getKanbanProjects(HttpServletRequest request) {
         return projectService.getKanbanProjects(request);

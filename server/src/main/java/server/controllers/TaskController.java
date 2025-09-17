@@ -97,7 +97,14 @@ public class TaskController {
         taskOrderService.updateOrder(orderedTaskIds, auth);
         return ApiResponse.success(null, "order-updated");
     }
-
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM')")
+    @GetMapping("/{taskId}/assignment-logs")
+    public ApiResponse<?> getAssignmentLogs(
+            @PathVariable Long taskId,
+            HttpServletRequest request
+    ) {
+        return taskService.getAssignmentLogs(taskId, request);
+    }
     @GetMapping("/visible")
     public ApiResponse<List<TaskDto>> getAllVisible() {
         return taskService.getAllVisible();

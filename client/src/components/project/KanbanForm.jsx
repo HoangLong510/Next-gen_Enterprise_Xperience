@@ -10,8 +10,7 @@ import { setPopup } from "~/libs/features/popup/popupSlice";
  *  4) Chỉ hiển thị ô tạo Branch khi dự án đã gắn repo GitHub hợp lệ (owner/repo).
  */
 
-import React, { useEffect, useState, useCallback,useRef, useMemo } from "react";
-import Tooltip from '@mui/material/Tooltip';
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Box,
   Container,
@@ -30,30 +29,19 @@ import {
   Select,
   MenuItem,
   InputLabel,
-  Autocomplete,
-  Alert,
-  Tabs,
-  Tab,
-  Grid,
+  Tooltip,
+  CircularProgress,
 } from "@mui/material";
-import {
-  RequestQuote,
-  CloudDownload,
-  PictureAsPdf,
-  Search,  
-} from "@mui/icons-material";
-import CircularProgress from '@mui/material/CircularProgress';
-import SignatureCanvas from "react-signature-canvas";
-import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useDispatch, useSelector } from "react-redux";
-import { TrendingUp, CalendarToday, ArrowBack, Refresh as RefreshIcon } from "@mui/icons-material";
+import { setPopup } from "~/libs/features/popup/popupSlice";
+import { Search, TrendingUp, CalendarToday, ArrowBack, Refresh as RefreshIcon } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import KanbanColumn from "~/components/project/form/KanbanColumn";
 import TaskCard from "~/components/project/form/TaskCard";
 import TaskReviewDialog from "~/components/project/form/TaskReviewDialog";
-import { createCashAdvanceApi } from "~/services/cash-advance.service";
+
 import { uploadEvidence, listEvidence } from "~/services/task-evidence.service";
 import { getStatusColor } from "~/utils/project.utils";
 
@@ -79,70 +67,14 @@ import {
   updateTaskStatus,
   getTaskStatuses,
 } from "~/services/task.service.js";
-import {
-  getKanbanProjects,
-  getProjectDetail,
-} from "~/services/project.service.js";
-import {
-  getPhaseDetail,
-  getPhasesWithTasksByProject,
-} from "~/services/phase.service.js";
-import {
-  getAccountFullNameAndTitle,
-  formatNumber,
-  numToVietnameseWords,
-} from "~/utils/money";
-
-function trimCanvasSafe(src) {
-  if (!src) return null;
-  const ctx = src.getContext("2d");
-  const { width: w, height: h } = src;
-  const data = ctx.getImageData(0, 0, w, h).data;
-
-  let top = h,
-    left = w,
-    right = 0,
-    bottom = 0,
-    hasInk = false;
-
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const a = data[(y * w + x) * 4 + 3]; // kênh alpha
-      if (a !== 0) {
-        hasInk = true;
-        if (x < left) left = x;
-        if (x > right) right = x;
-        if (y < top) top = y;
-        if (y > bottom) bottom = y;
-      }
-    }
-  }
-  if (!hasInk) return null;
-
-  const tw = right - left + 1;
-  const th = bottom - top + 1;
-
-  const out = document.createElement("canvas");
-  out.width = tw;
-  out.height = th;
-  const octx = out.getContext("2d");
-  octx.putImageData(ctx.getImageData(left, top, tw, th), 0, 0);
-  return out;
-}
-
-function getSignatureDataUrl(sigRef) {
-  const base = sigRef?.current?.getCanvas?.();
-  if (!base) return null;
-  const trimmed = trimCanvasSafe(base);
-  return (trimmed || base).toDataURL("image/png");
-}
+import { getKanbanProjects, getProjectDetail } from "~/services/project.service.js";
+import { getPhaseDetail, getPhasesWithTasksByProject } from "~/services/phase.service.js";
 
 export default function KanbanForm() {
   const { t: tMsg } = useTranslation("messages");
   const { t: tProj, i18n, ready: projReady } = useTranslation("project");
   const { t: tTasks, ready: tasksReady } = useTranslation("tasks");
   const { t: tPhases } = useTranslation("phases");
-  const dispatch = useDispatch();
 
   const tt = useCallback(
     (ready, tFn, key, fallback) => {
@@ -179,25 +111,11 @@ export default function KanbanForm() {
   const [allowedDropSet, setAllowedDropSet] = useState(new Set());
   const [loading, setLoading] = useState(false);
 
+
   // Ghi nhớ ý định move-to-review
   const [pendingMoveToReview, setPendingMoveToReview] = useState(null);
 
   const { projectId, phaseId } = useParams();
-
-  // ===== Cash Advance dialog =====
-  const [advanceOpen, setAdvanceOpen] = useState(false);
-  const [advanceTask, setAdvanceTask] = useState(null);
-  const [recipient, setRecipient] = useState(
-    "Ban lãnh đạo Công ty Next-Gen Enterprise Experience"
-  );
-  const [advanceDeadline, setAdvanceDeadline] = useState(null);
-  const sigRef = useRef(null);
-
-  const [advanceAmount, setAdvanceAmount] = useState("");
-  const [advanceReason, setAdvanceReason] = useState("");
-  const [advanceBusy, setAdvanceBusy] = useState(false);
-  const [advanceError, setAdvanceError] = useState("");
-
   const account = useSelector((s) => s.account?.value);
   const navigate = useNavigate();
 
@@ -220,6 +138,7 @@ export default function KanbanForm() {
     overflowWrap: "anywhere",
     lineHeight: 1.3,
   };
+  const dispatch = useDispatch();
 
   // Helper: label trạng thái
   const prettyStatus = useCallback(
@@ -252,11 +171,6 @@ export default function KanbanForm() {
         break;
       case "COMPLETED":
         s.add("IN_PROGRESS");
-        break; // UI không cho IN_REVIEW
-      case "CANCELED":
-        s.add("PLANNING");
-        s.add("IN_PROGRESS");
-        break; // UI không cho IN_REVIEW
         break;
       case "CANCELED":
         s.add("PLANNING");
@@ -370,7 +284,6 @@ export default function KanbanForm() {
     return !!(next && cur.status === "COMPLETED" && next.status === "IN_PROGRESS" && nextHasTasks);
   }, [phasesMeta]);
 
-
   // ===== Fetch & group tasks =====
   const fetchAndGroup = useCallback(async () => {
     if (!statusOptions.length) return;
@@ -451,7 +364,6 @@ export default function KanbanForm() {
     },
     [nextPhaseInfo]
   );
-
 
 
   // ===== helper: phase của task đã completed chưa?
@@ -611,6 +523,7 @@ export default function KanbanForm() {
 
     const srcTask = active?.data?.current?.project;
 
+
     // 🔒 Phase khóa → chỉ chặn EMP/HOD; PM/Manager/Admin tiếp tục (để hủy).
     if (srcTask && isPhaseLocked(srcTask.phaseId) && isStaffMode) {
       setAllowedDropSet(new Set());
@@ -633,7 +546,6 @@ export default function KanbanForm() {
       return;
     }
 
-
     // ❌ EMP/HOD không được move vào CANCELED
     if (isStaffMode && toCol === "CANCELED") {
       dispatch(setPopup({ type: "error", message: tTasks("errors.noPermissionChangeCanceled") || tTasks("errors.noPermissionChangeCompleted") }));
@@ -653,13 +565,13 @@ export default function KanbanForm() {
       setAllowedDropSet(new Set());
       return;
     }
+
     // Không cho từ COMPLETED/CANCELED sang IN_REVIEW
     if (toCol === "IN_REVIEW" && (fromCol === "COMPLETED" || fromCol === "CANCELED")) {
       dispatch(setPopup({ type: "warning", message: tTasks("errors.cannotMoveToInReviewFromDoneOrCanceled") }));
       setAllowedDropSet(new Set());
       return;
     }
-
 
     // COMPLETED/CANCELED -> IN_PROGRESS: check phase sau
     if (toCol === "IN_PROGRESS" && ["COMPLETED", "CANCELED"].includes(fromCol)) {
@@ -742,9 +654,7 @@ export default function KanbanForm() {
   // Task đang drag
   const flattened = useMemo(() => Object.values(grouped).flat(), [grouped]);
   const activeTask = activeId ? flattened.find((t) => String(t.id) === String(activeId)) : null;
-const advanceOptions = useMemo(() => {
-    return (flattened || []).filter((t) => t && t.status !== "CANCELED");
-  }, [flattened])
+
   // ===== Lock clear evidence theo rule phase sau
   const curPhaseMeta = useMemo(() => {
     if (!pendingTask) return null;
@@ -777,6 +687,7 @@ const advanceOptions = useMemo(() => {
 
   const handleBranchCreated = useCallback(
     (taskId, fullBranchName) => {
+      // cập nhật local task
       setGrouped((prev) => {
         const next = {};
         for (const col of Object.keys(prev)) {
@@ -795,6 +706,7 @@ const advanceOptions = useMemo(() => {
     },
     [refreshMeta]
   );
+
 
   const visibleStatusOptions = useMemo(() => statusOptions, [statusOptions]);
 
@@ -831,72 +743,44 @@ const advanceOptions = useMemo(() => {
     return /^https:\/\/github\.com\/[^\/\s]+\/[^\/\s]+\/?$/i.test(url);
   }, [projectInfo?.repoLink]);
 
-  const handleSubmitAdvance = async () => {
-    try {
-      if (!advanceTask?.id) return setAdvanceError("Bạn chưa chọn task.");
-      const amountNum = Number(advanceAmount || 0);
-      if (!amountNum || amountNum <= 0)
-        return setAdvanceError("Số tiền tạm ứng phải > 0.");
-      if (!advanceReason?.trim())
-        return setAdvanceError("Vui lòng nhập lý do tạm ứng.");
-      if (!advanceDeadline)
-        return setAdvanceError("Vui lòng chọn thời hạn thanh toán.");
-      if (!sigRef?.current || sigRef.current.isEmpty())
-        return setAdvanceError("Vui lòng ký vào ô chữ ký.");
 
-      setAdvanceBusy(true);
-      setAdvanceError("");
+  const visibleStatusOptions = useMemo(() => statusOptions, [statusOptions]);
 
-      const signatureDataUrl = getSignatureDataUrl(sigRef);
-      if (!signatureDataUrl) {
-        setAdvanceError("Không lấy được chữ ký. Vui lòng ký lại.");
-        return;
-      }
-      const payload = {
-        taskId: advanceTask.id,
-        unitName: "Next-Gen Enterprise Experience",
-        departmentOrAddress: "181 Cao Thắng, Phường 12, Quận 10, Hồ Chí Minh",
-        recipient,
-        amount: amountNum,
-        amountText: numToVietnameseWords(amountNum),
-        reason: advanceReason.trim(),
-        repaymentDeadline: advanceDeadline,
-        signatureDataUrl,
-      };
+  // ===== Header / Toolbar UI =====
+  const renderHeader = () => (
+    <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+      <Paper sx={{ p: 1.5, background: "linear-gradient(135deg,#118D57,#10B981)" }}>
+        <TrendingUp sx={{ color: "#fff", fontSize: 28 }} />
+      </Paper>
+      <Typography variant="h5" fontWeight={700}>
+        {tt(projReady, tProj, "kanbanTitle", "Project Kanban Board")}
+      </Typography>
+      <Box flex={1} />
+      <Tooltip title={tt(projReady, tProj, "actions.refresh", "Refresh")}>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={() => refreshMeta()}
+          sx={{ textTransform: "none" }}
+        >
+          {tt(projReady, tProj, "actions.refresh", "Refresh")}
+        </Button>
+      </Tooltip>
+    </Stack>
+  );
 
-      const res = await createCashAdvanceApi(payload);
-      console.log(payload)
-      if (res?.status !== 200) {
-        setAdvanceError(res?.message || "Gửi đề nghị thất bại.");
-        return;
-      }
+  // View-only cho PM/Manager/Admin nếu phase của task đã COMPLETED
+  const dialogReadOnly = !isStaffMode && isTaskPhaseCompleted(pendingTask);
 
-      // Reset & thông báo
-      setAdvanceOpen(false);
-      setAdvanceTask(null);
-      setAdvanceAmount("");
-      setAdvanceReason("");
-      setAdvanceDeadline(null);
-      sigRef?.current?.clear();
-      await refreshMeta();
-      dispatch(
-        setPopup({ type: "success", message: "Đã gửi đề nghị tạm ứng." })
-      );
-    } catch (e) {
-      console.error(e);
-      setAdvanceError("Có lỗi khi gửi. Vui lòng thử lại.");
-    } finally {
-      setAdvanceBusy(false);
-    }
-  };
+  // ✅ Kiểm tra repo hợp lệ của project (để truyền xuống dialog)
+  const projectHasValidRepo = useMemo(() => {
+    const url = (projectInfo?.repoLink || "").trim();
+    return /^https:\/\/github\.com\/[^\/\s]+\/[^\/\s]+\/?$/i.test(url);
+  }, [projectInfo?.repoLink]);
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg,#F8FAFC,#FEF2F2)",
-      }}
-    >
+    <Box sx={{ minHeight: "100vh", background: "linear-gradient(135deg,#F8FAFC,#FEF2F2)" }}>
       <Container maxWidth="xl" sx={{ py: 3 }}>
         {/* Back nút: ẩn trên trang Utilities/Tasks của staff */}
         {!isStaffTasksPage && (
@@ -911,6 +795,7 @@ const advanceOptions = useMemo(() => {
             {tt(projReady, tProj, "backToProjectDetail", "Back to Project Detail")}
           </Button>
         )}
+
         {renderHeader()}
 
         {/* Project/Phase cards */}
@@ -1009,9 +894,9 @@ const advanceOptions = useMemo(() => {
                 onChange={(e) => setSelectedProject(e.target.value || null)}
                 disabled={projLoading || (projectList?.length ?? 0) === 0}
                 renderValue={(value) => {
-                  const p = (
-                    Array.isArray(projectList) ? projectList : []
-                  ).find((x) => String(x.id) === String(value));
+                  const p = (Array.isArray(projectList) ? projectList : []).find(
+                    (x) => String(x.id) === String(value)
+                  );
                   return (
                     <Box
                       sx={{
@@ -1069,14 +954,6 @@ const advanceOptions = useMemo(() => {
               </Select>
             </FormControl>
           )}
-          <Button
-            variant="contained"
-            color="warning"
-            startIcon={<RequestQuote />}
-            onClick={() => setAdvanceOpen(true)}
-          >
-            Gửi đơn tạm ứng
-          </Button>
         </Paper>
 
         {/* Kanban board */}
@@ -1239,6 +1116,7 @@ const advanceOptions = useMemo(() => {
             } else {
               await refreshMeta();
             }
+
           }}
           projectPmId={projectInfo?.pmId}
           // ✅ TRUYỀN boolean đã được validate + URL repo xuống dialog
@@ -1264,200 +1142,9 @@ const advanceOptions = useMemo(() => {
             setAdvanceError("");
             setRecipient("Ban lãnh đạo Công ty Next-Gen Enterprise Experience");
             sigRef?.current?.clear();
+
           }}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>Đề nghị tạm ứng (Mẫu số 03-TT)</DialogTitle>
-
-          <DialogContent dividers>
-            <Stack spacing={2}>
-              {advanceError && <Alert severity="error">{advanceError}</Alert>}
-
-              {/* Thông tin cố định */}
-              <Paper variant="outlined" sx={{ p: 2, bgcolor: "#fafafa" }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="body2">
-                      <strong>Đơn vị:</strong> Next-Gen Enterprise Experience
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Bộ phận (hoặc Địa chỉ):</strong> 181 Cao Thắng,
-                      Phường 12, Quận 10, Hồ Chí Minh
-                    </Typography>
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    md={6}
-                    sx={{ textAlign: { xs: "left", md: "right" } }}
-                  >
-                    <Typography variant="body2">
-                      <em>Mẫu số 03-TT (TT 133/2016/TT-BTC)</em>
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </Paper>
-
-              {/* Chọn task */}
-              <Autocomplete
-                options={advanceOptions}
-                value={advanceTask}
-                onChange={(_, v) => setAdvanceTask(v)}
-                getOptionLabel={(o) => (o?.name ? o.name : "")}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Chọn Task để tạm ứng"
-                    placeholder="Gõ tên task..."
-                  />
-                )}
-              />
-
-              {/* Kính gửi */}
-              <TextField
-                label="Kính gửi"
-                value={recipient}
-                onChange={(e) => setRecipient(e.target.value)}
-                fullWidth
-              />
-
-              {/* Họ tên + chức vụ auto từ account */}
-              {(() => {
-                const { fullName, title } = getAccountFullNameAndTitle(account);
-                return (
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        label="Tên tôi là"
-                        value={fullName}
-                        fullWidth
-                        disabled
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        label="Chức vụ"
-                        value={title}
-                        fullWidth
-                        disabled
-                      />
-                    </Grid>
-                  </Grid>
-                );
-              })()}
-
-              {/* Số tiền + chữ */}
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Đề nghị tạm ứng (VNĐ)"
-                    type="number"
-                    fullWidth
-                    value={advanceAmount}
-                    onChange={(e) => setAdvanceAmount(e.target.value)}
-                    inputProps={{ min: 0 }}
-                  />
-                </Grid>
-                <Grid
-                  item
-                  xs={12}
-                  md={6}
-                  sx={{ display: "flex", alignItems: "center" }}
-                >
-                  <Typography variant="body2">
-                    {Number(advanceAmount) > 0
-                      ? `Bằng chữ: ${numToVietnameseWords(
-                          Number(advanceAmount)
-                        )}`
-                      : "Bằng chữ sẽ hiển thị ở đây"}
-                  </Typography>
-                </Grid>
-              </Grid>
-
-              {/* Lý do & Thời hạn thanh toán */}
-              <TextField
-                label="Lý do tạm ứng"
-                multiline
-                minRows={2}
-                value={advanceReason}
-                onChange={(e) => setAdvanceReason(e.target.value)}
-                placeholder="Ví dụ: Mua vật tư cho task, chi phí đi lại,..."
-                fullWidth
-              />
-              <TextField
-                label="Thời hạn thanh toán"
-                type="date"
-                InputLabelProps={{ shrink: true }}
-                value={advanceDeadline || ""}
-                onChange={(e) => setAdvanceDeadline(e.target.value)}
-                fullWidth
-              />
-
-              {/* Ký */}
-              <Box>
-                <Typography fontWeight={600} mb={1}>
-                  Người đề nghị tạm ứng – Ký tên
-                </Typography>
-                <Paper
-                  variant="outlined"
-                  sx={{ p: 1, width: "100%", height: 160 }}
-                >
-                  <SignatureCanvas
-                    ref={sigRef}
-                    canvasProps={{
-                      width: 700,
-                      height: 140,
-                      style: { width: "100%", height: "140px" },
-                    }}
-                    backgroundColor="#fff"
-                    penColor="black"
-                  />
-                </Paper>
-                <Stack direction="row" spacing={1} mt={1}>
-                  <Button onClick={() => sigRef?.current?.clear()}>
-                    Xóa chữ ký
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      sigRef?.current?.fromData(sigRef?.current?.toData())
-                    }
-                  >
-                    Làm mịn nét
-                  </Button>
-                </Stack>
-              </Box>
-
-              {/* Gợi ý chữ ký khác (tùy chọn) */}
-              {/* Có thể dùng getMySignatureSampleApi/saveMySignatureSampleApi như module nghỉ phép của bạn */}
-            </Stack>
-          </DialogContent>
-
-          <DialogActions>
-            <Button
-              onClick={() => {
-                if (advanceBusy) return;
-                setAdvanceOpen(false);
-                setAdvanceTask(null);
-                setAdvanceAmount("");
-                setAdvanceReason("");
-                setAdvanceDeadline(null);
-                setAdvanceError("");
-                sigRef?.current?.clear();
-              }}
-              color="inherit"
-            >
-              Hủy
-            </Button>
-            <Button
-              variant="contained"
-              disabled={advanceBusy}
-              onClick={handleSubmitAdvance}
-            >
-              Gửi kế toán
-            </Button>
-          </DialogActions>
-        </Dialog>
+        />
       </Container>
     </Box>
   );

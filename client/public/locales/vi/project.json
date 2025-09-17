@@ -1,0 +1,182 @@
+
+{
+  "title": "Quản lý dự án",
+  "subtitle": "Theo dõi và quản lý tất cả dự án của bạn",
+  "searchPlaceholder": "Tìm kiếm dự án...",
+  "allStatuses": "Tất cả trạng thái",
+  "aria": {
+    "listView": "Xem dạng danh sách",
+    "gridView": "Xem dạng lưới",
+    "openMenu": "Mở menu"
+  },
+  "loading": "Đang tải...",
+  "noProjects": "Không tìm thấy dự án.",
+  "action": {
+    "update": "Cập nhật",
+    "viewDetail": "Xem chi tiết"
+  },
+  "status": {
+    "planning": "Lên kế hoạch",
+    "inProgress": "Đang thực hiện",
+    "completed": "Hoàn thành",
+    "canceled": "Đã hủy"
+  },
+  "statusLabel": {
+    "PLANNING": "Lên kế hoạch",
+    "IN_REVIEW": "Đang xem xét",
+    "IN_PROGRESS": "Đang thực hiện",
+    "COMPLETED": "Hoàn thành",
+    "CANCELED": "Đã hủy"
+  },
+  "tasksCompleted": "nhiệm vụ đã hoàn thành",
+  "projectTimeline": "Dòng thời gian dự án",
+  "daysOverdue_one": "Trễ {{count}} ngày",
+  "daysOverdue_other": "Trễ {{count}} ngày",
+  "daysLeft_one": "Còn {{count}} ngày",
+  "daysLeft_other": "Còn {{count}} ngày",
+  "overdue": "Quá hạn",
+  "remaining": "Còn lại",
+  "backToProjects": "Quay lại danh sách dự án",
+  "projectDetailTitle": "Chi tiết dự án",
+  "projectDetailSubtitle": "Quản lý giai đoạn, công việc & thành viên",
+  "phaseManagement": "Quản lý Phase",
+  "searchTasksPlaceholder": "Tìm kiếm task...",
+  "deadlineLabel": "Hạn",
+  "createTask": "Tạo Task",
+  "progress": "Tiến độ",
+  "tasksHeading": "Tasks",
+  "noTasksFound": "Không tìm thấy task phù hợp.",
+  "noTasksYet": "Chưa có task nào. Hãy thêm task đầu tiên!",
+  "noPhasesYet": "Chưa có phase nào",
+  "sizeLabel": "Kích thước: {{value}}",
+  "noName": "(Không có tên)",
+  "githubOpen": "Mở trên GitHub",
+  "linkRepo": "Link Repo",
+  "githubConnected": "Đã kết nối GitHub",
+  "viewOnly": "Xem chỉ đọc",
+  "connectGithub": "Kết nối GitHub",
+  "githubConnectedMenu": "GitHub đã kết nối",
+  "editProject": "Chỉnh sửa dự án",
+  "viewProject": "Xem dự án",
+  "viewMembers": "Xem thành viên",
+  "addMember": "Thêm thành viên",
+  "createPhase": "Tạo Phase",
+  "projectNotFound": "Không tìm thấy dự án.",
+  "loadingProject": "Đang tải chi tiết dự án...",
+  "confirmDeleteTitle": "Xác nhận xóa",
+  "confirmDeleteBody": "Bạn có chắc chắn muốn xóa task này không? Hành động này không thể hoàn tác.",
+  "cancel": "Hủy",
+  "deleteTask": "Xóa Task",
+  "errors": {
+    "projectCanceledCreateTask": "❌ Project đã bị hủy. Không thể tạo task mới.",
+    "addMembersFirst": "❌ Hãy thêm thành viên vào project trước khi tạo task.",
+    "prevPhaseNotCompleted": "❌ Không thể tạo task: Phase trước chưa hoàn thành.",
+    "phaseLockedEditing": "❌ Phase sau đang In progress và đã có task. Không thể chỉnh sửa task trong phase đã Completed.",
+    "noPermissionCreatePhase": "Bạn không có quyền tạo phase.",
+    "githubLoginInitFailed": "Không khởi tạo được đăng nhập GitHub.",
+    "noPermissionLinkRepo": "Bạn không có quyền link repo.",
+    "repoUrlRequired": "Vui lòng nhập URL repo (vd: https://github.com/owner/repo).",
+    "invalidRepoUrl": "Định dạng repo URL không hợp lệ.",
+    "linkRepoFailed": "Link repo thất bại."
+  },
+  "toasts": {
+    "linkRepoSuccess": "Link repo thành công.",
+    "githubConnectedToast": "Đã kết nối GitHub!"
+  },
+  "repoUrlPlaceholder": "https://github.com/owner/repo",
+  "form": {
+    "updateTitle": "Cập nhật dự án",
+    "unknownDocumentCode": "Mã không xác định",
+    "labels": {
+      "projectName": "Tên dự án",
+      "description": "Mô tả",
+      "status": "Trạng thái",
+      "deadline": "Hạn",
+      "documentCode": "Mã tài liệu",
+      "pmName": "Tên PM"
+    },
+    "buttons": {
+      "update": "Cập nhật",
+      "cancel": "Hủy",
+      "confirm": "Xác nhận",
+      "close": "Đóng"
+    },
+    "helper": {
+      "minAllowed": "Giá trị nhỏ nhất cho phép: {{date}}",
+      "cannotBackToPlanning": "Không thể về Planning khi đã có task.",
+      "cannotComplete": "Chưa thể Completed vì còn task chưa xong."
+    },
+    "validation": {
+      "project-name-is-required": "Tên dự án là bắt buộc",
+      "description-is-required": "Mô tả là bắt buộc",
+      "status-is-required": "Trạng thái là bắt buộc",
+      "invalid-date-format": "Định dạng ngày không hợp lệ (YYYY-MM-DD)",
+      "project-deadline-cannot-be-earlier-than-existing-phases-or-tasks": "Hạn chót dự án không được trước hạn của các phase hoặc task hiện có",
+      "pm-name-is-required": "Tên PM là bắt buộc",
+      "document-id-is-required": "Document ID là bắt buộc",
+      "document-id-must-be-a-number": "Document ID phải là số",
+      "deadline-cannot-be-in-the-past": "Hạn chót không được ở trong quá khứ"
+    },
+    "confirmCancelProjectMessage": "Bạn có chắc muốn hủy dự án này? Hành động này sẽ đánh dấu toàn bộ dự án là đã hủy."
+  },
+  "formCreate": {
+    "title": "Tạo dự án từ tài liệu",
+    "pmLabel": "📌 Quản lý dự án:",
+    "create": "Tạo"
+  },
+  "members": {
+    "title": "Thành viên dự án",
+    "searchPlaceholder": "Tìm kiếm thành viên...",
+    "departmentLabel": "Phòng ban",
+    "allDepartments": "Tất cả phòng ban",
+    "table": {
+      "name": "Họ và tên",
+      "department": "Phòng ban"
+    },
+    "noMembers": "Không tìm thấy thành viên",
+    "buttons": {
+      "remove": "Xóa",
+      "removeWithCount_one": "Xóa ({{count}})",
+      "removeWithCount_other": "Xóa ({{count}})"
+    }
+  },
+  "membersAdd": {
+    "title": "Thêm thành viên",
+    "subtitle": "Tìm kiếm và chọn nhân viên để thêm vào dự án",
+    "searchPlaceholder": "Tìm kiếm nhân viên...",
+    "departmentLabel": "Phòng ban",
+    "allDepartments": "Tất cả phòng ban",
+    "assignedTooltip": "Người này đã được giao công việc",
+    "table": {
+      "name": "Họ và tên",
+      "department": "Phòng ban"
+    },
+    "noEmployees": "Không tìm thấy nhân viên",
+    "buttons": {
+      "close": "Đóng",
+      "add": "Thêm",
+      "addWithCount_one": "Thêm ({{count}})",
+      "addWithCount_other": "Thêm ({{count}})"
+    }
+  },
+  "kanban": {
+    "aria": {
+      "column": "Cột {{title}}",
+      "itemsCount_one": "{{count}} công việc",
+      "itemsCount_other": "{{count}} công việc"
+    },
+    "columns": {
+      "BACKLOG": "Backlog",
+      "TODO": "Cần làm",
+      "DOING": "Đang làm",
+      "DONE": "Đã xong"
+    }
+  },
+  "kanbanTitle": "Bảng Kanban dự án",
+  "backToProjectDetail": "Quay lại chi tiết dự án",
+  "actions": {
+    "refresh": "Làm mới"
+  },
+  "featureDisabled": "Tính năng hiện chưa khả dụng."
+
+}

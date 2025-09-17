@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -18,10 +18,11 @@ import {
   IconButton,
   FormControl,
   Select,
+  MenuItem as SelectItem,
   Grid,
   Chip,
   LinearProgress,
-} from "@mui/material"
+} from "@mui/material";
 import {
   Search,
   ViewList,
@@ -33,69 +34,78 @@ import {
   MoreVert,
   Edit,
   Visibility,
-} from "@mui/icons-material"
-import {
-  filterProjects,
-  searchProjects,
-} from "~/services/project.service"
-import ProjectForm from "~/components/project/form/ProjectForm"
+} from "@mui/icons-material";
+import { filterProjects, searchProjects } from "~/services/project.service";
+import ProjectForm from "~/components/project/form/ProjectForm";
 import {
   calculateDaysRemaining,
   formatDate,
   getDaysOverdue,
   getStatusColor,
   isOverdue,
- formatStatus,
-} from "~/utils/project.utils"
-import { useNavigate } from "react-router-dom"
-import { useSelector } from "react-redux"
-import { useCallback } from "react"
+  formatStatus,
+} from "~/utils/project.utils";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
+
 const statusOptions = [
-  { value: "PLANNING", label: "Planning", color: "info" },
-  { value: "IN_PROGRESS", label: "In Progress", color: "success" },
-  { value: "COMPLETED", label: "Completed", color: "primary" },
-  { value: "CANCELED", label: "Canceled", color: "default" },
-]
+  { value: "PLANNING", labelKey: "status.planning", color: "info" },
+  { value: "IN_PROGRESS", labelKey: "status.inProgress", color: "success" },
+  { value: "COMPLETED", labelKey: "status.completed", color: "primary" },
+  { value: "CANCELED", labelKey: "status.canceled", color: "default" },
+];
 
 export default function CompactProjectList() {
-  const [projects, setProjects] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("ALL")
+  const { t } = useTranslation("project");
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
-  const [viewMode, setViewMode] = useState("grid")
-  const [formOpen, setFormOpen] = useState(false)
-  const [editingProject, setEditingProject] = useState({})
+  const [viewMode, setViewMode] = useState("grid");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState({});
 
-  const account = useSelector((state) => state.account.value)
+  const account = useSelector((state) => state.account.value);
 
-const fetchProjects = useCallback(async () => {
-  setLoading(true);
-  try {
-    let result;
-    if (searchTerm.trim()) {
-      result = await searchProjects(searchTerm.trim());
-    } else {
-      const apiStatus = statusFilter === "ALL" ? undefined : statusFilter;
-  result = await filterProjects(apiStatus);
+  const fetchProjects = useCallback(async () => {
+    setLoading(true);
+    try {
+      let result;
+      if (searchTerm.trim()) {
+        result = await searchProjects(searchTerm.trim());
+      } else {
+        const apiStatus = statusFilter === "ALL" ? undefined : statusFilter;
+        result = await filterProjects(apiStatus);
+      }
+
+      if (account?.role === "PM") {
+        result = (result || []).filter((p) => String(p.pmId) === String(account.id));
+      }
+
+      setProjects(result || []);
+    } finally {
+      setLoading(false);
     }
-    if (account?.role === "PM") {
-      result = result.filter((p) => p.pmId === account.id);
-    }
-    setProjects(result);
-  } finally {
-    setLoading(false);
-  }
-}, [searchTerm, statusFilter, account]);
+  }, [searchTerm, statusFilter, account]);
 
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
+  const canEditThisProject = (proj) => {
+    if (!account?.role) return false;
+    if (["ADMIN", "MANAGER"].includes(account.role)) return true;
+    if (account.role === "PM") return String(proj?.pmId) === String(account.id);
+    return false;
+  };
 
-
-useEffect(() => { fetchProjects(); }, [fetchProjects]);
   const handleOpenUpdate = (project) => {
-    setEditingProject(project || {})
-    setFormOpen(true)
-  }
+    if (!project || !canEditThisProject(project)) return;
+    setEditingProject(project || {});
+    setFormOpen(true);
+  };
 
   return (
     <Box
@@ -118,21 +128,24 @@ useEffect(() => { fetchProjects(); }, [fetchProjects]);
           >
             <TrendingUp sx={{ color: "white", fontSize: 28 }} />
           </Paper>
-          <Box>
+
+          {/* Header title with ellipsis */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1, minWidth: 0, flex: 1 }}>
             <Typography
-              variant="h5"
               sx={{
-                background: "linear-gradient(135deg, #1F2937 0%, #4B5563 100%)",
-                backgroundClip: "text",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                fontWeight: 700,
+                fontWeight: 600,
+                flex: 1,
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
               }}
+              title={t("title")}
             >
-              Project Management
+              {t("title")}
             </Typography>
             <Typography variant="body2" color="text.secondary" fontWeight={500}>
-              Track and manage all your projects
+              {t("subtitle")}
             </Typography>
           </Box>
         </Stack>
@@ -154,7 +167,7 @@ useEffect(() => { fetchProjects(); }, [fetchProjects]);
           }}
         >
           <TextField
-            placeholder="Search projects..."
+            placeholder={t("searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
@@ -170,30 +183,29 @@ useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
           <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center">
             <FormControl sx={{ minWidth: 140 }} size="small">
-              <Select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                displayEmpty
-              >
-                <MenuItem value="ALL">All Statuses</MenuItem>
+              <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} displayEmpty>
+                <SelectItem value="ALL">{t("allStatuses")}</SelectItem>
                 {statusOptions.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </MenuItem>
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {t(opt.labelKey)}
+                  </SelectItem>
                 ))}
               </Select>
             </FormControl>
 
-
             <IconButton
               onClick={() => setViewMode("list")}
               color={viewMode === "list" ? "primary" : "default"}
+              aria-label={t("aria.listView")}
+              title={t("aria.listView")}
             >
               <ViewList />
             </IconButton>
             <IconButton
               onClick={() => setViewMode("grid")}
               color={viewMode === "grid" ? "primary" : "default"}
+              aria-label={t("aria.gridView")}
+              title={t("aria.gridView")}
             >
               <ViewModule />
             </IconButton>
@@ -201,28 +213,20 @@ useEffect(() => { fetchProjects(); }, [fetchProjects]);
         </Paper>
 
         {loading ? (
-          <Typography>Loading...</Typography>
+          <Typography>{t("loading")}</Typography>
         ) : !Array.isArray(projects) || projects.length === 0 ? (
-          <Typography>No projects found.</Typography>
+          <Typography>{t("noProjects")}</Typography>
         ) : viewMode === "list" ? (
           <Stack spacing={3}>
             {projects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                onUpdateClick={handleOpenUpdate}
-              />
+              <ProjectCard key={project.id} project={project} onUpdateClick={handleOpenUpdate} />
             ))}
           </Stack>
         ) : (
           <Grid container spacing={3}>
             {projects.map((project) => (
               <Grid item key={project.id}>
-                <ProjectCard
-                  project={project}
-                  sx={{ width: "560px" }}
-                  onUpdateClick={handleOpenUpdate}
-                />
+                <ProjectCard project={project} sx={{ width: "560px" }} onUpdateClick={handleOpenUpdate} />
               </Grid>
             ))}
           </Grid>
@@ -233,39 +237,48 @@ useEffect(() => { fetchProjects(); }, [fetchProjects]);
           onClose={() => setFormOpen(false)}
           initialData={editingProject}
           onSuccess={async () => {
-            const result = await filterProjects(statusFilter)
-            setProjects(result)
+            const result = await filterProjects(statusFilter === "ALL" ? undefined : statusFilter);
+            setProjects(result || []);
           }}
         />
       </Container>
     </Box>
-  )
+  );
 }
 
 function ProjectCard({ project, sx = {}, onUpdateClick }) {
-  const [anchorEl, setAnchorEl] = useState(null)
-  const open = Boolean(anchorEl)
-  const navigate = useNavigate()
+  const { t } = useTranslation("project");
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+  const navigate = useNavigate();
+  const account = useSelector((state) => state.account.value);
 
-  const handleMenuClick = (e) => setAnchorEl(e.currentTarget)
-  const handleClose = () => setAnchorEl(null)
+  const handleMenuClick = (e) => setAnchorEl(e.currentTarget);
+  const handleClose = () => setAnchorEl(null);
+
   const handleUpdate = () => {
-    handleClose()
-    onUpdateClick(project)
-  }
+    handleClose();
+    onUpdateClick?.(project);
+  };
   const handleViewDetail = () => {
-    handleClose()
-    navigate(`/management/projects/${project.id}`)
-  }
+    handleClose();
+    navigate(`/management/projects/${project.id}`);
+  };
 
-  const progress = project.progress
+  const canEditThisProject = (() => {
+    if (!account?.role) return false;
+    if (["ADMIN", "MANAGER"].includes(account.role)) return true;
+    if (account.role === "PM") return String(project.pmId) === String(account.id);
+    return false;
+  })();
+
+  const progress = project.progress ?? 0;
   const isLate =
     isOverdue(project.deadline) &&
     project.status !== "COMPLETED" &&
-    project.status !== "CANCELED"
+    project.status !== "CANCELED";
 
-  const showTimeStatus =
-    project.status !== "COMPLETED" && project.status !== "CANCELED"
+  const showTimeStatus = project.status !== "COMPLETED" && project.status !== "CANCELED";
 
   return (
     <Card
@@ -278,30 +291,40 @@ function ProjectCard({ project, sx = {}, onUpdateClick }) {
       }}
     >
       <CardContent>
-        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        {/* ===== Title row with ellipsis ===== */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1, minWidth: 0 }}>
+          <Typography
+            variant="h6"
+            noWrap
+            title={project.name}
+            sx={{ fontWeight: 600, flex: 1, minWidth: 0 }}
+          >
             {project.name}
           </Typography>
-          <IconButton onClick={handleMenuClick}>
+          <IconButton onClick={handleMenuClick} aria-label={t("aria.openMenu")} title={t("aria.openMenu")}>
             <MoreVert />
           </IconButton>
         </Box>
 
         <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
-          <MenuItem onClick={handleUpdate}>
-            <ListItemIcon>
-              <Edit fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="Update" />
-          </MenuItem>
+          {canEditThisProject ? (
+            <MenuItem onClick={handleUpdate}>
+              <ListItemIcon>
+                <Edit fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary={t("action.update")} />
+            </MenuItem>
+          ) : null}
+
           <MenuItem onClick={handleViewDetail}>
             <ListItemIcon>
               <Visibility fontSize="small" />
             </ListItemIcon>
-            <ListItemText primary="View Detail" />
+            <ListItemText primary={t("action.viewDetail")} />
           </MenuItem>
         </Menu>
 
+        {/* Description (2 lines) */}
         <Typography
           variant="body2"
           color="text.secondary"
@@ -312,51 +335,51 @@ function ProjectCard({ project, sx = {}, onUpdateClick }) {
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
+          title={project.description || ""}
         >
           {project.description}
         </Typography>
 
         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" mt={1}>
-
           <Chip
             icon={<Schedule sx={{ fontSize: 16 }} />}
-            label={formatStatus(project.status)}
+            label={t(`statusLabel.${project.status}`, { defaultValue: formatStatus(project.status) })}
             size="small"
             color={getStatusColor(project.status)}
           />
-          {project.documentCode && (
-            <Chip label={project.documentCode} size="small" variant="outlined" />
-          )}
-          {project.pmName && (
-            <Chip label={`PM: ${project.pmName}`} size="small" variant="outlined" />
-          )}
+          {project.documentCode && <Chip label={project.documentCode} size="small" variant="outlined" />}
+          {project.pmName && <Chip label={`PM: ${project.pmName}`} size="small" variant="outlined" />}
         </Stack>
 
-{/* Bao bọc phần progress và task trong Box có minHeight cố định */}
-<Box mt={1} sx={{ minHeight: 42, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-  {project.status !== "PLANNING" ? (
-    <>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <LinearProgress
-          variant="determinate"
-          value={progress}
-          sx={{ height: 8, borderRadius: 5, flex: 1, mr: 1 }}
-        />
-        <Typography variant="body2" color="text.secondary" fontWeight={600}>
-          {progress}%
-        </Typography>
-      </Stack>
+        {/* Progress block */}
+        <Box
+          mt={1}
+          sx={{
+            minHeight: 42,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+          }}
+        >
+          {project.status !== "PLANNING" ? (
+            <>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <LinearProgress
+                  variant="determinate"
+                  value={Number.isFinite(progress) ? progress : 0}
+                  sx={{ height: 8, borderRadius: 5, flex: 1, mr: 1 }}
+                />
+                <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                  {Number.isFinite(progress) ? progress : 0}%
+                </Typography>
+              </Stack>
 
-      <Typography variant="caption" color="text.secondary" mt={0.5}>
-        {`${project.doneTask} / ${project.totalTask} tasks completed`}
-      </Typography>
-    </>
-  ) : (
-    // Khi status = PLANNING thì giữ chỗ nhưng không hiển thị gì
-    <></>
-  )}
-</Box>
-
+              <Typography variant="caption" color="text.secondary" mt={0.5}>
+                {`${project.doneTask ?? 0} / ${project.totalTask ?? 0} ${t("tasksCompleted")}`}
+              </Typography>
+            </>
+          ) : null}
+        </Box>
 
         <Stack
           direction="row"
@@ -374,7 +397,7 @@ function ProjectCard({ project, sx = {}, onUpdateClick }) {
                 {`${formatDate(project.createdAt)} - ${formatDate(project.deadline)}`}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Project Timeline
+                {t("projectTimeline")}
               </Typography>
             </Box>
           </Stack>
@@ -398,11 +421,11 @@ function ProjectCard({ project, sx = {}, onUpdateClick }) {
                   sx={{ color: isLate ? "error.main" : "success.main" }}
                 >
                   {isLate
-                    ? `${getDaysOverdue(project.deadline)} days overdue`
-                    : `${calculateDaysRemaining(project.deadline)} days left`}
+                    ? t("daysOverdue", { count: getDaysOverdue(project.deadline) })
+                    : t("daysLeft", { count: calculateDaysRemaining(project.deadline) })}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {isLate ? "Overdue" : "Remaining"}
+                  {isLate ? t("overdue") : t("remaining")}
                 </Typography>
               </Box>
             </Stack>
@@ -410,6 +433,5 @@ function ProjectCard({ project, sx = {}, onUpdateClick }) {
         </Stack>
       </CardContent>
     </Card>
-  )
+  );
 }
-

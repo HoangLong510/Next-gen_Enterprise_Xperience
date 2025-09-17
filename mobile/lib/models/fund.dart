@@ -25,16 +25,26 @@ class Fund {
 
   factory Fund.fromJson(Map<String, dynamic> json) {
     return Fund(
-      id: json['id'],
-      name: json['name'],
-      balance: (json['balance'] ?? 0).toDouble(),
-      status: json['status'],
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
+      name: json['name'] ?? '',
+      balance: (json['balance'] is int || json['balance'] is double)
+          ? (json['balance'] ?? 0).toDouble()
+          : double.tryParse(json['balance'].toString()) ?? 0.0,
+      status: json['status'] ?? '',
       purpose: json['purpose'],
-      createdByName: json['createdBy'], 
-      updatedByName: json['updatedBy'],  
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null,
-      lockedUntil: json['lockDate'] != null ? DateTime.tryParse(json['lockDate']) : null,
+      createdByName: json['createdBy'] ?? json['createdByName'],
+      updatedByName: json['updatedBy'] ?? json['updatedByName'],
+      createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.tryParse(json['updatedAt'])
+          : null,
+      lockedUntil: json['lockedUntil'] != null
+          ? DateTime.tryParse(json['lockedUntil'])
+          : (json['lockDate'] != null
+                ? DateTime.tryParse(json['lockDate'])
+                : null),
     );
   }
 

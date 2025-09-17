@@ -19,10 +19,7 @@ import server.utils.JwtUtil;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -38,12 +35,12 @@ public class TaskService {
     private final AccountRepository accountRepository;
     private final ProjectRepository projectRepository;
     private final TaskOrderService taskOrderService;
+    private final TaskAssignmentLogRepository taskAssignmentLogRepository;
     private final RestTemplate restTemplate = new RestTemplate();
     private final GitHubTokenService gitHubTokenService;
     private final TaskEvidenceRepository taskEvidenceRepository;
     private final EmployeeRepository employeeRepository;
     private final TaskEvidenceService taskEvidenceService;
-    private final NotificationService notificationService;
 
     @Transactional
     public ApiResponse<?> createTask(CreateTaskDto dto) {
@@ -106,7 +103,6 @@ public class TaskService {
 
         Task saved = taskRepository.save(task);
         projectStatusService.refreshStatus(phase.getProject());
-        notificationService.notifyTaskAssigned(saved, phase.getProject().getProjectManager());
 
         TaskDto result = new TaskDto();
         result.setId(saved.getId());
@@ -162,6 +158,12 @@ public class TaskService {
                 "fetch-visible-tasks");
     }
 
+    /**
+     * ✅ Kanban tasks:
+     * - Lấy tất cả task của project (không lọc CANCELED/ deadline ở tầng repo)
+     * - Staff (EMP/HOD): chỉ task của chính họ & loại CANCELED
+     * - PM/MANAGER/ADMIN: thấy tất cả (bao gồm CANCELED) để hiển thị cột CANCELED
+     */
     @Transactional(readOnly = true)
     public ApiResponse<List<TaskDto>> getKanbanTasks(Long projectId, HttpServletRequest request) {
         String username = jwtUtil.extractUsernameFromRequest(request);
@@ -175,31 +177,38 @@ public class TaskService {
         if (pr.getStatus() == ProjectStatus.CANCELED) {
             return ApiResponse.errorServer("project-canceled");
         }
-        // PM chỉ xem được project mình quản lý
         if (role == Role.PM && !pr.getProjectManager().getId().equals(me.getId())) {
             return ApiResponse.unauthorized("access-denied");
         }
 
-        // ✅ STAFF mode: EMPLOYEE & HOD giống nhau
         boolean isStaff = (role == Role.EMPLOYEE || role == Role.HOD);
 
-        // Chỉ lấy phase IN_PROGRESS cho staff; còn lại thấy tất cả
-        List<Phase> phases = pr.getPhases().stream()
-                .filter(p -> isStaff ? p.getStatus() == PhaseStatus.IN_PROGRESS : true)
-                .collect(Collectors.toList());
+        // ⬇️ Quan trọng: dùng query mới, không loại CANCELED/ deadline
+        List<Task> allTasks = taskRepository.findKanbanTasksByProject(projectId);
 
-        // Staff: chỉ task được assign cho chính user + không lấy CANCELED
-        Stream<Task> taskStream = phases.stream().flatMap(p -> p.getTasks().stream());
+        Stream<Task> taskStream = allTasks.stream();
+
         if (isStaff) {
-            taskStream = taskStream
-                    .filter(t -> t.getAssignee() != null
-                            && t.getAssignee().getId().equals(me.getId())
-                            && t.getStatus() != TaskStatus.CANCELED);
+            Long viewerEmpId = (me.getEmployee() != null) ? me.getEmployee().getId() : null;
+            taskStream = taskStream.filter(t ->
+                    t != null &&
+                            t.getAssignee() != null &&
+                            (
+                                    (viewerEmpId != null && viewerEmpId.equals(t.getAssignee().getId())) ||
+                                            (t.getAssignee().getAccount() != null &&
+                                                    username.equals(t.getAssignee().getAccount().getUsername()))
+                            )
+                            && t.getStatus() != TaskStatus.CANCELED
+                            && !t.isHidden()
+            );
+        } else {
+            // PM/Manager/Admin vẫn ẩn task hidden, còn CANCELED giữ lại để FE show cột
+            taskStream = taskStream.filter(t -> t != null && !t.isHidden());
+
         }
 
         List<Task> tasks = taskStream.collect(Collectors.toList());
 
-        // Giữ nguyên thứ tự theo user
         List<Task> sorted = taskOrderService.sortTasksByUserOrder(
                 tasks, request.getHeader(HttpHeaders.AUTHORIZATION)
         );
@@ -208,7 +217,6 @@ public class TaskService {
         return ApiResponse.success(dtos, "kanban-tasks");
     }
 
-
     private boolean isTransitionAllowed(TaskStatus from, TaskStatus to, Role role) {
         java.util.EnumSet<TaskStatus> allowed = java.util.EnumSet.of(from);
 
@@ -216,7 +224,6 @@ public class TaskService {
             case PLANNING -> {
                 allowed.add(TaskStatus.IN_PROGRESS);
                 allowed.add(TaskStatus.CANCELED);
-                // ✅ Mở đường cho PLANNING → IN_REVIEW (BE vẫn sẽ kiểm tra evidence/branch ở dưới)
                 allowed.add(TaskStatus.IN_REVIEW);
             }
             case IN_PROGRESS -> {
@@ -230,12 +237,10 @@ public class TaskService {
             }
             case COMPLETED -> {
                 allowed.add(TaskStatus.IN_PROGRESS);
-                // ❌ bỏ IN_REVIEW để khớp UI
             }
             case CANCELED -> {
                 allowed.add(TaskStatus.PLANNING);
                 allowed.add(TaskStatus.IN_PROGRESS);
-                // ❌ bỏ IN_REVIEW để khớp UI
             }
         }
 
@@ -247,7 +252,6 @@ public class TaskService {
         return allowed.contains(to);
     }
 
-
     @Transactional
     public ApiResponse<?> updateTask(Long taskId, UpdateTaskDto dto, HttpServletRequest request) {
         Task task = taskRepository.findById(taskId)
@@ -256,23 +260,24 @@ public class TaskService {
         String username = jwtUtil.extractUsernameFromRequest(request);
         Account me = accountRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("invalid-account"));
-        boolean isAssignee   = task.getAssignee()!=null && task.getAssignee().getId().equals(me.getId());
+
+        boolean isAssignee =
+                task.getAssignee() != null
+                        && me.getEmployee() != null
+                        && Objects.equals(task.getAssignee().getId(), me.getEmployee().getId());
         boolean isPrivileged = me.getRole()==Role.PM || me.getRole()==Role.MANAGER || me.getRole()==Role.ADMIN;
         if (!isAssignee && !isPrivileged) return ApiResponse.unauthorized("access-denied");
 
-        // name
         if (dto.getName() != null) {
             String name = dto.getName().trim();
             if (name.isEmpty()) return ApiResponse.badRequest("name-empty");
             task.setName(name);
         }
 
-        // description
         if (dto.getDescription() != null) {
             task.setDescription(dto.getDescription().trim());
         }
 
-        // size (chỉ PM/MANAGER/ADMIN)
         if (dto.getSize() != null) {
             if (!isPrivileged) return ApiResponse.unauthorized("only-pm-or-manager-can-change-size");
             try {
@@ -282,19 +287,42 @@ public class TaskService {
             }
         }
 
-        // assignee (chỉ PM/MANAGER/ADMIN)
         if (dto.getAssigneeId() != null) {
             if (!isPrivileged) return ApiResponse.unauthorized("only-pm-or-manager-can-change-assignee");
-            Employee assignee = employeeRepository.findById(dto.getAssigneeId())
+
+            Employee oldAssignee = task.getAssignee();
+            Employee newAssignee = employeeRepository.findById(dto.getAssigneeId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "assignee-not-found"));
+
             Long projectId = task.getPhase().getProject().getId();
-            if (!projectRepository.existsByIdAndEmployees_Id(projectId, assignee.getId())) {
+            if (!projectRepository.existsByIdAndEmployees_Id(projectId, newAssignee.getId())) {
                 return ApiResponse.unauthorized("assignee-not-in-project");
             }
-            task.setAssignee(assignee);
+
+            boolean changed = (oldAssignee == null) || !oldAssignee.getId().equals(newAssignee.getId());
+            task.setAssignee(newAssignee);
+
+            if (changed) {
+                TaskAssignmentLog log = TaskAssignmentLog.builder()
+                        .task(task)
+                        .changedById(me.getId())
+                        .changedByName(buildDisplayName(me))
+                        .changedByUsername(me.getUsername())
+                        .oldAssigneeId(oldAssignee != null ? oldAssignee.getId() : null)
+                        .oldAssigneeName(oldAssignee != null ? buildDisplayName(oldAssignee) : null)
+                        .oldAssigneeUsername(
+                                oldAssignee != null && oldAssignee.getAccount()!=null ? oldAssignee.getAccount().getUsername() : null
+                        )
+                        .newAssigneeId(newAssignee.getId())
+                        .newAssigneeName(buildDisplayName(newAssignee))
+                        .newAssigneeUsername(
+                                newAssignee.getAccount()!=null ? newAssignee.getAccount().getUsername() : null
+                        )
+                        .build();
+                taskAssignmentLogRepository.save(log);
+            }
         }
 
-        // ✅ deadline: chỉ validate khi khác giá trị hiện tại
         if (dto.getDeadline() != null) {
             LocalDate newDl = dto.getDeadline();
             LocalDate oldDl = task.getDeadline();
@@ -320,6 +348,61 @@ public class TaskService {
         return ApiResponse.success(toDto(task), "task-updated");
     }
 
+    private String buildDisplayName(Account acc) {
+        if (acc == null) return null;
+        if (acc.getEmployee() != null) return buildDisplayName(acc.getEmployee());
+        return acc.getUsername();
+    }
+
+    private String buildDisplayName(Employee e) {
+        if (e == null) return null;
+        String first = e.getFirstName() != null ? e.getFirstName() : "";
+        String last  = e.getLastName()  != null ? e.getLastName()  : "";
+        String name = (first + " " + last).trim();
+        if (!name.isEmpty()) return name;
+        return (e.getAccount() != null ? e.getAccount().getUsername() : null);
+    }
+
+    @Transactional(readOnly = true)
+    public ApiResponse<?> getAssignmentLogs(Long taskId, HttpServletRequest request) {
+        String username = jwtUtil.extractUsernameFromRequest(request);
+        Account me = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("invalid-account"));
+        Role role = me.getRole();
+        if (!(role == Role.ADMIN || role == Role.MANAGER || role == Role.PM)) {
+            return ApiResponse.unauthorized("access-denied");
+        }
+
+        taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "task-not-found"));
+
+        var list = taskAssignmentLogRepository.findByTask_IdOrderByChangedAtDesc(taskId)
+                .stream()
+                .map(l -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", l.getId());
+                    m.put("taskId", l.getTask().getId());
+
+                    m.put("changedById", l.getChangedById());
+                    m.put("changedByName", l.getChangedByName());
+                    m.put("changedByUsername", l.getChangedByUsername());
+
+                    m.put("oldAssigneeId", l.getOldAssigneeId());
+                    m.put("oldAssigneeName", l.getOldAssigneeName());
+                    m.put("oldAssigneeUsername", l.getOldAssigneeUsername());
+
+                    m.put("newAssigneeId", l.getNewAssigneeId());
+                    m.put("newAssigneeName", l.getNewAssigneeName());
+                    m.put("newAssigneeUsername", l.getNewAssigneeUsername());
+
+                    m.put("changedAt", l.getChangedAt());
+                    return m;
+                })
+                .toList();
+
+        return ApiResponse.success(list, "assignment-logs");
+    }
+
     @Transactional
     public ApiResponse<?> updateTaskStatus(Long taskId, String newStatus, HttpServletRequest request) {
         Task task = taskRepository.findById(taskId)
@@ -335,11 +418,13 @@ public class TaskService {
         String username = jwtUtil.extractUsernameFromRequest(request);
         Account me = accountRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("invalid-account"));
-        boolean isAssignee = task.getAssignee()!=null && task.getAssignee().getId().equals(me.getId());
+        boolean isAssignee =
+                task.getAssignee() != null
+                        && me.getEmployee() != null
+                        && Objects.equals(task.getAssignee().getId(), me.getEmployee().getId());
         boolean isPrivileged = me.getRole()==Role.PM || me.getRole()==Role.MANAGER || me.getRole()==Role.ADMIN;
         if (!isAssignee && !isPrivileged) return ApiResponse.unauthorized("access-denied");
 
-        // 🚫 Chặn kéo task khi phase đã CANCELED để tránh reopen ngầm
         Phase phase = task.getPhase();
         if (phase.getStatus() == PhaseStatus.CANCELED) {
             return ApiResponse.badRequest("phase-is-canceled");
@@ -392,6 +477,7 @@ public class TaskService {
             notificationService.notifyAssigneeOnTaskUpdate(task, me);
         }
 
+
         return ApiResponse.success(null, "task-status-updated-successfully");
     }
 
@@ -417,7 +503,6 @@ public class TaskService {
         dto.setId(task.getId());
         dto.setName(task.getName());
         dto.setDescription(task.getDescription());
-//        dto.setImageUrl(task.getImageUrl());
         dto.setDeadline(task.getDeadline());
         dto.setStatus(task.getStatus().name());
         dto.setSize(task.getSize() != null ? task.getSize().name() : null);
