@@ -3,6 +3,7 @@ package server.controllers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import server.dtos.ImportEmployeesResult;
@@ -17,12 +18,14 @@ import java.nio.charset.StandardCharsets;
 public class EmployeeExcelImportController {
     private final EmployeeExcelImportService service;
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'HR', 'MANAGER')")
     @PostMapping(value = "/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ImportEmployeesResult> preview(@RequestPart("file") MultipartFile file) throws Exception {
         ImportEmployeesResult result = service.preview(file);
         return ResponseEntity.ok(result);
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'HR', 'MANAGER')")
     @PostMapping(value = "/", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ImportEmployeesResult> importAndSave(@RequestPart("file") MultipartFile file) throws Exception {
         ImportEmployeesResult result = service.importAndSave(file);
