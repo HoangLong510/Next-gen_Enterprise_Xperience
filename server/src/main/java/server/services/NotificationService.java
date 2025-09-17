@@ -696,12 +696,12 @@ public class NotificationService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void notifyProjectCompleted(Project project, Document doc, Account actor) {
-        if (project == null || doc == null) return;
+    public void notifyProjectCompleted(Project project, Account actor) {
+        if (project == null) return;
 
         String content = toJson("project.completed", Map.of(
                 "projectName", safeProjectName(project),
-                "documentTitle", doc.getTitle() != null ? doc.getTitle() : ""
+                "projectId", project.getId()
         ));
 
         // Manager
@@ -710,8 +710,8 @@ public class NotificationService {
                 .findFirst()
                 .orElse(null);
 
-        // Secretary (người tạo document)
-        Account secretary = doc.getCreatedBy();
+        // PM
+        Account pm = project.getProjectManager();
 
         if (manager != null) {
             saveAndSendNotification(
@@ -724,9 +724,9 @@ public class NotificationService {
             );
         }
 
-        if (secretary != null) {
+        if (pm != null) {
             saveAndSendNotification(
-                    secretary,
+                    pm,
                     actor,
                     "project-completed",
                     content,
@@ -735,4 +735,69 @@ public class NotificationService {
             );
         }
     }
+
+    @Transactional
+    public void notifyDocumentCompleted(Document doc, Account actor) {
+        if (doc == null) return;
+
+        String content = toJson("document.completed", Map.of(
+                "documentTitle", doc.getTitle() != null ? doc.getTitle() : ("doc-" + doc.getId()),
+                "documentId", doc.getId()
+        ));
+
+        Account manager = accountRepository.findByRole(Role.MANAGER)
+                .stream().findFirst().orElse(null);
+
+        Account creator = doc.getCreatedBy();
+
+        Account pm = doc.getPm();
+
+        Account accountant = doc.getAccountant();
+
+        // ==== BẮN NOTI ====
+        if (manager != null) {
+            saveAndSendNotification(
+                    manager,
+                    actor,
+                    "document-completed",
+                    content,
+                    NotificationType.DOCUMENT,
+                    doc.getId()
+            );
+        }
+
+        if (creator != null) {
+            saveAndSendNotification(
+                    creator,
+                    actor,
+                    "document-completed",
+                    content,
+                    NotificationType.DOCUMENT,
+                    doc.getId()
+            );
+        }
+
+        if (pm != null) {
+            saveAndSendNotification(
+                    pm,
+                    actor,
+                    "document-completed",
+                    content,
+                    NotificationType.DOCUMENT,
+                    doc.getId()
+            );
+        }
+
+        if (accountant != null) {
+            saveAndSendNotification(
+                    accountant,
+                    actor,
+                    "document-completed",
+                    content,
+                    NotificationType.DOCUMENT,
+                    doc.getId()
+            );
+        }
+    }
+
 }

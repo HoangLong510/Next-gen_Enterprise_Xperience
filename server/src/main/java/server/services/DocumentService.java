@@ -48,6 +48,7 @@ public class DocumentService {
     private final FundRepository fundRepository;
     private final DocumentHistoryRepository documentHistoryRepository;
 
+
     @Getter
     @Value("${app.upload.folder}")
     private String uploadFolder;
@@ -205,7 +206,7 @@ public class DocumentService {
         var acc = accountRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        boolean privileged = acc.getRole() == Role.ADMIN || acc.getRole() == Role.MANAGER;
+        boolean privileged = acc.getRole() == Role.ADMIN || acc.getRole() == Role.MANAGER || acc.getRole() == Role.SECRETARY;
         if (!privileged && !documentRepository.hasAccess(id, username)) {
             throw new AccessDeniedException("Forbidden");
         }
@@ -218,6 +219,31 @@ public class DocumentService {
         return documentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Document not found"));
     }
+
+    @Transactional
+    public DocumentResponseDto updateStatus(Long id, DocumentStatus newStatus, String username) {
+        Document doc = documentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Document not found"));
+
+        Account actor = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (actor.getRole() != Role.MANAGER && actor.getRole() != Role.SECRETARY) {
+            throw new AccessDeniedException("Bạn không có quyền cập nhật trạng thái Document");
+        }
+
+        DocumentStatus oldStatus = doc.getStatus();
+        doc.setStatus(newStatus);
+
+        if (oldStatus != DocumentStatus.COMPLETED && newStatus == DocumentStatus.COMPLETED) {
+            notificationService.notifyDocumentCompleted(doc, actor);
+        }
+
+        Document saved = documentRepository.save(doc);
+
+        return mapToResponse(saved);
+    }
+
 
     // Hàm gốc, có tham số includeNote để bật/tắt note
     private DocumentResponseDto mapToResponse(Document doc, boolean includeNote) {
@@ -273,6 +299,7 @@ public class DocumentService {
 
         if (doc.getProject() != null) {
             dto.setRelatedProjectId(doc.getProject().getId());
+            dto.setProjectStatus(doc.getProject().getStatus());
         }
 
         return dto;

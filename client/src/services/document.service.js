@@ -136,3 +136,13 @@ export const fetchDocumentHistoriesPageApi = async (id, payload) => {
     return { status: 500, message: "server-is-busy" };
   }
 };
+
+export const updateDocumentStatusApi = async (id, status) => {
+  try {
+    const res = await api.put(`/documents/${id}/status?status=${status}`);
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};

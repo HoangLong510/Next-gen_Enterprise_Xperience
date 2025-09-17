@@ -80,7 +80,7 @@ const roleRoutes = [
     path: "/projects/:id/kanban",
     component: ProjectKanbanBoard,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+    roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE",],
   },
   {
     path: "/projects/:projectId/phase/:phaseId/kanban",

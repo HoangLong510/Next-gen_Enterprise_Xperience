@@ -88,5 +88,8 @@
   "see-details": "See details",
   "project-completed": "Project completed",
 "project.completed": "Project {{projectName}} has been completed. Related document: '{{documentTitle}}'",
-"project-manager-changed": "Project manager changed"
+"project-manager-changed": "Project manager changed",
+"document-completed": "Document completed",
+  "document.completed": "The document '{{documentTitle}}' has been completed"
+  
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/models/document.dart';
 import 'package:mobile/models/enums/document_status.dart';
 import 'package:mobile/models/enums/document_type.dart';
+import 'package:mobile/screens/dispatches/dispatch_history_page.dart';
 import 'package:mobile/services/document_service.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:intl/intl.dart';
@@ -62,8 +63,9 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
       final base64 = base64Encode(signatureBytes);
       final res = await DocumentService.signDocument(widget.id, base64);
       if (res.status == 200) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("Ký công văn thành công")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Ký công văn thành công")));
         await fetchDetail();
         return true;
       } else {
@@ -73,8 +75,9 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
         return false;
       }
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Lỗi khi ký công văn")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Lỗi khi ký công văn")));
       return false;
     }
   }
@@ -82,17 +85,18 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
   Future<void> handleSubmitNote() async {
     final note = _noteController.text.trim();
     if (note.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Vui lòng nhập ghi chú")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Vui lòng nhập ghi chú")));
       return;
     }
     setState(() => _noteSaving = true);
     try {
       final res = await DocumentService.addManagerNote(widget.id, note);
       if (res.status == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Đã lưu ghi chú")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Đã lưu ghi chú")));
         await fetchDetail(); // sync lại UI
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -100,9 +104,9 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Có lỗi khi lưu ghi chú")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Có lỗi khi lưu ghi chú")));
     } finally {
       setState(() => _noteSaving = false);
     }
@@ -195,7 +199,9 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
                   }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Bạn cần ký trước khi xác nhận.")),
+                    const SnackBar(
+                      content: Text("Bạn cần ký trước khi xác nhận."),
+                    ),
                   );
                 }
               },
@@ -206,8 +212,12 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
       },
     );
   }
+
   Future<void> _openEdit() async {
-    await Navigator.pushNamed(context, '/management/documents/${document!.id}/edit');
+    await Navigator.pushNamed(
+      context,
+      '/management/documents/${document!.id}/edit',
+    );
     await fetchDetail();
   }
 
@@ -223,9 +233,12 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
     }
 
     final doc = document!;
-    final currentUser = Provider.of<AuthProvider>(context, listen: false).account;
+    final currentUser = Provider.of<AuthProvider>(
+      context,
+      listen: false,
+    ).account;
     final isManager = currentUser?.role == 'MANAGER';
-    final isSecretary  = currentUser?.role == 'SECRETARY';
+    final isSecretary = currentUser?.role == 'SECRETARY';
     final hasManagerNote = (doc.managerNote ?? '').trim().isNotEmpty;
     final canManagerNote = isManager && doc.status == DocumentStatus.NEW;
 
@@ -246,7 +259,23 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
               tooltip: "Ký điện tử",
             ),
           if (canOpenEdit)
-            IconButton(icon: const Icon(Icons.edit), tooltip: "Chỉnh sửa theo ghi chú", onPressed: _openEdit),
+            IconButton(
+              icon: const Icon(Icons.edit),
+              tooltip: "Chỉnh sửa theo ghi chú",
+              onPressed: _openEdit,
+            ),
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: "History Document",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DispatchHistoryPage(documentId: doc.id),
+                ),
+              );
+            },
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -265,11 +294,13 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(doc.title,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      )),
+                  Text(
+                    doc.title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   buildField("Mã công văn", doc.code),
                   buildField("Người gửi", doc.createdBy),
@@ -299,7 +330,9 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
                 maxLines: 5,
                 decoration: InputDecoration(
                   hintText: "Nhập ghi chú yêu cầu chỉnh sửa...",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -307,7 +340,9 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
                 alignment: Alignment.centerRight,
                 child: ElevatedButton(
                   onPressed: _noteSaving ? null : handleSubmitNote,
-                  child: Text(_noteSaving ? "Đang gửi..." : "Gửi yêu cầu chỉnh sửa"),
+                  child: Text(
+                    _noteSaving ? "Đang gửi..." : "Gửi yêu cầu chỉnh sửa",
+                  ),
                 ),
               ),
             ],
@@ -327,7 +362,8 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
             if ((currentUser?.role == 'MANAGER' ||
                     currentUser?.role == 'ADMIN' ||
                     currentUser?.role == 'SECRETARY') &&
-                (doc.managerNote != null && doc.managerNote!.trim().isNotEmpty)) ...[
+                (doc.managerNote != null &&
+                    doc.managerNote!.trim().isNotEmpty)) ...[
               const SizedBox(height: 16),
               const Text(
                 "🗒️ Ghi chú mới nhất từ Giám đốc",
