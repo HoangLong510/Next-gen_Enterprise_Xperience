@@ -34,20 +34,17 @@ public class ProjectController {
     public ApiResponse<List<ProjectDto>> getAllVisible(HttpServletRequest request) {
         return projectService.getAllVisible(request);
     }
-    @PreAuthorize("""
-      hasAnyAuthority('ADMIN','MANAGER','SECRETARY') or
-      (hasAuthority('PM') and @projectService.isProjectManager(#id, authentication.name))
-    """)
+    @PreAuthorize("@projectService.isProjectManager(#id, authentication.name)")
     // Lấy chi tiết dự án
     @GetMapping("/{id}")
-    public ApiResponse<ProjectDto> getProjectDetail(@PathVariable Long id) {
-        return projectService.getProjectDetail(id);
+    public ApiResponse<ProjectDto> getProjectDetail(@PathVariable Long id , HttpServletRequest request) {
+        return projectService.getProjectDetail(id, request);
     }
 
     // Lấy các dự án đã hoàn tất
     @GetMapping("/done")
-    public ApiResponse<List<ProjectDto>> getDoneProjects() {
-        return projectService.getDoneProjects();
+    public ApiResponse<List<ProjectDto>> getDoneProjects(HttpServletRequest request) {
+        return projectService.getDoneProjects(request);
     }
 
     // Tìm kiếm dự án theo từ khoá
@@ -65,9 +62,10 @@ public class ProjectController {
     @GetMapping("/filter")
     public ApiResponse<List<ProjectDto>> filter(
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String priority
+            @RequestParam(required = false) String priority,
+            HttpServletRequest request
     ) {
-        return projectService.filter(status, priority);
+        return projectService.filter(request,status, priority);
     }
 
     // Tạo mới dự án từ tài liệu được duyệt

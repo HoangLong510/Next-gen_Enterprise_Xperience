@@ -1,5 +1,6 @@
 package server.controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -68,8 +69,8 @@ public class PhaseController {
       (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))
     """)
     @GetMapping("/project/{projectId}/with-tasks")
-    public ApiResponse<List<PhaseDto>> getPhasesWithTasksByProject(@PathVariable Long projectId) {
-        return phaseService.getPhasesWithTasksByProject(projectId);
+    public ApiResponse<List<PhaseDto>> getPhasesWithTasksByProject(@PathVariable Long projectId , HttpServletRequest request) {
+        return phaseService.getPhasesWithTasksByProject(projectId , request);
     }
 
     // Lấy chi tiết phase theo phaseId

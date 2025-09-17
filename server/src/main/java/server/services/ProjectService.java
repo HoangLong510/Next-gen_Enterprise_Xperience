@@ -3,6 +3,7 @@ package server.services;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import server.dtos.CreateProjectDto;
@@ -352,6 +353,20 @@ public class ProjectService {
 
         if (oldStatus != ProjectStatus.COMPLETED && dto.getStatus() == ProjectStatus.COMPLETED) {
             project.setCompletedAt(LocalDateTime.now());
+
+            List<Document> docs = documentRepository.findByProject_Id(project.getId());
+
+            Account actor = accountRepository.findByUsername(
+                    SecurityContextHolder.getContext().getAuthentication().getName()
+            ).orElse(null);
+
+            for (Document doc : docs) {
+                doc.setStatus(DocumentStatus.COMPLETED);
+                documentRepository.save(doc);
+
+                // Gọi notification service
+                notificationService.notifyProjectCompleted(project, doc, actor);
+            }
         }
 
         projectRepository.save(project);

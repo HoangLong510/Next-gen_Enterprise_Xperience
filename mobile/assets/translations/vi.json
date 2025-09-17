@@ -88,5 +88,97 @@
 	"Confirm": "Xác nhận",
 
 	"NewPassword": "Mật khẩu mới",
-	"ConfirmNewPassword": "Xác nhận mật khẩu mới"
+	"ConfirmNewPassword": "Xác nhận mật khẩu mới",
+
+	"new-project-created": "Dự án mới đã được tạo",
+	"project.created": "Tài liệu '{{documentTitle}}' đã được PM chuyển thành dự án thành công",
+
+	"financial-document-signed": "Tài liệu tài chính đã được ký",
+	"document.financial.signed": "Bạn đã nhận được tài liệu tài chính '{{documentTitle}}' được giám đốc ký, vui lòng bắt đầu dự án liên quan",
+
+	"document-signed": "Tài liệu đã được ký",
+	"document.signed": "Tài liệu '{{documentTitle}}' đã được giám đốc ký, vui lòng tiếp tục xử lý",
+
+	"document-processing-result": "Kết quả xử lý tài liệu",
+	"document.processed": "Tài liệu '{{documentTitle}}' đã được xử lý",
+
+	"new-project-document-requires-signature": "Tài liệu dự án mới cần chữ ký",
+	"document.project.requires-signature": "Bạn có một tài liệu dự án mới cần chữ ký của bạn",
+
+	"assigned-as-project-manager": "Được phân công làm Quản lý dự án",
+	"document.pm.assigned.for": "Bạn đã được phân công làm PM cho tài liệu '{{documentTitle}}'",
+	"document.pm.changed.you-are-no-longer": "Bạn không còn là PM của tài liệu '{{documentTitle}}' nữa",
+
+	"new-financial-document-requires-signature": "Tài liệu tài chính mới cần chữ ký",
+	"document.financial.requires-signature": "Bạn có một tài liệu tài chính mới cần chữ ký của bạn",
+
+	"new-financial-document-to-process": "Tài liệu tài chính mới cần xử lý",
+	"document.financial.to-process": "Bạn đã được phân công xử lý tài liệu tài chính '{{documentTitle}}'",
+
+	"new-document-requires-processing": "Có tài liệu mới cần xử lý",
+	"document.requires-processing": "Tài liệu '{{documentTitle}}' cần được xử lý",
+
+	"manager-added-revision-note": "Quản lý đã thêm ghi chú",
+	"document.manager.note.added": "Tài liệu '{{documentTitle}}' có ghi chú mới từ quản lý {{managerName}}",
+
+	"document-revised": "Tài liệu đã được chỉnh sửa",
+	"document.revised": "Tài liệu '{{documentTitle}}' đã được {{actorName}} chỉnh sửa",
+	"document.revised.pm-changed": "Tài liệu '{{documentTitle}}' đã được {{actorName}} chỉnh sửa, PM đã thay đổi",
+
+	"leave-request-result": "Kết quả đơn xin nghỉ",
+	"leave.result": "Đơn xin nghỉ của bạn đã được {{action}} bởi {{approver}}",
+
+	"new-leave-request-for-approval": "Có đơn xin nghỉ mới cần duyệt",
+	"leave.new": "Đơn xin nghỉ từ {{requester}}",
+
+	"reminder-missing-check-out": "Nhắc nhở thiếu check-out",
+	"attendance.missing.checkout.lastMonth": "Bạn chưa check-out ngày {{date}} trong tháng trước, vui lòng cập nhật trước khi xử lý lương",
+	"attendance.missing.checkout.yesterday": "Bạn chưa check-out vào ngày {{date}}, vui lòng nộp giải trình hoặc liên hệ HR",
+	"attendance.missing.checkout.today": "Bạn chưa check-out hôm nay ({{date}}), vui lòng cập nhật",
+	"attendance.missing.checkout.generic": "Bạn chưa check-out vào ngày {{date}}, vui lòng cập nhật",
+
+	"attendance-justification-approved": "Giải trình check-out được duyệt",
+	"attendance.justification.approved": "Giải trình check-out của bạn đã được duyệt. Ghi chú HR: {{hrNote}}",
+	"attendance-justification-rejected": "Giải trình check-out bị từ chối",
+	"attendance.justification.rejected": "Giải trình check-out của bạn bị từ chối. Ghi chú HR: {{hrNote}}",
+
+	"employee-submitted-attendance-note": "Nhân viên đã nộp ghi chú chấm công",
+	"attendance.note.submitted": "Nhân viên {{employee}} đã nộp ghi chú giải trình cho ngày {{date}}, vui lòng xem xét",
+
+	"cash-advance-awaiting-chief-review": "Tạm ứng đang chờ trưởng phòng duyệt",
+	"cash.advance.awaiting.chief": "Bạn có {{count}} đơn tạm ứng đang chờ duyệt",
+
+	"cash-advance-awaiting-final-approval": "Tạm ứng đang chờ giám đốc duyệt",
+	"cash.advance.awaiting.director": "Bạn có {{count}} đơn tạm ứng đang chờ giám đốc duyệt",
+
+	"cash-advance-approved-by-chief": "Tạm ứng đã được trưởng phòng duyệt",
+	"cash.advance.approved.by": "Đơn tạm ứng #{{id}} của bạn đã được {{approver}} duyệt",
+
+	"cash-advance-final-approved": "Tạm ứng đã được giám đốc phê duyệt",
+	"cash.advance.final.approved.by": "Đơn tạm ứng #{{id}} của bạn đã được {{approver}} phê duyệt",
+
+	"cash-advance-rejected": "Tạm ứng đã bị từ chối",
+	"cash.advance.rejected.by": "Đơn tạm ứng #{{id}} của bạn đã bị {{actor}} từ chối. Ghi chú: {{note}}",
+
+	"added-to-project": "Bạn đã được thêm vào dự án",
+	"project.member.added": "Bạn đã được thêm vào dự án {{projectName}}",
+
+	"removed-from-project": "Bạn đã bị gỡ khỏi dự án",
+	"project.member.removed": "Bạn đã bị gỡ khỏi dự án {{projectName}}",
+
+	"assigned-to-task": "Bạn đã được giao một task",
+	"task.assigned": "Bạn đã được giao task '{{taskName}}'",
+
+	"task-updated": "Task đã được cập nhật",
+	"task.updated": "Task '{{taskName}}' đã được cập nhật sang trạng thái {{status}}",
+
+	"no-notifications": "Không có thông báo nào.",
+	"all-notifications": "Tất cả thông báo",
+	"unread-count": "{{count}} thông báo chưa đọc",
+	"from": "Từ",
+	"see-details": "Xem chi tiết",
+	"project-completed": "Dự án đã hoàn thành",
+	"project.completed": "Dự án {{projectName}} đã hoàn thành. Tài liệu liên quan: '{{documentTitle}}'",
+	"project-manager-changed": "Quản lý dự án đã thay đổi"
+
 }

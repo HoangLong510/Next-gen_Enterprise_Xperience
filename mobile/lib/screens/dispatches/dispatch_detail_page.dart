@@ -206,6 +206,10 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
       },
     );
   }
+  Future<void> _openEdit() async {
+    await Navigator.pushNamed(context, '/management/documents/${document!.id}/edit');
+    await fetchDetail();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -221,7 +225,12 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
     final doc = document!;
     final currentUser = Provider.of<AuthProvider>(context, listen: false).account;
     final isManager = currentUser?.role == 'MANAGER';
+    final isSecretary  = currentUser?.role == 'SECRETARY';
+    final hasManagerNote = (doc.managerNote ?? '').trim().isNotEmpty;
     final canManagerNote = isManager && doc.status == DocumentStatus.NEW;
+
+    final canOpenEdit =
+        isSecretary && doc.status == DocumentStatus.NEW && hasManagerNote;
 
     return Scaffold(
       appBar: AppBar(
@@ -236,6 +245,8 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
               icon: const Icon(Icons.edit_document),
               tooltip: "Ký điện tử",
             ),
+          if (canOpenEdit)
+            IconButton(icon: const Icon(Icons.edit), tooltip: "Chỉnh sửa theo ghi chú", onPressed: _openEdit),
         ],
       ),
       body: SingleChildScrollView(
@@ -300,7 +311,18 @@ class _DispatchDetailPageState extends State<DispatchDetailPage> {
                 ),
               ),
             ],
-
+            if (hasManagerNote) ...[
+              // ... thẻ ghi chú
+              if (canOpenEdit)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.edit),
+                    label: const Text("Chỉnh sửa theo ghi chú"),
+                    onPressed: _openEdit,
+                  ),
+                ),
+            ],
             // Hiển thị ghi chú gần nhất (MANAGER/ADMIN/SECRETARY)
             if ((currentUser?.role == 'MANAGER' ||
                     currentUser?.role == 'ADMIN' ||

@@ -385,6 +385,13 @@ public class TaskService {
         if (me.getRole() == Role.EMPLOYEE && task.getPhase().getProject().getProjectManager() != null) {
             notificationService.notifyPmOnTaskUpdate(task, me);
         }
+        var pm = task.getPhase().getProject().getProjectManager();
+        var assigneeAcc = task.getAssignee() != null ? task.getAssignee().getAccount() : null;
+
+        if (pm != null && assigneeAcc != null && me.getId().equals(pm.getId())) {
+            notificationService.notifyAssigneeOnTaskUpdate(task, me);
+        }
+
         return ApiResponse.success(null, "task-status-updated-successfully");
     }
 

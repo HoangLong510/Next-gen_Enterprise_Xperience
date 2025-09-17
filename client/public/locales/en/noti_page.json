@@ -85,5 +85,8 @@
   "all-notifications": "All notifications",
   "unread-count": "{{count}} unread notifications",
   "from": "From",
-  "see-details": "See details"
+  "see-details": "See details",
+  "project-completed": "Project completed",
+"project.completed": "Project {{projectName}} has been completed. Related document: '{{documentTitle}}'",
+"project-manager-changed": "Project manager changed"
 }

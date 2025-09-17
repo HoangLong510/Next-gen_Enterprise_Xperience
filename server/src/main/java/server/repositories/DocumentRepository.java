@@ -7,6 +7,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import server.models.Document;
 
+import java.util.List;
+
 @Repository
 public interface DocumentRepository extends JpaRepository<Document, Long>, JpaSpecificationExecutor<Document> {
 
@@ -24,4 +26,6 @@ public interface DocumentRepository extends JpaRepository<Document, Long>, JpaSp
         )
     """)
     boolean hasAccess(@Param("id") Long id, @Param("username") String username);
+
+    List<Document> findByProject_Id(Long projectId);
 }

@@ -1,6 +1,4 @@
-// src/components/project/KanbanForm.jsx
 "use client";
-
 
 import { setPopup } from "~/libs/features/popup/popupSlice";
 
@@ -57,7 +55,7 @@ import TaskCard from "~/components/project/form/TaskCard";
 import TaskReviewDialog from "~/components/project/form/TaskReviewDialog";
 import { createCashAdvanceApi } from "~/services/cash-advance.service";
 import { uploadEvidence, listEvidence } from "~/services/task-evidence.service";
-import { formatStatus, getStatusColor } from "~/utils/project.utils";
+import { getStatusColor } from "~/utils/project.utils";
 
 import {
   DndContext,
@@ -141,11 +139,23 @@ function getSignatureDataUrl(sigRef) {
 
 export default function KanbanForm() {
   const { t: tMsg } = useTranslation("messages");
+  const { t: tProj, i18n, ready: projReady } = useTranslation("project");
+  const { t: tTasks, ready: tasksReady } = useTranslation("tasks");
   const { t: tPhases } = useTranslation("phases");
   const dispatch = useDispatch();
 
-  const [statusOptions, setStatusOptions] = useState([]);
-  const [grouped, setGrouped] = useState({});
+  const tt = useCallback(
+    (ready, tFn, key, fallback) => {
+      const out = tFn(key);
+      if (ready && out !== key) return out;
+      return fallback ?? key;
+    },
+    []
+  );
+
+  // ====== Local state ======
+  const [statusOptions, setStatusOptions] = useState([]);   // [{value,label}]
+  const [grouped, setGrouped] = useState({});               // { STATUS: Task[] }
   const [searchTerm, setSearchTerm] = useState("");
 
   const [projectList, setProjectList] = useState([]);
@@ -167,6 +177,10 @@ export default function KanbanForm() {
   const [phasesMeta, setPhasesMeta] = useState([]);
 
   const [allowedDropSet, setAllowedDropSet] = useState(new Set());
+  const [loading, setLoading] = useState(false);
+
+  // Ghi nhớ ý định move-to-review
+  const [pendingMoveToReview, setPendingMoveToReview] = useState(null);
 
   const { projectId, phaseId } = useParams();
 
@@ -187,8 +201,9 @@ export default function KanbanForm() {
   const account = useSelector((s) => s.account?.value);
   const navigate = useNavigate();
 
+  // Staff mode (EMP/HOD)
   const isStaffMode = ["EMPLOYEE", "HOD"].includes(account?.role);
-  const isStaffTasksPage = isStaffMode && !projectId; // trang Utilities/Tasks cho EMP/HOD
+  const isStaffTasksPage = isStaffMode && !projectId;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -218,7 +233,6 @@ export default function KanbanForm() {
   );
 
   // Allowed targets theo status gốc
-
   const getAllowedTargets = useCallback((from, role) => {
     const s = new Set([from]);
     switch (from) {
@@ -226,7 +240,6 @@ export default function KanbanForm() {
         s.add("IN_PROGRESS");
         s.add("CANCELED");
         s.add("IN_REVIEW");
-
         break;
       case "IN_PROGRESS":
         s.add("CANCELED");
@@ -254,7 +267,7 @@ export default function KanbanForm() {
     }
     if (from === "COMPLETED" || from === "CANCELED") s.delete("IN_REVIEW");
 
-    // Cả EMPLOYEE & HOD: không được Completed/Canceled
+    // EMP/HOD không được Completed/Canceled
     if (role === "EMPLOYEE" || role === "HOD") {
       s.delete("COMPLETED");
       s.delete("CANCELED");
@@ -262,7 +275,7 @@ export default function KanbanForm() {
     return s;
   }, []);
 
-  // Load status list
+  // ===== Load status list =====
   useEffect(() => {
     (async () => {
       try {
@@ -280,43 +293,71 @@ export default function KanbanForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Project info (khi vào theo route /projects/:id/kanban)
+  // (Optional) danh sách project cho staff filter
+  useEffect(() => {
+    if (!isStaffTasksPage) return;
+    (async () => {
+      setProjLoading(true);
+      try {
+        const res = await getKanbanProjects();
+        const items = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        setProjectList(items);
+        if (!selectedProject && items.length) setSelectedProject(items[0]?.id);
+      } catch {
+        setProjectList([]);
+      } finally {
+        setProjLoading(false);
+      }
+    })();
+  }, [isStaffTasksPage, selectedProject]);
+
+  // Project info
   const loadProjectInfo = useCallback(async () => {
-    if (projectId) {
+    if (!projectId) {
+      setProjectInfo(null);
+      return;
+    }
+    try {
       const res = await getProjectDetail(projectId);
-      if (res.status === 200) setProjectInfo(res.data);
-    } else {
+      if (res?.status === 200) setProjectInfo(res.data);
+      else setProjectInfo(null);
+    } catch {
       setProjectInfo(null);
     }
   }, [projectId]);
+  useEffect(() => { loadProjectInfo(); }, [loadProjectInfo]);
 
-  useEffect(() => {
-    loadProjectInfo();
-  }, [loadProjectInfo]);
-
-  // Phase info (view theo route /phase/:phaseId)
+  // Phase info
   const loadPhaseInfo = useCallback(async () => {
-    if (phaseId) {
+    if (!phaseId) {
+      setPhaseInfo(null);
+      return;
+    }
+    try {
       const resp = await getPhaseDetail(phaseId);
-      if (resp.status === 200 && resp.data) setPhaseInfo(resp.data);
-    } else {
+      if (resp?.status === 200 && resp.data) setPhaseInfo(resp.data);
+      else setPhaseInfo(null);
+    } catch {
       setPhaseInfo(null);
     }
   }, [phaseId]);
+  useEffect(() => { loadPhaseInfo(); }, [loadPhaseInfo]);
 
-  useEffect(() => {
-    loadPhaseInfo();
-  }, [loadPhaseInfo]);
-
-  // Phases metadata
+  // Phases meta
   const loadPhasesMeta = useCallback(async () => {
     const pid = isStaffTasksPage ? selectedProject : projectId;
-    if (!pid) return;
-    const res = await getPhasesWithTasksByProject(pid);
-    if (res?.status === 200 && Array.isArray(res.data)) setPhasesMeta(res.data);
-    else setPhasesMeta([]);
+    if (!pid) {
+      setPhasesMeta([]);
+      return;
+    }
+    try {
+      const res = await getPhasesWithTasksByProject(pid);
+      if (res?.status === 200 && Array.isArray(res.data)) setPhasesMeta(res.data);
+      else setPhasesMeta([]);
+    } catch {
+      setPhasesMeta([]);
+    }
   }, [projectId, selectedProject, isStaffTasksPage]);
-
   useEffect(() => { loadPhasesMeta(); }, [loadPhasesMeta]);
 
   // 🔒 Rule "khóa chuỗi"
@@ -335,6 +376,7 @@ export default function KanbanForm() {
     if (!statusOptions.length) return;
     const pid = isStaffTasksPage ? selectedProject : projectId;
     if (!pid) return;
+
     setLoading(true);
     try {
       const res = await getKanbanTasks(pid);
@@ -362,37 +404,15 @@ export default function KanbanForm() {
       setGrouped(next);
     } finally {
       setLoading(false);
-
     }
+  }, [projectId, selectedProject, searchTerm, statusOptions, phaseId, isStaffTasksPage]);
+  useEffect(() => {
+    if (!statusOptions.length) return;
+    if (isStaffTasksPage && !selectedProject) return;
+    fetchAndGroup();
   }, [fetchAndGroup, selectedProject, isStaffTasksPage, statusOptions.length]);
 
-  // Staff: load project list có phase IN_PROGRESS và có task assign cho user
-  useEffect(() => {
-    if (!isStaffTasksPage) return;
-
-    const normalizeToArray = (x) => {
-      if (Array.isArray(x)) return x;
-      if (Array.isArray(x?.data)) return x.data;
-      if (Array.isArray(x?.data?.data)) return x.data.data;
-      return [];
-    };
-
-    setProjLoading(true);
-    getKanbanProjects()
-      .then((raw) => {
-        const list = normalizeToArray(raw);
-        setProjectList(list);
-        if (list.length) setSelectedProject(list[0].id);
-      })
-      .catch(() => {
-        setProjectList([]);
-        setSelectedProject(null);
-      })
-      .finally(() => setProjLoading(false));
-  }, [isStaffTasksPage]);
-
-
-  // ===== Helpers: phase sau của 1 phase =====
+  // next phase info helper
   const nextPhaseInfo = useCallback(
     (curPhaseId) => {
       if (!Array.isArray(phasesMeta) || !curPhaseId) return null;
@@ -410,16 +430,29 @@ export default function KanbanForm() {
     [phasesMeta]
   );
 
+  // COMPLETED/CANCELED -> IN_PROGRESS bị chặn nếu phase sau không còn Planning rỗng
   const blockToInProgress = useCallback(
-    (fromTaskStatus, phaseId) => {
+    (fromTaskStatus, phId) => {
       if (!["COMPLETED", "CANCELED"].includes(fromTaskStatus)) return false;
-      const info = nextPhaseInfo(phaseId);
+      const info = nextPhaseInfo(phId);
       if (!info || !info.exists) return false;
       const ok = info.status === "PLANNING" && info.taskCount === 0;
       return !ok;
     },
     [nextPhaseInfo]
   );
+
+  // Mọi thay đổi bị chặn nếu "khóa chuỗi"
+  const blockAllChange = useCallback(
+    (phId) => {
+      const info = nextPhaseInfo(phId);
+      if (!info || !info.exists) return false;
+      return info.curStatus === "COMPLETED" && info.status === "IN_PROGRESS" && info.taskCount > 0;
+    },
+    [nextPhaseInfo]
+  );
+
+
 
   // ===== helper: phase của task đã completed chưa?
   const isTaskPhaseCompleted = useCallback((task) => {
@@ -431,9 +464,12 @@ export default function KanbanForm() {
   // ===== Click mở dialog
   //  - EMP/HOD: KHÔNG cho click task COMPLETED hoặc CANCELED
   //  - Role khác: cho click bình thường
-n
   const handleCardClick = (task) => {
     if (!task) return;
+    if (isStaffMode && (task.status === "COMPLETED" || task.status === "CANCELED")) {
+      dispatch(setPopup({ type: "warning", message: tProj("errors.viewCompletedNotAllowed") || "Bạn không thể mở task đã hoàn thành/đã hủy." }));
+      return;
+    }
     setPendingTask(task);
     setReviewOpen(true);
   };
@@ -446,15 +482,47 @@ n
       return false;
     }
   };
-
-  // helper check branch (FE)
   const hasBranch = (task) => !!(task?.branchCreated || task?.githubBranch);
+
+  const refreshMeta = useCallback(async () => {
+    await Promise.all([fetchAndGroup(), loadPhasesMeta(), loadPhaseInfo(), loadProjectInfo()]);
+  }, [fetchAndGroup, loadPhasesMeta, loadPhaseInfo, loadProjectInfo]);
+
+  const promoteToReview = useCallback(
+    async (taskId) => {
+      // UI lạc quan
+      setGrouped((prev) => {
+        const next = { ...prev };
+        let movedTask = null;
+        for (const col of Object.keys(next)) {
+          const idx = (next[col] || []).findIndex((t) => String(t.id) === String(taskId));
+          if (idx >= 0) {
+            movedTask = { ...next[col][idx], status: "IN_REVIEW" };
+            next[col] = [...next[col]];
+            next[col].splice(idx, 1);
+            break;
+          }
+        }
+        if (movedTask) {
+          next["IN_REVIEW"] = [...(next["IN_REVIEW"] || []), movedTask];
+        }
+        return next;
+      });
+
+      try {
+        await updateTaskStatus(taskId, "IN_REVIEW");
+      } catch {
+        await fetchAndGroup();
+      } finally {
+        setPendingMoveToReview(null);
+        await refreshMeta();
+      }
+    },
+    [fetchAndGroup, refreshMeta]
+  );
 
   // ===== DnD =====
   const handleDragStart = ({ active }) => {
-    setActiveId(active.id);
-    const fromTaskStatus = active?.data?.current?.project?.status;
-    const taskPhaseId = active?.data?.current?.project?.phaseId;
     const taskObj = active?.data?.current?.project;
 
     // 🔒 Nếu phase bị khóa:
@@ -462,6 +530,54 @@ n
     //  - PM/Manager/Admin: vẫn cho drag, nhưng sẽ siết allowedDropSet (chỉ còn CANCELED).
     if (taskObj && isPhaseLocked(taskObj.phaseId) && isStaffMode) {
       setAllowedDropSet(new Set());
+      setActiveId(null);
+      dispatch(setPopup({ type: "warning", message: tProj("errors.phaseLockedEditing") }));
+      return;
+    }
+
+    setActiveId(String(active.id));
+
+    const fromTaskStatus = taskObj?.status;
+    const taskPhaseId = taskObj?.phaseId;
+    if (!fromTaskStatus) {
+      setAllowedDropSet(new Set());
+      return;
+    }
+
+    const s = getAllowedTargets(fromTaskStatus, account.role);
+
+    // Siết rule theo phase
+    if (s.has("IN_PROGRESS") && blockToInProgress(fromTaskStatus, taskPhaseId)) {
+      s.delete("IN_PROGRESS");
+    }
+
+    // Nếu bị "khóa chuỗi":
+    //  - EMP/HOD: chỉ giữ nguyên trạng (không đổi).
+    //  - PM/Manager/Admin: chỉ cho chuyển sang CANCELED (ngoài ra giữ nguyên).
+    if (blockAllChange(taskPhaseId)) {
+      const keep = new Set([fromTaskStatus]);
+      if (!isStaffMode) keep.add("CANCELED");
+      for (const v of Array.from(s)) {
+        if (!keep.has(v)) s.delete(v);
+      }
+    }
+
+    // PLANNING -> IN_REVIEW nếu có evidence/branch
+    if (fromTaskStatus === "PLANNING" && taskObj) {
+      if (hasBranch(taskObj)) s.add("IN_REVIEW");
+      setAllowedDropSet(new Set(s));
+      (async () => {
+        const existed = await hasEvidence(taskObj.id);
+        if (existed) {
+          setAllowedDropSet((prev) => {
+            const next = new Set(prev);
+            next.add("IN_REVIEW");
+            return next;
+          });
+        }
+      })();
+    } else {
+      setAllowedDropSet(s);
     }
   };
 
@@ -471,7 +587,6 @@ n
       setOverIndex(null);
       return;
     }
-
     const overId = String(over.id);
     const colId = grouped[overId] ? overId : over.data.current?.sortable?.containerId;
     if (!grouped[colId] || (allowedDropSet.size && !allowedDropSet.has(colId))) {
@@ -479,21 +594,11 @@ n
       setOverIndex(null);
       return;
     }
-    const idx = grouped[colId].findIndex((t) => t.id === over.id);
+    const idx = grouped[colId].findIndex((t) => String(t.id) === overId);
     setOverColumn(colId);
     setOverIndex(idx >= 0 ? idx : grouped[colId].length);
   };
 
-
-  // gộp refresh meta
-  const refreshMeta = useCallback(async () => {
-    await Promise.all([
-      fetchAndGroup(),
-      loadPhasesMeta(),
-      loadPhaseInfo(),
-      loadProjectInfo(),
-    ]);
-  }, [fetchAndGroup, loadPhasesMeta, loadPhaseInfo, loadProjectInfo]);
   const handleDragEnd = async ({ active, over }) => {
     setOverColumn(null);
     setOverIndex(null);
@@ -504,36 +609,46 @@ n
       return;
     }
 
-    const fromCol = active?.data?.current?.project?.status;
+    const srcTask = active?.data?.current?.project;
 
+    // 🔒 Phase khóa → chỉ chặn EMP/HOD; PM/Manager/Admin tiếp tục (để hủy).
+    if (srcTask && isPhaseLocked(srcTask.phaseId) && isStaffMode) {
+      setAllowedDropSet(new Set());
+      return;
+    }
+
+    const fromCol = srcTask?.status;
     let toCol = null;
-    if (grouped[over.id]) {
-      toCol = over.id;
-    } else if ((grouped[fromCol] || []).some((t) => t.id === over.id)) {
-      toCol = fromCol;
+
+    const overId = String(over.id);
+    if (grouped[overId]) {
+      toCol = overId;
     } else {
       const cont = over.data.current?.sortable?.containerId;
       if (grouped[cont]) toCol = cont;
     }
+
     if (!toCol || !fromCol) {
       setAllowedDropSet(new Set());
       return;
     }
+
+
     // ❌ EMP/HOD không được move vào CANCELED
     if (isStaffMode && toCol === "CANCELED") {
       dispatch(setPopup({ type: "error", message: tTasks("errors.noPermissionChangeCanceled") || tTasks("errors.noPermissionChangeCompleted") }));
-
       setAllowedDropSet(new Set());
       return;
     }
 
+    // Nếu cột đích không hợp lệ theo allowedDropSet
     if (allowedDropSet.size && !allowedDropSet.has(toCol)) {
       setAllowedDropSet(new Set());
       return;
     }
 
     const srcList = grouped[fromCol] || [];
-    const task = srcList.find((t) => t.id === active.id);
+    const task = srcList.find((t) => String(t.id) === String(active.id));
     if (!task) {
       setAllowedDropSet(new Set());
       return;
@@ -541,10 +656,11 @@ n
     // Không cho từ COMPLETED/CANCELED sang IN_REVIEW
     if (toCol === "IN_REVIEW" && (fromCol === "COMPLETED" || fromCol === "CANCELED")) {
       dispatch(setPopup({ type: "warning", message: tTasks("errors.cannotMoveToInReviewFromDoneOrCanceled") }));
-
       setAllowedDropSet(new Set());
       return;
     }
+
+
     // COMPLETED/CANCELED -> IN_PROGRESS: check phase sau
     if (toCol === "IN_PROGRESS" && ["COMPLETED", "CANCELED"].includes(fromCol)) {
       if (blockToInProgress(fromCol, task.phaseId)) {
@@ -554,6 +670,8 @@ n
       }
     }
 
+    // Block mọi chuyển đổi nếu "khóa chuỗi"
+    //  - vẫn cho PM/Manager/Admin chuyển sang CANCELED
     if (fromCol !== toCol && blockAllChange(task.phaseId)) {
       if (!(toCol === "CANCELED" && !isStaffMode)) {
         dispatch(setPopup({ type: "warning", message: tProj("errors.phaseLockedEditing") }));
@@ -562,35 +680,37 @@ n
       }
     }
 
-    if (toCol === "CANCELED" && fromCol !== toCol) {
+    // Xác nhận cancel (không phải staff)
+    if (toCol === "CANCELED" && fromCol !== toCol && !isStaffMode) {
       setPendingCancelTask(task);
       setCancelConfirmOpen(true);
       setAllowedDropSet(new Set());
       return;
     }
 
-    // nếu kéo sang IN_REVIEW mà chưa có evidence & branch → mở dialog
+    // Nếu chuyển vào IN_REVIEW mà thiếu evidence/branch => mở dialog
     if (toCol === "IN_REVIEW" && fromCol !== toCol) {
       const existed = await hasEvidence(task.id);
       const branched = hasBranch(task);
       if (!existed && !branched) {
         setPendingTask(task);
         setReviewOpen(true);
+        setPendingMoveToReview(task.id);
         setAllowedDropSet(new Set());
         return;
       }
     }
 
-    // update UI lạc quan
+    // ===== UI lạc quan
     const next = { ...grouped };
     if (fromCol === toCol) {
       const oldIdx = (grouped[fromCol] || []).findIndex((t) => String(t.id) === String(active.id));
       const overIdx = (grouped[toCol] || []).findIndex((t) => String(t.id) === overId);
       next[fromCol] = arrayMove(grouped[fromCol], oldIdx, overIdx >= 0 ? overIdx : grouped[fromCol].length - 1);
     } else {
-      next[fromCol] = srcList.filter((t) => t.id !== active.id);
+      next[fromCol] = (grouped[fromCol] || []).filter((t) => String(t.id) !== String(active.id));
       const dest = [...(grouped[toCol] || [])];
-      const idx = dest.findIndex((t) => t.id === over.id);
+      const idx = dest.findIndex((t) => String(t.id) === overId);
       const moved = { ...task, status: toCol };
       if (idx >= 0) dest.splice(idx, 0, moved);
       else dest.push(moved);
@@ -598,6 +718,7 @@ n
     }
     setGrouped(next);
 
+    // ===== Persist
     try {
       if (fromCol !== toCol) {
         await updateTaskStatus(task.id, toCol);
@@ -618,6 +739,7 @@ n
     }
   };
 
+  // Task đang drag
   const flattened = useMemo(() => Object.values(grouped).flat(), [grouped]);
   const activeTask = activeId ? flattened.find((t) => String(t.id) === String(activeId)) : null;
 const advanceOptions = useMemo(() => {
@@ -670,17 +792,44 @@ const advanceOptions = useMemo(() => {
           : prev
       );
       refreshMeta();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [refreshMeta]);
+    },
+    [refreshMeta]
+  );
 
-  // Ẩn cột CANCELED trên trang Tasks (staff)
-  const visibleStatusOptions = useMemo(() => {
-    if (isStaffTasksPage) {
-      return statusOptions.filter((o) => o.value !== "CANCELED");
-    }
-    return statusOptions;
-  }, [statusOptions, isStaffTasksPage]);
+  const visibleStatusOptions = useMemo(() => statusOptions, [statusOptions]);
+
+  // ===== Header / Toolbar UI =====
+  const renderHeader = () => (
+    <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+      <Paper sx={{ p: 1.5, background: "linear-gradient(135deg,#118D57,#10B981)" }}>
+        <TrendingUp sx={{ color: "#fff", fontSize: 28 }} />
+      </Paper>
+      <Typography variant="h5" fontWeight={700}>
+        {tt(projReady, tProj, "kanbanTitle", "Project Kanban Board")}
+      </Typography>
+      <Box flex={1} />
+      <Tooltip title={tt(projReady, tProj, "actions.refresh", "Refresh")}>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={() => refreshMeta()}
+          sx={{ textTransform: "none" }}
+        >
+          {tt(projReady, tProj, "actions.refresh", "Refresh")}
+        </Button>
+      </Tooltip>
+    </Stack>
+  );
+
+  // View-only cho PM/Manager/Admin nếu phase của task đã COMPLETED
+  const dialogReadOnly = !isStaffMode && isTaskPhaseCompleted(pendingTask);
+
+  // ✅ Kiểm tra repo hợp lệ của project (để truyền xuống dialog)
+  const projectHasValidRepo = useMemo(() => {
+    const url = (projectInfo?.repoLink || "").trim();
+    return /^https:\/\/github\.com\/[^\/\s]+\/[^\/\s]+\/?$/i.test(url);
+  }, [projectInfo?.repoLink]);
 
   const handleSubmitAdvance = async () => {
     try {
@@ -749,7 +898,7 @@ const advanceOptions = useMemo(() => {
       }}
     >
       <Container maxWidth="xl" sx={{ py: 3 }}>
-        {/* Ẩn Back khi là trang Tasks của staff */}
+        {/* Back nút: ẩn trên trang Utilities/Tasks của staff */}
         {!isStaffTasksPage && (
           <Button
             startIcon={<ArrowBack />}
@@ -759,7 +908,7 @@ const advanceOptions = useMemo(() => {
             }}
             sx={{ mb: 1, textTransform: "none", fontWeight: 600 }}
           >
-            Back To Project Detail
+            {tt(projReady, tProj, "backToProjectDetail", "Back to Project Detail")}
           </Button>
         )}
         {renderHeader()}
@@ -768,7 +917,13 @@ const advanceOptions = useMemo(() => {
         <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: { xs: "wrap", md: "nowrap" } }}>
           {projectInfo && (
             <Paper sx={{ flex: 1, p: 2, borderRadius: 2, boxShadow: 1 }}>
-              <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+              <Typography
+                variant="subtitle1"
+                fontWeight={600}
+                gutterBottom
+                title={projectInfo.name}
+                sx={NAME_CLAMP_SX}
+              >
                 {projectInfo.name}
               </Typography>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -779,7 +934,7 @@ const advanceOptions = useMemo(() => {
                   </Typography>
                 </Stack>
                 <Chip
-                  label={formatStatus(projectInfo.status)}
+                  label={prettyStatus(projectInfo.status)}
                   size="small"
                   color={getStatusColor(projectInfo.status)}
                 />
@@ -789,7 +944,13 @@ const advanceOptions = useMemo(() => {
 
           {phaseInfo && (
             <Paper sx={{ flex: 1, p: 2, borderRadius: 2, boxShadow: 1 }}>
-              <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+              <Typography
+                variant="subtitle1"
+                fontWeight={600}
+                gutterBottom
+                title={phaseInfo.name}
+                sx={NAME_CLAMP_SX}
+              >
                 {phaseInfo.name}
               </Typography>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -797,17 +958,13 @@ const advanceOptions = useMemo(() => {
                   <CalendarToday fontSize="small" />
                   <Typography variant="body2">{phaseInfo.deadline}</Typography>
                 </Stack>
-                <Chip
-                  label={formatStatus(phaseInfo.status)}
-                  size="small"
-                  color={getStatusColor(phaseInfo.status)}
-                />
+                <Chip label={prettyStatus(phaseInfo.status)} size="small" color={getStatusColor(phaseInfo.status)} />
               </Stack>
             </Paper>
           )}
         </Box>
 
-        {/* Toolbar: Search + (Filter Project cho staff ở trang Tasks) */}
+        {/* Toolbar: Search + Project filter (cho staff) */}
         <Paper
           sx={{
             mb: 2,
@@ -819,7 +976,7 @@ const advanceOptions = useMemo(() => {
           }}
         >
           <TextField
-            placeholder="Search tasks..."
+            placeholder={tt(projReady, tProj, "searchTasksPlaceholder", "Search tasks...")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             size="small"
@@ -833,20 +990,21 @@ const advanceOptions = useMemo(() => {
             sx={{ flexGrow: 1, minWidth: { xs: 280, sm: 420, md: 560 } }}
           />
 
-          {/* Filter Project (chỉ hiện cho EMP/HOD ở trang Tasks) */}
           {isStaffTasksPage && (
             <FormControl
               size="small"
               sx={{
                 width: { xs: 320, sm: 360, md: 420 },
                 minWidth: 280,
-                ml: "auto", // đẩy sát bên phải
+                ml: "auto",
               }}
             >
-              <InputLabel id="project-filter-label">Project</InputLabel>
+              <InputLabel id="project-filter-label">
+                {tt(tasksReady, tTasks, "labels.project", "Project")}
+              </InputLabel>
               <Select
                 labelId="project-filter-label"
-                label="Project"
+                label={tt(tasksReady, tTasks, "labels.project", "Project")}
                 value={selectedProject ?? ""}
                 onChange={(e) => setSelectedProject(e.target.value || null)}
                 disabled={projLoading || (projectList?.length ?? 0) === 0}
@@ -903,7 +1061,9 @@ const advanceOptions = useMemo(() => {
                   ))
                 ) : (
                   <MenuItem value="" disabled>
-                    {projLoading ? "Loading..." : "No available projects"}
+                    {projLoading
+                      ? tt(projReady, tProj, "loading", "Loading...")
+                      : tt(tasksReady, tTasks, "noAvailableProjects", "No available projects")}
                   </MenuItem>
                 )}
               </Select>
@@ -919,6 +1079,7 @@ const advanceOptions = useMemo(() => {
           </Button>
         </Paper>
 
+        {/* Kanban board */}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -1026,7 +1187,7 @@ const advanceOptions = useMemo(() => {
           </DialogActions>
         </Dialog>
 
-        {/* Evidence dialog */}
+        {/* Evidence / Review dialog */}
         <TaskReviewDialog
           open={reviewOpen}
           task={pendingTask}
@@ -1058,21 +1219,37 @@ const advanceOptions = useMemo(() => {
           onClose={(shouldRefresh) => {
             setReviewOpen(false);
             setPendingTask(null);
+            setPendingMoveToReview(null);
+            if (shouldRefresh) {
+              refreshMeta();
+            }
           }}
           onCancel={() => {
             setReviewOpen(false);
             setPendingTask(null);
+            setPendingMoveToReview(null);
             refreshMeta();
           }}
           onUploading={() => {}}
           onUploaded={async (files) => {
+            if (!pendingTask) return;
             await uploadEvidence(pendingTask.id, files);
-            await refreshMeta(); // không auto đổi trạng thái
+            if (pendingMoveToReview && String(pendingMoveToReview) === String(pendingTask.id)) {
+              await promoteToReview(pendingTask.id);
+            } else {
+              await refreshMeta();
+            }
           }}
-          projectPmId={projectInfo?.pmId ?? selectedProjectInfo?.pmId}
-          repoLinked={projectInfo?.repoLink ?? selectedProjectInfo?.repoLink}
-          repoLink={projectInfo?.repoLink ?? selectedProjectInfo?.repoLink}
-          onBranchCreated={handleBranchCreated}
+          projectPmId={projectInfo?.pmId}
+          // ✅ TRUYỀN boolean đã được validate + URL repo xuống dialog
+          repoLinked={projectHasValidRepo}
+          repoLink={projectInfo?.repoLink}
+          onBranchCreated={async (taskId, fullBranchName) => {
+            handleBranchCreated(taskId, fullBranchName);
+            if (pendingMoveToReview && String(pendingMoveToReview) === String(taskId)) {
+              await promoteToReview(taskId);
+            }
+          }}
         />
         {/* Cash Advance dialog */}
         <Dialog

@@ -606,7 +606,7 @@ public class NotificationService {
         if (task == null || task.getAssignee() == null) return;
 
         Employee emp = task.getAssignee();
-        if (emp.getAccount() == null) return; // assignee chưa có account thì skip
+        if (emp.getAccount() == null) return;
 
         Account recipient = emp.getAccount();
 
@@ -617,7 +617,9 @@ public class NotificationService {
                 sender,
                 "assigned-to-task",
                 toJson("task.assigned", Map.of(
-                        "taskName", taskName
+                        "taskName", taskName,
+                        "projectId", task.getPhase().getProject().getId(),
+                        "phaseId", task.getPhase().getId()
                 )),
                 NotificationType.TASK,
                 task.getId()
@@ -625,7 +627,39 @@ public class NotificationService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void notifyPmOnTaskUpdate(Task task, Account actor) {
+    public void notifyAssigneeOnTaskUpdate(Task task, Account actor) {
+        if (task == null || task.getAssignee() == null) return;
+        Account recipient = task.getAssignee().getAccount();
+        if (recipient == null) return;
+
+        String taskName = (task.getName() != null && !task.getName().isBlank())
+                ? task.getName() : "task-" + task.getId();
+        String status = task.getStatus() != null ? task.getStatus().name() : "UNKNOWN";
+
+        Long projectId = (task.getPhase() != null && task.getPhase().getProject() != null)
+                ? task.getPhase().getProject().getId() : null;
+        Long phaseId = (task.getPhase() != null) ? task.getPhase().getId() : null;
+
+        // Tránh tự báo cho chính actor nếu actor là assignee
+        if (actor != null && recipient.getId().equals(actor.getId())) return;
+
+        saveAndSendNotification(
+                recipient,
+                actor,
+                "task-updated",
+                toJson("task.updated", Map.of(
+                        "taskName", taskName,
+                        "status", status,
+                        "projectId", projectId,
+                        "phaseId", phaseId
+                )),
+                NotificationType.TASK,
+                task.getId()
+        );
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void  notifyPmOnTaskUpdate(Task task, Account actor) {
         if (task == null || task.getPhase() == null || task.getPhase().getProject() == null) return;
 
         Project project = task.getPhase().getProject();
@@ -641,10 +675,53 @@ public class NotificationService {
                 "task-updated",
                 toJson("task.updated", Map.of(
                         "taskName", taskName,
-                        "status", status
+                        "status", status,
+                        "projectId", task.getPhase().getProject().getId(),
+                        "phaseId", task.getPhase().getId()
                 )),
                 NotificationType.TASK,
                 task.getId()
         );
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void notifyProjectCompleted(Project project, Document doc, Account actor) {
+        if (project == null || doc == null) return;
+
+        String content = toJson("project.completed", Map.of(
+                "projectName", safeProjectName(project),
+                "documentTitle", doc.getTitle() != null ? doc.getTitle() : ""
+        ));
+
+        // Manager
+        Account manager = accountRepository.findByRole(Role.MANAGER)
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        // Secretary (người tạo document)
+        Account secretary = doc.getCreatedBy();
+
+        if (manager != null) {
+            saveAndSendNotification(
+                    manager,
+                    actor,
+                    "project-completed",
+                    content,
+                    NotificationType.PROJECT,
+                    project.getId()
+            );
+        }
+
+        if (secretary != null) {
+            saveAndSendNotification(
+                    secretary,
+                    actor,
+                    "project-completed",
+                    content,
+                    NotificationType.PROJECT,
+                    project.getId()
+            );
+        }
     }
 }

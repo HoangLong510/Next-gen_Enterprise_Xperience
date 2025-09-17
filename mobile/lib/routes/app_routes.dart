@@ -5,14 +5,17 @@ import 'package:mobile/guards/role_guard.dart';
 import 'package:mobile/screens/attendance/attendance_list_page.dart';
 import 'package:mobile/screens/attendance/attendance_details_page.dart';
 import 'package:mobile/screens/attendance/face_attendance_page.dart';
+import 'package:mobile/screens/attendance/missing_checkout_page.dart';
 import 'package:mobile/screens/bank/bank_and_topup_page.dart';
 
 import 'package:mobile/screens/change_password.dart';
+import 'package:mobile/screens/dispatches/dispatch_edit_page.dart';
 
 // Core
 import 'package:mobile/screens/home_page.dart';
 import 'package:mobile/screens/login_page.dart';
 import 'package:mobile/screens/logout_page.dart';
+import 'package:mobile/screens/notifaications/notification_list_page.dart';
 import 'package:mobile/screens/profile_page.dart';
 import 'package:mobile/widgets/custom_layout.dart';
 
@@ -22,10 +25,8 @@ import 'package:mobile/screens/dispatches/dispatch_detail_page.dart';
 import 'package:mobile/screens/dispatches/dispatch_create_page.dart';
 
 // Notifications
-import 'package:mobile/screens/notifications/notification_list_page.dart';
 
 // Projects
-import 'package:mobile/screens/projects/project_list_page.dart'; 
 import 'package:mobile/screens/leave_requests/leave_request_page.dart';
 
 // Funds
@@ -42,19 +43,24 @@ Route<dynamic> generateRoute(RouteSettings settings) {
   // 1) Dynamic routes
   // -------------------------
   if (name != null) {
-    // /management/documents/:id
-    if (name.startsWith("/management/documents/")) {
-      final id = int.tryParse(name.split("/").last);
-      if (id != null) {
-        return _buildPage(
-          allowRoles: [
-            "ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HOD", "SECRETARY",
-          ],
-          child: DispatchDetailPage(id: id),
-        );
-      } else {
-        return _errorPage("Lỗi: ID công văn không hợp lệ");
-      }
+    // 1) EDIT: /management/documents/:id/edit
+    final editMatch = RegExp(r'^/management/documents/(\d+)/edit$').firstMatch(name);
+    if (editMatch != null) {
+      final id = int.parse(editMatch.group(1)!);
+      return _buildPage(
+        allowRoles: ["ADMIN", "SECRETARY"],
+        child: DispatchEditPage(documentId: id),
+      );
+    }
+
+    // 2) DETAIL: /management/documents/:id
+    final detailMatch = RegExp(r'^/management/documents/(\d+)$').firstMatch(name);
+    if (detailMatch != null) {
+      final id = int.parse(detailMatch.group(1)!);
+      return _buildPage(
+        allowRoles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HOD", "SECRETARY"],
+        child: DispatchDetailPage(id: id),
+      );
     }
 
     // /document/:id (redirect từ notification)
@@ -114,6 +120,8 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         return _errorPage("Lỗi: ID quỹ không hợp lệ (edit)");
       }
     }
+
+
   }
 
   // -------------------------
@@ -124,7 +132,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HR", "HOD", "EMPLOYEE",
+            "ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HR", "HOD", "EMPLOYEE","SECRETARY"
           ],
           child: CustomLayout(child: HomePage()),
         ),
@@ -135,7 +143,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD",
+            "EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD","SECRETARY"
           ],
           child: CustomLayout(child: AttendanceListPage()),
         ),
@@ -147,7 +155,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD",
+            "EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD","SECRETARY"
           ],
           child: CustomLayout(child: AttendanceDetailPage(attendanceId: id)),
         ),
@@ -157,9 +165,17 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD",
+            "EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD","SECRETARY"
           ],
           child: CustomLayout(child: CheckInCheckOutPage()),
+        ),
+      );
+
+    case "/attendance/missing-checkout":
+      return MaterialPageRoute(
+        builder: (_) => RoleGuard(
+          allowRoles: ["HR", "ADMIN"], // mở rộng nếu cần
+          child: CustomLayout(child: MissingCheckoutPage()),
         ),
       );
 
@@ -185,7 +201,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "ADMIN","MANAGER","PM","ACCOUNTANT","HR","HOD","EMPLOYEE",
+            "ADMIN","MANAGER","PM","ACCOUNTANT","HR","HOD","EMPLOYEE","SECRETARY"
           ],
           child: CustomLayout(child: NotificationListPage()),
         ),
@@ -195,7 +211,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case "/utilities/leave-request":
       return _buildPage(
         allowRoles: [
-          "ADMIN","MANAGER","PM","HOD","EMPLOYEE","HR","ACCOUNTANT",
+          "ADMIN","MANAGER","PM","HOD","EMPLOYEE","HR","ACCOUNTANT","SECRETARY"
         ],
         child: const LeaveRequestPage(),
       );
@@ -214,11 +230,11 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       );
 
     // Bank
-    case "/accountant/bank-topup":
-      return _buildPage(
-        allowRoles: ["ADMIN","ACCOUNTANT","CHIEFACCOUNTANT","CHIEF_ACCOUNTANT"],
-        child: const BankAndTopupPage(isAccountant: true),
-      );
+    // case "/accountant/bank-topup":
+    //   return _buildPage(
+    //     allowRoles: ["ADMIN","ACCOUNTANT","CHIEFACCOUNTANT","CHIEF_ACCOUNTANT"],
+    //     child: const BankAndTopupPage(isAccountant: true),
+    //   );
 
     // Auth
     case "/login":
@@ -238,7 +254,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "ADMIN","MANAGER","PM","ACCOUNTANT","HR","HOD","EMPLOYEE",
+            "ADMIN","MANAGER","PM","ACCOUNTANT","HR","HOD","EMPLOYEE","SECRETARY"
           ],
           child: CustomLayout(child: LogoutPage()),
         ),
