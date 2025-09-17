@@ -57,7 +57,7 @@ const roleRoutes = [
     path: "/management/documents/:id",
     component: DocumentDetail,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT","SECRETARY"],
+    roles: ["ADMIN", "MANAGER", "PM", "CHIEFACCOUNTANT" ,"ACCOUNTANT","SECRETARY"],
   },
 
   {
@@ -114,37 +114,37 @@ const roleRoutes = [
     path: "/finance/fund",
     component: FundList,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "HOD", "ACCOUNTANT"],
+    roles: ["ADMIN", "MANAGER", "HOD", "CHIEFACCOUNTANT" ,"ACCOUNTANT"],
   },
   {
     path: "/finance/fund/:fundID",
     component: FundDetails,
     layout: DefaultLayout,
-    roles: ["ADMIN", "HOD", "ACCOUNTANT"],
+    roles: ["ADMIN", "HOD", "CHIEFACCOUNTANT" ,"ACCOUNTANT"],
   },
   {
     path: "/finance/fund/transactions",
     component: TransactionList,
     layout: DefaultLayout,
-    roles: ["ADMIN", "HOD", "ACCOUNTANT"],
+    roles: ["ADMIN", "HOD", "CHIEFACCOUNTANT" ,"ACCOUNTANT"],
   },
   {
     path: "/finance/salary",
     component: CreateSalaryPage,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "HOD", "ACCOUNTANT"],
+    roles: ["ADMIN", "MANAGER", "HOD", "CHIEFACCOUNTANT" ,"ACCOUNTANT"],
   },
   {
     path: "/finance/salary/detail/:id",
     component: SalaryDetail,
     layout: DefaultLayout,
-    roles: ["ADMIN", "HOD", "ACCOUNTANT"],
+    roles: ["ADMIN", "HOD", "CHIEFACCOUNTANT" ,"ACCOUNTANT"],
   },
   {
     path: "/finance/salary/create",
     component: CreateSalaryPage,
     layout: DefaultLayout,
-    roles: ["ADMIN"],
+    roles: ["ADMIN","CHIEFACCOUNTANT" ,"ACCOUNTANT"],
   },
  
 

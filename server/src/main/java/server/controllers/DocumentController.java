@@ -57,7 +57,7 @@ public class DocumentController {
     }
     // Xem chi tiết document (ADMIN, MANAGER, PM)
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'PM','ACCOUNTANT','SECRETARY')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'PM', 'CHIEFACCOUNTANT','ACCOUNTANT','SECRETARY')")
     public ResponseEntity<?> getDetail(@PathVariable Long id) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         var doc = documentService.getDocumentById(id, username);
@@ -77,7 +77,7 @@ public class DocumentController {
     }
 
     @GetMapping("/{id}/preview")
-    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','SECRETARY','ACCOUNTANT','PM','HOD')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','CHIEFACCOUNTANT','SECRETARY','ACCOUNTANT','PM','HOD')")
     public ResponseEntity<?> previewDocument(@PathVariable Long id) throws IOException {
         Document doc = documentService.getDocumentEntityById(id);
         String html = documentService.convertDocxToHtml(doc.getFileUrl());

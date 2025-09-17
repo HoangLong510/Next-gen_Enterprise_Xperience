@@ -1,20 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Clipboard cho _Copyable
+import 'package:flutter/services.dart'; // Clipboard for _Copyable
 import 'package:provider/provider.dart';
 import 'package:mobile/constants/currency.dart';
 import 'package:mobile/models/bank/topup_status.dart';
+import 'package:mobile/providers/auth_provider.dart';
 import 'package:mobile/providers/bank_vm.dart';
 import 'package:mobile/services/bank_service_impl.dart';
-import 'package:mobile/widgets/mobile_pay_actions.dart';
 
 class BankAndTopupPage extends StatelessWidget {
-  const BankAndTopupPage({super.key, required this.isAccountant});
-  final bool isAccountant; // truyền từ role (Account.role)
+  const BankAndTopupPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final role = (auth.account?.role ?? '').toUpperCase();
+
+    // Roles that can see all data and create top-ups
+    final canSeeAll = role == "ADMIN" ||
+        role == "MANAGER" ||
+        role == "ACCOUNTANT" ||
+        role == "CHIEFACCOUNTANT" ||
+        role == "CHIEF_ACCOUNTANT";
+
     return ChangeNotifierProvider(
-      create: (_) => BankVm(BankServiceImpl(), isAccountant: isAccountant)
+      create: (_) => BankVm(BankServiceImpl(), isAccountant: canSeeAll)
         ..loadEmployees('')
         ..fetchTopups(1)
         ..fetchBankTx(1),
@@ -51,7 +60,11 @@ class _CreateTopupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final amountCtrl = TextEditingController(text: vm.amountText);
+    final amountText = vm.amountCtrl.text.trim();
+    final canPress = !vm.creating &&
+        amountText.isNotEmpty &&
+        (!vm.multiMode || vm.selectedEmployees.isNotEmpty);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
@@ -67,55 +80,51 @@ class _CreateTopupCard extends StatelessWidget {
           ]),
           const SizedBox(height: 6),
           const Text(
-            'Create a unique transfer code. When bank transfer with this code arrives, it auto-confirms.',
+            'Create a unique transfer code. When a bank transfer with this code arrives, it auto-confirms.',
             style: TextStyle(color: Colors.black54),
           ),
           const SizedBox(height: 12),
           Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                SizedBox(
-                  width: 240,
-                  child: TextField(
-                    controller: amountCtrl,
-                    onChanged: (v) => vm.amountText = v,
-                    decoration: const InputDecoration(
-                        labelText: 'Amount', hintText: 'e.g. 100000'),
-                    keyboardType: TextInputType.number,
-                  ),
+            spacing: 12,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              SizedBox(
+                width: 240,
+                child: TextField(
+                  controller: vm.amountCtrl,
+                  decoration: const InputDecoration(
+                      labelText: 'Amount', hintText: 'e.g. 100000'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => vm.notifyListeners(),
                 ),
-                SizedBox(
-                  width: 240,
-                  child: TextField(
-                    controller: TextEditingController(text: vm.bankAccountNo),
-                    readOnly: true,
-                    decoration: const InputDecoration(
-                        labelText: 'Receiving Account No.'),
-                  ),
+              ),
+              SizedBox(
+                width: 240,
+                child: TextField(
+                  controller: TextEditingController(text: vm.bankAccountNo),
+                  readOnly: true,
+                  decoration:
+                      const InputDecoration(labelText: 'Receiving Account No.'),
                 ),
-                SizedBox(
-                  width: 180,
-                  child: TextField(
-                    controller: TextEditingController(text: vm.bankName),
-                    readOnly: true,
-                    decoration:
-                        const InputDecoration(labelText: 'Bank'),
-                  ),
+              ),
+              SizedBox(
+                width: 180,
+                child: TextField(
+                  controller: TextEditingController(text: vm.bankName),
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: 'Bank'),
                 ),
-              ]),
+              ),
+            ],
+          ),
           if (vm.multiMode) const SizedBox(height: 10),
           if (vm.multiMode) _EmployeePicker(vm),
           const SizedBox(height: 12),
           SizedBox(
             width: vm.multiMode ? 260 : 220,
             child: FilledButton.icon(
-              onPressed: vm.creating ||
-                      vm.amountText.isEmpty ||
-                      (vm.multiMode && vm.selectedEmployees.isEmpty)
-                  ? null
-                  : vm.createTopup,
+              onPressed: canPress ? vm.createTopup : null,
               icon: vm.creating
                   ? const SizedBox(
                       width: 18,
@@ -142,6 +151,7 @@ class _CreateTopupCard extends StatelessWidget {
 class _EmployeePicker extends StatelessWidget {
   const _EmployeePicker(this.vm);
   final BankVm vm;
+
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -184,15 +194,14 @@ class _EmployeePicker extends StatelessWidget {
             itemCount: vm.employeeOptions.length,
             itemBuilder: (_, i) {
               final e = vm.employeeOptions[i];
-              final picked =
-                  vm.selectedEmployees.any((x) => x.id == e.id);
+              final picked = vm.selectedEmployees.any((x) => x.id == e.id);
               return ListTile(
                 leading: CircleAvatar(
                     child: Text((e.firstName ?? '?').isNotEmpty
                         ? (e.firstName![0])
                         : '?')),
-                title: Text(
-                    '${e.firstName ?? ''} ${e.lastName ?? ''}'.trim()),
+                title:
+                    Text('${e.firstName ?? ''} ${e.lastName ?? ''}'.trim()),
                 subtitle: Text(e.email ?? e.phone ?? '—'),
                 trailing:
                     picked ? const Icon(Icons.check, color: Colors.green) : null,
@@ -245,83 +254,32 @@ class _SingleResult extends StatelessWidget {
                         label: 'Transfer content/code',
                         child: _Copyable(text: it.code)),
                     _Row(
-                        label: 'Amount',
-                        child: Text(formatVND(it.amount))),
+                        label: 'Amount', child: Text(formatVND(it.amount))),
                     _Row(
                         label: 'Receiving account',
                         child: Text(it.bankAccountNo)),
                     _Row(
                         label: 'Completed at',
-                        child: Text(it.completedAt?.toLocal().toString() ?? '-')),
+                        child: Text(
+                            it.completedAt?.toLocal().toString() ?? '-')),
                   ]),
             ),
           ),
         ),
-        // --- MOBILE-FIRST ACTIONS + QR ---
         SizedBox(
           width: 360,
           child: Card(
             child: Padding(
               padding: const EdgeInsets.all(12),
-              child: LayoutBuilder(
-                builder: (context, _) {
-                  final isMobile = MediaQuery.of(context).size.width < 600;
-
-                  if (isMobile) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Thanh toán nhanh',
-                            style: TextStyle(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        if (vm.singleQrUrl != null)
-                          Center(
-                            child: Image.network(
-                              vm.singleQrUrl!,
-                              width: 200,
-                              height: 200,
-                              fit: BoxFit.contain,
-                            ),
-                          )
-                        else
-                          const Center(
-                            child: Text('Generating QR…',
-                                style: TextStyle(color: Colors.black54)),
-                          ),
-                        const SizedBox(height: 12),
-                        MobilePayActions(
-                          bankCode: 'TPBank', // đổi nếu cần
-                          accountNo: it.bankAccountNo,
-                          amount: it.amount,
-                          content: it.code,
-                          qrUrl: vm.singleQrUrl ?? '',
-                        ),
-                      ],
-                    );
-                  }
-
-                  // Desktop/tablet giữ layout QR cũ
-                  return Column(
-                    children: [
-                      const Text('Scan VietQR',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      vm.singleQrUrl == null
-                          ? const Text('Generating QR…',
-                              style: TextStyle(color: Colors.black54))
-                          : Image.network(
-                              vm.singleQrUrl!,
-                              width: 220,
-                              height: 220,
-                              fit: BoxFit.contain,
-                            ),
-                      const SizedBox(height: 8),
-                      Text('QR includes amount & content: ${it.code}',
-                          style: const TextStyle(color: Colors.black54)),
-                    ],
-                  );
-                },
-              ),
+              child: vm.singleQrUrl == null
+                  ? const Text('Generating QR…',
+                      style: TextStyle(color: Colors.black54))
+                  : Image.network(
+                      vm.singleQrUrl!,
+                      width: 200,
+                      height: 200,
+                      fit: BoxFit.contain,
+                    ),
             ),
           ),
         ),
@@ -370,37 +328,13 @@ class _GeneratedList extends StatelessWidget {
                       final url = await vm.api
                           .getTopupQrUrl(vm.generatedList[i].code);
                       if (!context.mounted) return;
-                      final isMobile =
-                          MediaQuery.of(context).size.width < 600;
                       showDialog(
                         context: context,
                         builder: (_) => AlertDialog(
-                          content: SizedBox(
-                            width: 320,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (url == null)
-                                  const Text('Generating QR…')
-                                else
-                                  Image.network(url,
-                                      width: 200, height: 200),
-                                if (isMobile && url != null) ...[
-                                  const SizedBox(height: 12),
-                                  MobilePayActions(
-                                    bankCode: 'TPBank',
-                                    accountNo:
-                                        vm.generatedList[i].bankAccountNo,
-                                    amount:
-                                        vm.generatedList[i].amount,
-                                    content:
-                                        vm.generatedList[i].code,
-                                    qrUrl: url,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
+                          content: url == null
+                              ? const Text('Generating QR…')
+                              : Image.network(url,
+                                  width: 200, height: 200),
                         ),
                       );
                     },
@@ -408,15 +342,6 @@ class _GeneratedList extends StatelessWidget {
                 ]),
             ],
           ),
-        ),
-      ),
-      const SizedBox(height: 6),
-      const Card(
-        color: Color(0xFFE3F2FD),
-        child: Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Text(
-              'Each employee gets a unique code; matching transfers will be auto-confirmed.'),
         ),
       ),
     ]);
@@ -459,25 +384,14 @@ class _TopupsCard extends StatelessWidget {
                 rows: [
                   for (int i = 0; i < vm.topups.length; i++)
                     DataRow(cells: [
-                      DataCell(Text(
-                          '${(vm.topupPage - 1) * 10 + i + 1}')),
-                      DataCell(SizedBox(
-                          width: 220,
-                          child: Text(vm.topups[i].code,
-                              overflow: TextOverflow.ellipsis))),
+                      DataCell(Text('${(vm.topupPage - 1) * 10 + i + 1}')),
+                      DataCell(Text(vm.topups[i].code)),
                       if (vm.isAccountant)
-                        DataCell(SizedBox(
-                          width: 180,
-                          child: Text(
-                            (() {
-                              final o = vm.topups[i].owner;
-                              return o == null
-                                  ? '—'
-                                  : '${o.firstName ?? ''} ${o.lastName ?? ''}'
-                                      .trim();
-                            })(),
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                        DataCell(Text(
+                          vm.topups[i].owner != null
+                              ? '${vm.topups[i].owner!.firstName ?? ''} ${vm.topups[i].owner!.lastName ?? ''}'
+                                  .trim()
+                              : '—',
                         )),
                       DataCell(Text(formatVND(vm.topups[i].amount))),
                       DataCell(Text(vm.topups[i].bankAccountNo ?? '-')),
@@ -500,11 +414,6 @@ class _TopupsCard extends StatelessWidget {
                 ],
               ),
             ),
-          const SizedBox(height: 8),
-          _Pager(
-              page: vm.topupPage,
-              totalPages: vm.topupTotalPages,
-              onChanged: vm.fetchTopups),
         ]),
       ),
     );
@@ -524,60 +433,11 @@ class _BankTxCard extends StatelessWidget {
           const Text('Bank transactions',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          Wrap(spacing: 12, runSpacing: 12, children: [
-            SizedBox(
-              width: 220,
-              child: DropdownButtonFormField<String>(
-                value: vm.txType.isEmpty ? null : vm.txType,
-                items: const [
-                  DropdownMenuItem(
-                      value: 'CREDIT', child: Text('Credit (in)')),
-                  DropdownMenuItem(
-                      value: 'DEBIT', child: Text('Debit (out)')),
-                ],
-                decoration: const InputDecoration(labelText: 'Type'),
-                onChanged: (v) => vm
-                  ..txType = v ?? ''
-                  ..notifyListeners(),
-              ),
-            ),
-            SizedBox(
-              width: 220,
-              child: TextField(
-                decoration:
-                    const InputDecoration(labelText: 'From (yyyy-MM-dd)'),
-                onChanged: (v) => vm
-                  ..fromIso = v
-                  ..notifyListeners(),
-              ),
-            ),
-            SizedBox(
-              width: 220,
-              child: TextField(
-                decoration:
-                    const InputDecoration(labelText: 'To (yyyy-MM-dd)'),
-                onChanged: (v) => vm
-                  ..toIso = v
-                  ..notifyListeners(),
-              ),
-            ),
-            SizedBox(
-              width: 180,
-              child: FilledButton.icon(
-                onPressed: () => vm.fetchBankTx(1),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Filter / Refresh'),
-              ),
-            ),
-          ]),
-          const SizedBox(height: 8),
           if (vm.txLoading)
             const Center(
-              child: Padding(
-                padding: EdgeInsets.all(12),
-                child: CircularProgressIndicator(),
-              ),
-            ),
+                child: Padding(
+                    padding: EdgeInsets.all(12),
+                    child: CircularProgressIndicator())),
           if (!vm.txLoading)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -605,22 +465,11 @@ class _BankTxCard extends StatelessWidget {
                   else
                     for (int i = 0; i < vm.txRows.length; i++)
                       DataRow(cells: [
-                        DataCell(Text(
-                            '${(vm.txPage - 1) * 15 + i + 1}')),
-                        DataCell(SizedBox(
-                          width: 180,
-                          child: Text(vm.txRows[i].refId,
-                              overflow: TextOverflow.ellipsis),
-                        )),
+                        DataCell(Text('${(vm.txPage - 1) * 15 + i + 1}')),
+                        DataCell(Text(vm.txRows[i].refId)),
                         DataCell(Chip(label: Text(vm.txRows[i].type))),
                         DataCell(Text(formatVND(vm.txRows[i].amount))),
-                        DataCell(SizedBox(
-                          width: 240,
-                          child: Text(
-                            vm.txRows[i].description ?? '',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        )),
+                        DataCell(Text(vm.txRows[i].description ?? '')),
                         DataCell(Text(vm.txRows[i].counterAccountNo ?? '-')),
                         DataCell(Text(
                             vm.txRows[i].txTime?.toLocal().toString() ?? '-')),
@@ -628,11 +477,6 @@ class _BankTxCard extends StatelessWidget {
                 ],
               ),
             ),
-          const SizedBox(height: 8),
-          _Pager(
-              page: vm.txPage,
-              totalPages: vm.txTotalPages,
-              onChanged: vm.fetchBankTx),
         ]),
       ),
     );
@@ -671,31 +515,11 @@ class _Copyable extends StatelessWidget {
             await Clipboard.setData(ClipboardData(text: text));
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Đã sao chép')));
+                  const SnackBar(content: Text('Copied to clipboard')));
             }
           },
         ),
       ]);
-}
-
-class _Pager extends StatelessWidget {
-  const _Pager(
-      {required this.page, required this.totalPages, required this.onChanged});
-  final int page, totalPages;
-  final Future<void> Function(int) onChanged;
-  @override
-  Widget build(BuildContext context) => Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-                onPressed: page > 1 ? () => onChanged(page - 1) : null,
-                icon: const Icon(Icons.chevron_left)),
-            Text('$page / $totalPages'),
-            IconButton(
-                onPressed:
-                    page < totalPages ? () => onChanged(page + 1) : null,
-                icon: const Icon(Icons.chevron_right)),
-          ]);
 }
 
 Color _statusColor(TopupStatus s) {
