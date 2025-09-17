@@ -121,7 +121,8 @@ export default function HeaderNotification() {
           navigate(`/management/projects/${noti.referenceId}`);
           break;
         case "TASK":
-          navigate(`/management/tasks/${noti.referenceId}`);
+          const { projectId, phaseId } = JSON.parse(noti.content).params;
+          navigate(`/projects/${projectId}/phase/${phaseId}/kanban`);
           break;
         case "ORDER":
           navigate(`/management/orders/${noti.referenceId}`);

@@ -100,6 +100,16 @@ export default function NotificationList() {
   const theme = useTheme();
   const { t } = useTranslation("noti_page");
 
+  function parseContent(content) {
+    if (!content) return null;
+    try {
+      const first = JSON.parse(content);
+      return typeof first === "string" ? JSON.parse(first) : first;
+    } catch {
+      return null;
+    }
+  }
+
   useEffect(() => {
     async function loadNotifications() {
       if (!account?.username) return;
@@ -126,7 +136,8 @@ export default function NotificationList() {
         navigate(`/management/projects/${noti.referenceId}`);
         break;
       case "TASK":
-        navigate(`/management/tasks/${noti.referenceId}`);
+        const { projectId, phaseId } = JSON.parse(noti.content).params;
+        navigate(`/projects/${projectId}/phase/${phaseId}/kanban`);
         break;
       case "ORDER":
         navigate(`/management/orders/${noti.referenceId}`);
@@ -396,7 +407,12 @@ export default function NotificationList() {
                       mb: 2,
                     }}
                   >
-                    {t(noti.content)}
+                    {(() => {
+                      const parsed = parseContent(noti.content);
+                      return parsed?.key
+                        ? t(parsed.key, parsed.params || {})
+                        : noti.content;
+                    })()}
                   </Typography>
 
                   <Stack
@@ -411,7 +427,7 @@ export default function NotificationList() {
                       color="text.secondary"
                       sx={{ fontWeight: 500 }}
                     >
-                      From: { noti.senderUsername || noti.senderFullName}
+                      From: {noti.senderUsername || noti.senderFullName}
                     </Typography>
                     <Button
                       variant={noti.read ? "outlined" : "contained"}

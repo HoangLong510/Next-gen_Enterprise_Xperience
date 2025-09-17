@@ -1,5 +1,7 @@
 "use client";
 
+import { setPopup } from "~/libs/features/popup/popupSlice";
+
 /**
  * KanbanForm.jsx – FULL
  *  1) PM/Manager/Admin vẫn có thể kéo vào CANCELED dù phase bị "khóa chuỗi".
@@ -108,6 +110,7 @@ export default function KanbanForm() {
 
   const [allowedDropSet, setAllowedDropSet] = useState(new Set());
   const [loading, setLoading] = useState(false);
+
 
   // Ghi nhớ ý định move-to-review
   const [pendingMoveToReview, setPendingMoveToReview] = useState(null);
@@ -362,6 +365,7 @@ export default function KanbanForm() {
     [nextPhaseInfo]
   );
 
+
   // ===== helper: phase của task đã completed chưa?
   const isTaskPhaseCompleted = useCallback((task) => {
     if (!task) return false;
@@ -518,6 +522,7 @@ export default function KanbanForm() {
     }
 
     const srcTask = active?.data?.current?.project;
+
 
     // 🔒 Phase khóa → chỉ chặn EMP/HOD; PM/Manager/Admin tiếp tục (để hủy).
     if (srcTask && isPhaseLocked(srcTask.phaseId) && isStaffMode) {
@@ -701,6 +706,43 @@ export default function KanbanForm() {
     },
     [refreshMeta]
   );
+
+
+  const visibleStatusOptions = useMemo(() => statusOptions, [statusOptions]);
+
+  // ===== Header / Toolbar UI =====
+  const renderHeader = () => (
+    <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+      <Paper sx={{ p: 1.5, background: "linear-gradient(135deg,#118D57,#10B981)" }}>
+        <TrendingUp sx={{ color: "#fff", fontSize: 28 }} />
+      </Paper>
+      <Typography variant="h5" fontWeight={700}>
+        {tt(projReady, tProj, "kanbanTitle", "Project Kanban Board")}
+      </Typography>
+      <Box flex={1} />
+      <Tooltip title={tt(projReady, tProj, "actions.refresh", "Refresh")}>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={() => refreshMeta()}
+          sx={{ textTransform: "none" }}
+        >
+          {tt(projReady, tProj, "actions.refresh", "Refresh")}
+        </Button>
+      </Tooltip>
+    </Stack>
+  );
+
+  // View-only cho PM/Manager/Admin nếu phase của task đã COMPLETED
+  const dialogReadOnly = !isStaffMode && isTaskPhaseCompleted(pendingTask);
+
+  // ✅ Kiểm tra repo hợp lệ của project (để truyền xuống dialog)
+  const projectHasValidRepo = useMemo(() => {
+    const url = (projectInfo?.repoLink || "").trim();
+    return /^https:\/\/github\.com\/[^\/\s]+\/[^\/\s]+\/?$/i.test(url);
+  }, [projectInfo?.repoLink]);
+
 
   const visibleStatusOptions = useMemo(() => statusOptions, [statusOptions]);
 
@@ -1074,6 +1116,7 @@ export default function KanbanForm() {
             } else {
               await refreshMeta();
             }
+
           }}
           projectPmId={projectInfo?.pmId}
           // ✅ TRUYỀN boolean đã được validate + URL repo xuống dialog
@@ -1084,6 +1127,22 @@ export default function KanbanForm() {
             if (pendingMoveToReview && String(pendingMoveToReview) === String(taskId)) {
               await promoteToReview(taskId);
             }
+          }}
+        />
+        {/* Cash Advance dialog */}
+        <Dialog
+          open={advanceOpen}
+          onClose={() => {
+            if (advanceBusy) return;
+            setAdvanceOpen(false);
+            setAdvanceTask(null);
+            setAdvanceAmount("");
+            setAdvanceReason("");
+            setAdvanceDeadline(null);
+            setAdvanceError("");
+            setRecipient("Ban lãnh đạo Công ty Next-Gen Enterprise Experience");
+            sigRef?.current?.clear();
+
           }}
         />
       </Container>

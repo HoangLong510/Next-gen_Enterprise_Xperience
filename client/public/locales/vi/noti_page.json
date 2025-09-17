@@ -85,5 +85,8 @@
   "all-notifications": "Tất cả thông báo",
   "unread-count": "{{count}} thông báo chưa đọc",
   "from": "Từ",
-  "see-details": "Xem chi tiết"
+  "see-details": "Xem chi tiết",
+  "project-completed": "Dự án đã hoàn thành",
+"project.completed": "Dự án {{projectName}} đã hoàn thành. Tài liệu liên quan: '{{documentTitle}}'",
+"project-manager-changed": "Quản lý dự án đã thay đổi"
 }

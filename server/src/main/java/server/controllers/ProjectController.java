@@ -34,6 +34,7 @@ public class ProjectController {
     public ApiResponse<List<ProjectDto>> getAllVisible(HttpServletRequest request) {
         return projectService.getAllVisible(request);
     }
+
     @PreAuthorize("@projectService.hasProjectAccess(#id, authentication.name)")
     // Lấy chi tiết dự án
     @GetMapping("/{id}")
@@ -65,8 +66,10 @@ public class ProjectController {
     public ApiResponse<List<ProjectDto>> filter(
             HttpServletRequest request,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String priority
+            @RequestParam(required = false) String priority,
+            HttpServletRequest request
     ) {
+
         return projectService.filter(request, status, priority);
     }
 

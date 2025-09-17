@@ -27,7 +27,8 @@ import { listEvidence, deleteEvidence } from "~/services/task-evidence.service.j
 import { createBranchForTask } from "~/services/task.service.js";
 import { startGithubLogin, getGithubTokenStatus } from "~/services/github.service"; // 👈 OAuth helpers
 import api from "~/utils/axios";
-import AssignmentHistoryDialog from "./AssignmentHistoryDialog";
+// import AssignmentHistoryDialog from "./AssignmentHistoryDialog";
+
 
 export default function TaskReviewDialog({
   open,
@@ -728,12 +729,14 @@ export default function TaskReviewDialog({
           </DialogActions>
         </Dialog>
       </Dialog>
+      {/* <AssignmentHistoryDialog
 
       <AssignmentHistoryDialog
+
         open={openHistory}
         taskId={task?.id}
         onClose={() => setOpenHistory(false)}
-      />
+      /> */}
     </>
   );
 }

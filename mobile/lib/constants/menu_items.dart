@@ -75,25 +75,40 @@ const List<MenuSection> menuItems = [
         label: "Departments",
         icon: Icons.diversity_1,
         route: "/departments",
-        roles: ["ADMIN", "MANAGER", "HOD", "EMPLOYEE"],
+        roles: ["ADMIN", "MANAGER", "HOD", "EMPLOYEE","SECRETARY"],
       ),
       MenuItemData(
         label: "Projects",
         icon: Icons.account_tree,
         route: "/utilities/projects",
-        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE","SECRETARY"],
       ),
       MenuItemData(
         label: "Dispatches",
         icon: Icons.assignment,
         route: "/management/documents",
-        roles: ["ADMIN", "MANAGER", "PM"],
+        roles: ["ADMIN", "MANAGER", "PM","SECRETARY"],
       ),
+
+      // Tasks chỉ dành cho HOD & EMPLOYEE
+      MenuItemData(
+        label: "Tasks",
+        icon: Icons.task_alt,
+        route: "/utilities/tasks",
+        roles: ["HOD", "EMPLOYEE","SECRETARY"],
+      ),
+
       MenuItemData(
         label: "Leave Request",
         icon: Icons.description,
         route: "/utilities/leave-request",
         roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR", "ACCOUNTANT","SECRETARY","CHIEFACCOUNTANT"],
+      ),
+      MenuItemData(
+        label: "Missing Check-out",
+        icon: Icons.report_gmailerrorred,
+        route: "/attendance/missing-checkout",
+        roles: ["HR", "ADMIN"],
       ),
       MenuItemData(
         label: "AttenDance",
@@ -107,6 +122,7 @@ const List<MenuSection> menuItems = [
           "EMPLOYEE",
           "ACCOUNTANT",
           "HR",
+          "SECRETARY",
         ],
       ),
     ],

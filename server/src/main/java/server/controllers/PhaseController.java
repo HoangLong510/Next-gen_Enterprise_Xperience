@@ -1,4 +1,5 @@
 package server.controllers;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -71,6 +72,7 @@ public class PhaseController {
       (hasAnyAuthority('EMPLOYEE','HOD') and @projectService.hasProjectAccess(#projectId, authentication.name))
     """)
     @GetMapping("/project/{projectId}/with-tasks")
+
     public ApiResponse<List<PhaseDto>> getPhasesWithTasksByProject(
             @PathVariable Long projectId,
             HttpServletRequest request

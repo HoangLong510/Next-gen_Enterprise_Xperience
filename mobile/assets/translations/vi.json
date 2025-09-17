@@ -1,4 +1,186 @@
 {
+	"server-is-busy": "Server đang gặp sự cố. Xin vui lòng thữ lại sau",
+	"please-login-to-continue": "Vui lòng đăng nhập để tiếp tục",
+	"you-do-not-have-permission-to-access-this-feature": "Bạn không có quyền truy cập vào tính năng này",
+	"access-denied": "Truy cập bị từ chối",
+	"invalid-access-token": "Thông tin xác thực không đúng, vui lòng đăng nhập lại",
+	"logout-successful": "Tài khoản đã đăng xuất thành công",
+	"validation-errors": "Có một số trường bạn nhập không hợp lệ. Xin vui lòng thữ lại",
+	"login-successfully": "Bạn đã đăng nhập thành công!",
+	"failed-to-register-user": "Đăng kí người dùng thất bại. Xin vui lòng thữ lại sau",
+	"registered-successfully": "Đăng kí người dùng thành công. Xin vui lòng đăng nhập để tiếp tục",
+	"employee-created-successfully": "Đã tạo nhân viên thành công",
+	"the-path-you-are-trying-to-access-is-invalid": "Đường dẫn bạn truy cập không hợp lệ",
+	"change-avatar-successfully": "Thay đổi ảnh đại diện thành công",
+	"error-uploading-file": "Có lỗi khi tải tệp lên, vui lòng thử tệp khác",
+	"invalid-image-type": "Loại hình ảnh không hợp lệ, chỉ hỗ trợ các tệp JPG, PNG, GIF",
+	"file-is-empty": "Tập tin trống",
+	"file-too-large": "Tệp quá lớn, chỉ hỗ trợ các tệp có kích thước dưới 5mb",
+	"new-password-same-as-old-password": "Bạn không thể đặt mật khẩu mới giống mật khẩu cũ",
+	"change-password-successfully": "Thay đổi mật khẩu thành công, vui lòng đăng nhập lại để tiếp tục",
+	"captcha-verification-failed": "Xác minh token thất bại",
+	"create-department-success": "Tạo phòng ban thành công",
+	"edit-department-success": "Chỉnh sửa phòng ban thành công",
+	"update-department-success": "Cập nhật phòng ban thành công",
+
+	"username-is-required": "Tên đăng nhập là bắt buộc",
+	"username-must-be-between-5-and-30-characters": "Tên đăng nhập phải từ 5 đến 30 ký tự",
+	"username-must-start-with-a-lowercase-letter-and-contain-only-lowercase-letters-and-numbers": "Tên đăng nhập phải bắt đầu bằng chữ thường và chỉ chứa chữ thường hoặc số",
+	"username-does-not-exist": "Tên đăng nhập không tồn tại",
+	"username-already-exists": "Tên đăng nhập đã tồn tại",
+	"account-is-disabled": "Tài khoản bị khóa",
+
+	"password-is-required": "Mật khẩu là bắt buộc",
+	"password-does-not-match": "Mật khẩu không đúng",
+	"password-must-be-between-6-and-30-characters": "Mật khẩu phải từ 6 đến 30 ký tự",
+
+	"do-not-set-the-same-password-as-the-old-one": "Không đặt mật khẩu giống như mật khẩu cũ",
+
+	"confirm-password-is-required": "Xác nhận mật khẩu là bắt buộc",
+	"confirm-password-does-not-match": "Xác nhận mật khẩu không khớp",
+
+	"first-name-is-required": "Họ là bắt buộc",
+	"first-name-must-be-between-2-and-30-characters": "Họ phải từ 2 đến 30 ký tự",
+	"first-name-must-contain-only-letters-and-spaces": "Họ chỉ được chứa chữ cái và dấu cách",
+
+	"last-name-is-required": "Tên là bắt buộc",
+	"last-name-must-be-between-2-and-30-characters": "Tên phải từ 2 đến 30 ký tự",
+	"last-name-must-contain-only-letters-and-spaces": "Tên chỉ được chứa chữ cái và dấu cách",
+
+	"email-is-required": "Email là bắt buộc",
+	"email-already-exists": "Email đã tồn tại",
+	"email-does-not-exist": "Email không tồn tại",
+	"invalid-email-address": "Địa chỉ email không hợp lệ",
+
+	"phone-is-required": "Số điện thoại là bắt buộc",
+	"phone-already-exists": "Số điện thoại đã tồn tại",
+	"phone-does-not-exist": "Số điện thoại không tồn tại",
+	"invalid-phone-number": "Số điện thoại không hợp lệ",
+
+	"address-is-required": "Địa chỉ là bắt buộc",
+
+	"gender-is-required": "Giới tính là bắt buộc",
+	"invalid-gender": "Giới tính không hợp lệ",
+
+	"date-of-birth-cannot-be-null": "Ngày sinh không được bỏ trống",
+	"date-of-birth-must-be-in-the-past": "Ngày sinh phải là ngày quá khứ",
+
+	"department-already-exists": "Phòng ban đã tồn tại",
+	"hod-id-not-found": "Không thể tìm thấy trưởng phòng này",
+	"hod-role-is-invalid": "Vai trò của trưởng phòng không hợp lệ",
+	"the-hod-has-a-department": "Trưởng phòng này đã có phòng ban khác",
+	"department-name-is-required": "Tên phòng ban là bắt buộc",
+	"department-description-is-required": "Mô tả của phòng ban là bắt buộc",
+	"hod-is-required": "Trưởng phòng là bắt buộc",
+
+	"Login": "Đăng nhập",
+	"Login with your account": "Đăng nhập bằng tài khoản của bạn",
+	"Username": "Tên đăng nhập",
+	"Password": "Mật khẩu",
+	"Accounts are provided by the administrator only": "Tài khoản được cung cấp bởi quản trị viên",
+	"Verifying": "Đang xác minh...",
+	"Language": "Ngôn ngữ",
+	"ViewProfile": "Xem hồ sơ",
+	"ChangePassword": "Đổi mật khẩu",
+	"Logout": "Đăng xuất",
+	"AreYouSureLogout": "Bạn có chắc chắn muốn đăng xuất?",
+	"Cancel": "Hủy",
+	"Confirm": "Xác nhận",
+
+	"NewPassword": "Mật khẩu mới",
+	"ConfirmNewPassword": "Xác nhận mật khẩu mới",
+
+	"new-project-created": "Dự án mới đã được tạo",
+	"project.created": "Tài liệu '{{documentTitle}}' đã được PM chuyển thành dự án thành công",
+
+	"financial-document-signed": "Tài liệu tài chính đã được ký",
+	"document.financial.signed": "Bạn đã nhận được tài liệu tài chính '{{documentTitle}}' được giám đốc ký, vui lòng bắt đầu dự án liên quan",
+
+	"document-signed": "Tài liệu đã được ký",
+	"document.signed": "Tài liệu '{{documentTitle}}' đã được giám đốc ký, vui lòng tiếp tục xử lý",
+
+	"document-processing-result": "Kết quả xử lý tài liệu",
+	"document.processed": "Tài liệu '{{documentTitle}}' đã được xử lý",
+
+	"new-project-document-requires-signature": "Tài liệu dự án mới cần chữ ký",
+	"document.project.requires-signature": "Bạn có một tài liệu dự án mới cần chữ ký của bạn",
+
+	"assigned-as-project-manager": "Được phân công làm Quản lý dự án",
+	"document.pm.assigned.for": "Bạn đã được phân công làm PM cho tài liệu '{{documentTitle}}'",
+	"document.pm.changed.you-are-no-longer": "Bạn không còn là PM của tài liệu '{{documentTitle}}' nữa",
+
+	"new-financial-document-requires-signature": "Tài liệu tài chính mới cần chữ ký",
+	"document.financial.requires-signature": "Bạn có một tài liệu tài chính mới cần chữ ký của bạn",
+
+	"new-financial-document-to-process": "Tài liệu tài chính mới cần xử lý",
+	"document.financial.to-process": "Bạn đã được phân công xử lý tài liệu tài chính '{{documentTitle}}'",
+
+	"new-document-requires-processing": "Có tài liệu mới cần xử lý",
+	"document.requires-processing": "Tài liệu '{{documentTitle}}' cần được xử lý",
+
+	"manager-added-revision-note": "Quản lý đã thêm ghi chú",
+	"document.manager.note.added": "Tài liệu '{{documentTitle}}' có ghi chú mới từ quản lý {{managerName}}",
+
+	"document-revised": "Tài liệu đã được chỉnh sửa",
+	"document.revised": "Tài liệu '{{documentTitle}}' đã được {{actorName}} chỉnh sửa",
+	"document.revised.pm-changed": "Tài liệu '{{documentTitle}}' đã được {{actorName}} chỉnh sửa, PM đã thay đổi",
+
+	"leave-request-result": "Kết quả đơn xin nghỉ",
+	"leave.result": "Đơn xin nghỉ của bạn đã được {{action}} bởi {{approver}}",
+
+	"new-leave-request-for-approval": "Có đơn xin nghỉ mới cần duyệt",
+	"leave.new": "Đơn xin nghỉ từ {{requester}}",
+
+	"reminder-missing-check-out": "Nhắc nhở thiếu check-out",
+	"attendance.missing.checkout.lastMonth": "Bạn chưa check-out ngày {{date}} trong tháng trước, vui lòng cập nhật trước khi xử lý lương",
+	"attendance.missing.checkout.yesterday": "Bạn chưa check-out vào ngày {{date}}, vui lòng nộp giải trình hoặc liên hệ HR",
+	"attendance.missing.checkout.today": "Bạn chưa check-out hôm nay ({{date}}), vui lòng cập nhật",
+	"attendance.missing.checkout.generic": "Bạn chưa check-out vào ngày {{date}}, vui lòng cập nhật",
+
+	"attendance-justification-approved": "Giải trình check-out được duyệt",
+	"attendance.justification.approved": "Giải trình check-out của bạn đã được duyệt. Ghi chú HR: {{hrNote}}",
+	"attendance-justification-rejected": "Giải trình check-out bị từ chối",
+	"attendance.justification.rejected": "Giải trình check-out của bạn bị từ chối. Ghi chú HR: {{hrNote}}",
+
+	"employee-submitted-attendance-note": "Nhân viên đã nộp ghi chú chấm công",
+	"attendance.note.submitted": "Nhân viên {{employee}} đã nộp ghi chú giải trình cho ngày {{date}}, vui lòng xem xét",
+
+	"cash-advance-awaiting-chief-review": "Tạm ứng đang chờ trưởng phòng duyệt",
+	"cash.advance.awaiting.chief": "Bạn có {{count}} đơn tạm ứng đang chờ duyệt",
+
+	"cash-advance-awaiting-final-approval": "Tạm ứng đang chờ giám đốc duyệt",
+	"cash.advance.awaiting.director": "Bạn có {{count}} đơn tạm ứng đang chờ giám đốc duyệt",
+
+	"cash-advance-approved-by-chief": "Tạm ứng đã được trưởng phòng duyệt",
+	"cash.advance.approved.by": "Đơn tạm ứng #{{id}} của bạn đã được {{approver}} duyệt",
+
+	"cash-advance-final-approved": "Tạm ứng đã được giám đốc phê duyệt",
+	"cash.advance.final.approved.by": "Đơn tạm ứng #{{id}} của bạn đã được {{approver}} phê duyệt",
+
+	"cash-advance-rejected": "Tạm ứng đã bị từ chối",
+	"cash.advance.rejected.by": "Đơn tạm ứng #{{id}} của bạn đã bị {{actor}} từ chối. Ghi chú: {{note}}",
+
+	"added-to-project": "Bạn đã được thêm vào dự án",
+	"project.member.added": "Bạn đã được thêm vào dự án {{projectName}}",
+
+	"removed-from-project": "Bạn đã bị gỡ khỏi dự án",
+	"project.member.removed": "Bạn đã bị gỡ khỏi dự án {{projectName}}",
+
+	"assigned-to-task": "Bạn đã được giao một task",
+	"task.assigned": "Bạn đã được giao task '{{taskName}}'",
+
+	"task-updated": "Task đã được cập nhật",
+	"task.updated": "Task '{{taskName}}' đã được cập nhật sang trạng thái {{status}}",
+
+	"no-notifications": "Không có thông báo nào.",
+	"all-notifications": "Tất cả thông báo",
+	"unread-count": "{{count}} thông báo chưa đọc",
+	"from": "Từ",
+	"see-details": "Xem chi tiết",
+	"project-completed": "Dự án đã hoàn thành",
+	"project.completed": "Dự án {{projectName}} đã hoàn thành. Tài liệu liên quan: '{{documentTitle}}'",
+	"project-manager-changed": "Quản lý dự án đã thay đổi"
+
   "server-is-busy": "Server đang gặp sự cố. Xin vui lòng thữ lại sau",
   "please-login-to-continue": "Vui lòng đăng nhập để tiếp tục",
   "you-do-not-have-permission-to-access-this-feature": "Bạn không có quyền truy cập vào tính năng này",
