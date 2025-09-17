@@ -33,6 +33,20 @@ export const createContractApi = async (form) => {
   }
 };
 
+// HR gửi hợp đồng từ trạng thái DRAFT -> PENDING
+export const submitContractApi = async (id) => {
+  try {
+    const res = await api.post(`/contracts/${id}/submit`, null, {
+      headers: { "Content-Type": "application/json" },
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};
+
+
 // Cập nhật hợp đồng
 export const updateContractApi = async (id, form) => {
   try {
@@ -82,7 +96,7 @@ export const signContractApi = async ({ contractId, signerRole, signature }) => 
 export const expireTodayApi = async () => {
   try {
     const res = await api.post("/contracts/expire-today", null, { headers: { "Content-Type": "application/json" } });
-    return res.data; // { status: 200, data: <affectedCount>, ... }
+    return res.data; 
   } catch (error) {
     if (error.response) return error.response.data;
     return { status: 500, message: "server-is-busy" };
@@ -126,11 +140,9 @@ export const exportContractWordApi = async (id) => {
     const res = await api.get(`/contracts/${id}/export-word`, {
       responseType: "blob",
     });
-    // trả kèm headers để đọc Content-Disposition -> tên file
     return { status: 200, data: res.data, headers: res.headers };
   } catch (error) {
     if (error.response) {
-      // khi BE trả lỗi (404/500) axios vẫn có response
       return { status: error.response.status, message: "export-failed" };
     }
     return { status: 500, message: "server-is-busy" };
@@ -146,4 +158,38 @@ export const downloadBlob = (blob, filename = "download.docx") => {
   a.click();
   a.remove();
   window.URL.revokeObjectURL(url);
+};
+
+export const importContractsExcelApi = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await api.post("/contracts/import-excel", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};
+
+export const searchContractsApi = async (params = {}) => {
+  try {
+    const res = await api.get("/contracts/search", {
+      params: {
+        name: params.name || undefined,
+        status: params.status || undefined,
+        type: params.type || undefined,
+        start: params.start || undefined, 
+        end: params.end || undefined,     
+      },
+      headers: { "Content-Type": "application/json" },
+    });
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
 };

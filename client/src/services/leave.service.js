@@ -277,3 +277,15 @@ export const hrCancelLeaveRequestApi = async (id) => {
     return { status: 500, message: "server-is-busy" };
   }
 };
+
+// Lấy số đơn nghỉ phép đã hết hạn duyệt trong tháng sau khi hết tháng
+export const getMyExpiredCountApi = async (month) => {
+  try {
+    const m = month || new Date().toISOString().slice(0, 7); // yyyy-MM
+    const res = await api.get(`/leave-requests/my-expired-count?month=${encodeURIComponent(m)}`);
+    return res.data;
+  } catch (error) {
+    if (error.response) return error.response.data;
+    return { status: 500, message: "server-is-busy" };
+  }
+};

@@ -213,4 +213,10 @@ public class LeaveRequestController {
         return leaveRequestService.hrCancel(request, id);
     }
 
+    @GetMapping("/my-expired-count")
+    public ApiResponse<Long> myExpiredCount(HttpServletRequest request,
+                                            @RequestParam(required = false) String month) {
+        return leaveRequestService.getMyExpiredCountThisMonth(request, month);
+    }
+
 }

@@ -40,15 +40,13 @@ import server.utils.ApiResponse;
 import server.models.enums.LeaveStatus;
 import server.utils.HolidayUtils;
 
+import java.time.LocalDateTime;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.*;
 import java.time.temporal.TemporalAdjusters;
-import java.time.YearMonth;
 import java.util.List;
-import server.models.enums.LeaveStatus;
-import server.models.enums.LeaveType;
-import server.models.enums.Role;
-
 
 import java.util.stream.Collectors;
 
@@ -282,8 +280,6 @@ public class LeaveRequestService {
             return ApiResponse.unauthorized();
         }
 
-
-
         // 9. Tạo đơn
         LeaveRequest entity = new LeaveRequest();
         entity.setReason(dto.getReason());
@@ -303,7 +299,6 @@ public class LeaveRequestService {
         LeaveRequestResponse response = toResponse(entity);
         return ApiResponse.created(response, "Tạo đơn nghỉ phép thành công");
     }
-
 
 
     // Trả về DANH SÁCH đơn cần được bạn duyệt
@@ -1055,7 +1050,7 @@ public class LeaveRequestService {
             // vẫn tiếp tục chuyển trạng thái để quy trình không bị kẹt
         }
 
-        // ✅ Sau khi gửi email xong: CHUYỂN TRẠNG THÁI -> WAITING_TO_CANCEL
+        //Sau khi gửi email xong: CHUYỂN TRẠNG THÁI -> WAITING_TO_CANCEL
         entity.setStatus(LeaveStatus.WAITING_TO_CANCEL);
         leaveRequestRepository.save(entity);
 
@@ -1078,7 +1073,7 @@ public class LeaveRequestService {
             return ApiResponse.notfound("Đơn nghỉ phép không tồn tại");
         }
 
-        // ✅ Cho hủy mọi trạng thái, chỉ chặn khi đã hủy rồi
+        //Cho hủy mọi trạng thái, chỉ chặn khi đã hủy rồi
         if (entity.getStatus() == LeaveStatus.CANCELLED) {
             return ApiResponse.badRequest("Đơn đã ở trạng thái CANCELLED, không thể hủy lại.");
         }
@@ -1136,11 +1131,11 @@ public class LeaveRequestService {
      * - PENDING      → nhắc người duyệt (receiver) + sender
      * - PENDING_HR   → nhắc HR + sender
      */
-    @Scheduled(cron = "0 0 13 * * *", zone = "Asia/Ho_Chi_Minh")
+    @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Ho_Chi_Minh")
     public void monthEndReminderJob() {
         final ZoneId ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
         LocalDate today = LocalDate.now(ZONE);
-        LocalDate triggerDay = today.with(TemporalAdjusters.lastDayOfMonth()).minusDays(21);
+        LocalDate triggerDay = today.with(TemporalAdjusters.lastDayOfMonth()).minusDays(2);
 
         if (!today.equals(triggerDay)) {
             return; // Không phải ngày nhắc
@@ -1187,7 +1182,7 @@ public class LeaveRequestService {
                 LeaveType leaveType = lr.getLeaveType();
 
                 if (status == LeaveStatus.PENDING) {
-                    // ✅ Nhắc người duyệt + sender
+                    //Nhắc người duyệt + sender
                     if (notBlank(approverEmail)) {
                         emailService.sendMonthEndPendingReminderToApproverAsync(
                                 approverEmail, approverName, applicantName, lr.getId(),
@@ -1205,7 +1200,7 @@ public class LeaveRequestService {
                         sent++;
                     }
                 } else if (status == LeaveStatus.PENDING_HR) {
-                    // ✅ Nhắc HR + sender
+                    //Nhắc HR + sender
                     if (notBlank(hrEmail)) {
                         emailService.sendMonthEndPendingReminderToApproverAsync(
                                 hrEmail, hrName, applicantName, lr.getId(),
@@ -1239,5 +1234,41 @@ public class LeaveRequestService {
     private static boolean notBlank(String s) { return s != null && !s.isBlank(); }
 
 
+    //@Scheduled(cron = "0 5 0 1 * ?") // 00:05 sáng ngày 1 hàng tháng
+    @Scheduled(cron = "0 */1 * * * ?") // mỗi phút
+    @Transactional
+    public void expireUnresolvedRequestsForLastMonth() {
+        YearMonth lastMonth = YearMonth.now().minusMonths(1);
 
+        LocalDateTime start = lastMonth.atDay(1).atStartOfDay();
+        LocalDateTime end   = lastMonth.plusMonths(1).atDay(1).atStartOfDay(); // exclusive
+
+        List<LeaveRequest> targets = leaveRequestRepository.findForExpiry(
+                start, end,
+                List.of(LeaveStatus.PENDING, LeaveStatus.PENDING_HR, LeaveStatus.WAITING_TO_CANCEL)
+        );
+
+        if (!targets.isEmpty()) {
+            for (LeaveRequest lr : targets) {
+                lr.setStatus(LeaveStatus.EXPIRED);
+            }
+            leaveRequestRepository.saveAll(targets);
+        }
+    }
+
+    public ApiResponse<Long> getMyExpiredCountThisMonth(HttpServletRequest request, String month) {
+        Account current = authService.getCurrentAccount(request);
+
+        YearMonth ym = (month == null || month.isBlank())
+                ? YearMonth.now()
+                : YearMonth.parse(month);
+
+        LocalDateTime start = ym.atDay(1).atStartOfDay();
+        LocalDateTime end   = ym.plusMonths(1).atDay(1).atStartOfDay();
+
+        long count = leaveRequestRepository.countMyStatusUpdatedInMonth(
+                current, LeaveStatus.EXPIRED, start, end
+        );
+        return ApiResponse.success(count, "OK");
+    }
 }
