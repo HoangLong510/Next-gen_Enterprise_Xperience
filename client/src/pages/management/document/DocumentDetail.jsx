@@ -38,6 +38,7 @@ import {
   downloadDocumentFileApi,
   signDocumentApi,
   addManagerNoteApi,
+  updateDocumentStatusApi,
 } from "~/services/document.service";
 import SignatureCanvas from "react-signature-canvas";
 import ProjectFormCreate from "~/components/project/form/ProjectFormCreate";
@@ -86,6 +87,23 @@ export default function DocumentDetail() {
     if (!id) return;
     fetchDetail();
   }, [id, account?.role]);
+
+  const handleUpdateStatus = async () => {
+    const res = await updateDocumentStatusApi(doc.id, "COMPLETED");
+    if (res.status === 200) {
+      dispatch(
+        setPopup({
+          type: "success",
+          message: "Update Document Sucessfully!",
+        })
+      );
+      fetchDetail();
+    } else {
+      dispatch(
+        setPopup({ type: "error", message: res.message || "Update Fail" })
+      );
+    }
+  };
 
   const handleDownload = async () => {
     if (!doc?.fileUrl) return;
@@ -361,7 +379,6 @@ export default function DocumentDetail() {
                     </Button>
                   )}
 
-                  {/* Nút xem lịch sử công văn */}
                   {(account?.role === "ADMIN" ||
                     account?.role === "MANAGER" ||
                     account?.role === "SECRETARY") && (
@@ -398,7 +415,7 @@ export default function DocumentDetail() {
                           py: 1.5,
                         }}
                       >
-                        Ký điện tử công văn
+                        Signature
                       </Button>
                     )}
 
@@ -418,6 +435,27 @@ export default function DocumentDetail() {
                       Create Project
                     </Button>
                   )}
+                  {(account?.role === "SECRETARY" ||
+                    account?.role === "MANAGER") &&
+                    doc.status !== "COMPLETED" &&
+                    doc.relatedProjectId &&
+                    doc.projectStatus === "COMPLETED" && (
+                      <Button
+                        variant="contained"
+                        color="success"
+                        onClick={handleUpdateStatus}
+                        sx={{
+                          fontWeight: 700,
+                          textTransform: "none",
+                          borderRadius: 2,
+                          px: 3,
+                          py: 1.5,
+                          ml: "auto",
+                        }}
+                      >
+                        ✅ Update Document Completed
+                      </Button>
+                    )}
                 </Stack>{" "}
                 {account?.role === "MANAGER" && doc.status === "NEW" && (
                   <Box
@@ -438,7 +476,7 @@ export default function DocumentDetail() {
                       color="warning.main"
                       sx={{ mb: 1.5 }}
                     >
-                      📌 Ghi chú cho thư ký
+                      📌 Note for Secretary
                     </Typography>
                     <TextField
                       fullWidth

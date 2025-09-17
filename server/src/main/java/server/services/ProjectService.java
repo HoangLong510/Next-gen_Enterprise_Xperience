@@ -52,7 +52,7 @@ public class ProjectService {
      * - ADMIN/MANAGER: true
      * - PM của project: true
      * - EMPLOYEE/HOD: true nếu Project có Phase IN_PROGRESS và trong đó có Task non-canceled
-     *   (PLANNING/IN_PROGRESS/IN_REVIEW/COMPLETED)
+     * (PLANNING/IN_PROGRESS/IN_REVIEW/COMPLETED)
      */
     // ProjectService.java
     private boolean isMemberOfProject(Project p, Account viewer) {
@@ -61,6 +61,7 @@ public class ProjectService {
                 && p.getId() != null
                 && projectRepository.existsByIdAndEmployees_Id(p.getId(), viewer.getEmployee().getId());
     }
+
     public boolean hasProjectAccess(Long projectId, String username) {
         Optional<Account> accOpt = accountRepository.findByUsername(username);
         if (accOpt.isEmpty()) return false;
@@ -240,45 +241,45 @@ public class ProjectService {
             return ApiResponse.errorServer("Document không có người PM (pm_id).");
         }
 
-            String name = (dto.getName() != null && !dto.getName().isBlank())
-                    ? dto.getName().trim()
-                    : document.getProjectName();
+        String name = (dto.getName() != null && !dto.getName().isBlank())
+                ? dto.getName().trim()
+                : document.getProjectName();
 
-            String description = (dto.getDescription() != null && !dto.getDescription().isBlank())
-                    ? dto.getDescription().trim()
-                    : document.getProjectDescription();
+        String description = (dto.getDescription() != null && !dto.getDescription().isBlank())
+                ? dto.getDescription().trim()
+                : document.getProjectDescription();
 
-            LocalDate deadline = (dto.getDeadline() != null)
-                    ? dto.getDeadline()
-                    : document.getProjectDeadline();
+        LocalDate deadline = (dto.getDeadline() != null)
+                ? dto.getDeadline()
+                : document.getProjectDeadline();
 
-            Project project = Project.builder()
-                    .name(name)
-                    .description(description)
-                    .createdAt(LocalDate.now())
-                    .deadline(deadline)
-                    .status(ProjectStatus.PLANNING)
-                    .document(document)
-                    .projectManager(pm)
-                    .build();
+        Project project = Project.builder()
+                .name(name)
+                .description(description)
+                .createdAt(LocalDate.now())
+                .deadline(deadline)
+                .status(ProjectStatus.PLANNING)
+                .document(document)
+                .projectManager(pm)
+                .build();
 
-            projectRepository.save(project);
-            projectRepository.flush();
+        projectRepository.save(project);
+        projectRepository.flush();
 
-            document.setProject(project);
-            document.setStatus(DocumentStatus.IN_PROGRESS);
-            documentRepository.save(document);
+        document.setProject(project);
+        document.setStatus(DocumentStatus.IN_PROGRESS);
+        documentRepository.save(document);
 
-            notificationService.createNotification(
-                    NotificationType.PROJECT,
-                    document.getId(),
-                    false
-            );
+        notificationService.createNotification(
+                NotificationType.PROJECT,
+                document.getId(),
+                false
+        );
 
-            return ApiResponse.success(null, "project-created-successfully");
-        }
+        return ApiResponse.success(null, "project-created-successfully");
+    }
 
-    public ApiResponse<?> deleteProject( Long id ) {
+    public ApiResponse<?> deleteProject(Long id) {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found"));
 
@@ -352,7 +353,7 @@ public class ProjectService {
                 return ApiResponse.validation(Map.of("deadline", "deadline-cannot-be-in-the-past"));
 
             var badPhases = phaseRepository.findByProjectIdAndDeadlineAfter(project.getId(), newDeadline);
-            var badTasks  = taskRepository.findTasksDeadlineAfter(project.getId(), newDeadline);
+            var badTasks = taskRepository.findTasksDeadlineAfter(project.getId(), newDeadline);
             if (!badPhases.isEmpty() || !badTasks.isEmpty())
                 return ApiResponse.validation(Map.of("deadline", "project-deadline-conflict"));
 
@@ -367,22 +368,6 @@ public class ProjectService {
 
         if (oldStatus != ProjectStatus.COMPLETED && dto.getStatus() == ProjectStatus.COMPLETED) {
             project.setCompletedAt(LocalDateTime.now());
-
-            List<Document> docs = documentRepository.findByProject_Id(project.getId());
-            System.out.println("Found docs: " + docs.size());
-
-            Account actor = accountRepository.findByUsername(
-                    SecurityContextHolder.getContext().getAuthentication().getName()
-            ).orElse(null);
-            System.out.println("Actor: " + (actor != null ? actor.getUsername() : "null"));
-
-            for (Document doc : docs) {
-                doc.setStatus(DocumentStatus.COMPLETED);
-                documentRepository.save(doc);
-
-                // Gọi notification service
-                notificationService.notifyProjectCompleted(project, doc, actor);
-            }
         }
 
         projectRepository.save(project);
@@ -501,12 +486,16 @@ public class ProjectService {
                 && Objects.equals(t.getAssignee().getId(), viewer.getEmployee().getId());
     }
 
-    /** Dùng cho list: progress tổng thể project, không lọc task */
+    /**
+     * Dùng cho list: progress tổng thể project, không lọc task
+     */
     private ProjectDto toDtoOverall(Project project) {
         return toDtoInternal(project, null, false, true);
     }
 
-    /** Dùng cho detail: EMP/HOD chỉ xem task của mình; các role khác xem full */
+    /**
+     * Dùng cho detail: EMP/HOD chỉ xem task của mình; các role khác xem full
+     */
     private ProjectDto toDtoForViewer(Project project, Account viewer, boolean onlyMine) {
         return toDtoInternal(project, viewer, onlyMine, false);
     }

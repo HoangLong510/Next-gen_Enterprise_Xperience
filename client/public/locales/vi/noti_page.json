@@ -89,4 +89,9 @@
   "project-completed": "Dự án đã hoàn thành",
 "project.completed": "Dự án {{projectName}} đã hoàn thành. Tài liệu liên quan: '{{documentTitle}}'",
 "project-manager-changed": "Quản lý dự án đã thay đổi"
+{
+  "document-completed": "Tài liệu đã hoàn thành",
+  "document.completed": "Tài liệu '{{documentTitle}}' đã hoàn thành"
+
+}
 }
