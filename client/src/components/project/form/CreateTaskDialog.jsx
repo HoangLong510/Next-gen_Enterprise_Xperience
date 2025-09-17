@@ -1,6 +1,7 @@
+// src/components/project/form/CreateTaskDialog.jsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -22,95 +23,111 @@ import { useTranslation } from "react-i18next";
 import { createTask, getTaskSizes } from "~/services/task.service";
 import { getProjectEmployees } from "~/services/project-employee.service";
 
-const schema = yup.object({
-  name: yup
-    .string()
-    .required("task-name-is-required")
-    .min(3, "task-name-must-be-at-least-3-characters")
-    .max(100, "task-name-must-be-at-most-100-characters"),
-  description: yup
-    .string()
-    .required("task-description-is-required")
-    .min(5, "task-description-must-be-at-least-5-characters")
-    .max(1000, "task-description-must-be-at-most-1000-characters"),
-  size: yup
-    .string()
-    .required("size-is-required")
-    .oneOf(["S", "M", "L"], "invalid-size"),
-  deadline: yup
-    .string()
-    .required("deadline-is-required")
-    .matches(/^\d{4}-\d{2}-\d{2}$/, "invalid-date-format")
-    .test("not-in-past", "deadline-before-today", (value) => value >= dayjs().format("YYYY-MM-DD"))
-    .test("not-after-phase", "deadline-after-phase-deadline", (value, ctx) => {
-      const { phaseDeadline } = ctx.options.context || {};
-      return !phaseDeadline || value <= phaseDeadline;
-    })
-    .test("not-after-project", "deadline-after-project-deadline", (value, ctx) => {
-      const { projectDeadline } = ctx.options.context || {};
-      return !projectDeadline || value <= projectDeadline;
-    }),
-  assigneeId: yup.number().nullable().required("assignee-is-required"),
-});
+// ------- helpers -------
+const todayStr = () => dayjs().format("YYYY-MM-DD");
+
+const makeSchema = (allowedSizes = [], phaseDeadline, projectDeadline) =>
+  yup.object({
+    name: yup
+      .string()
+      .required("task-name-is-required")
+      .min(3, "task-name-must-be-at-least-3-characters")
+      .max(100, "task-name-must-be-at-most-100-characters"),
+    description: yup
+      .string()
+      .required("description-is-required")
+      .min(10, "description-must-be-at-least-10-characters")
+      .max(1000, "description-must-be-at-most-1000-characters"),
+    size: yup
+      .string()
+      .required("size-is-required")
+      .test("allowed-size", "invalid-size", (v) => !v || allowedSizes.includes(v)),
+    deadline: yup
+      .string()
+      .required("deadline-is-required")
+      .matches(/^\d{4}-\d{2}-\d{2}$/, "invalid-date-format")
+      .test("not-in-past", "deadline-before-today", (value) => !value || value >= todayStr())
+      .test(
+        "not-after-phase",
+        "deadline-after-phase-deadline",
+        (value) => !value || !phaseDeadline || value <= phaseDeadline
+      )
+      .test(
+        "not-after-project",
+        "deadline-after-project-deadline",
+        (value) => !value || !projectDeadline || value <= projectDeadline
+      ),
+    assigneeId: yup.number().nullable().required("assignee-is-required"),
+  });
 
 export default function CreateTaskDialog({
   open,
   onClose,
-  phase,
-  projectDeadline,
+  phase,              // { id, deadline, ... }
+  projectDeadline,    // optional: YYYY-MM-DD
   onCreated,
   projectId,
 }) {
   const dispatch = useDispatch();
-  const { t } = useTranslation(["tasks", "messages", "errors"]);
-  const today = dayjs().format("YYYY-MM-DD");
-  const phaseDeadline = phase?.deadline;
+  // 🔁 dùng namespace "task" (trùng tên file task.json)
+  const { t: tTask } = useTranslation("task");
+  const { t: tErrors } = useTranslation("errors");
+  const { t: tMessages } = useTranslation("messages");
+
+  const phaseDeadline = phase?.deadline || null;
+
+  // sizes & members
+  const [sizeOptions, setSizeOptions] = useState(["S", "M", "L"]);
+  const [members, setMembers] = useState([]);
+  const [assigneeSearch, setAssigneeSearch] = useState("");
+
+  // dynamic schema (depends on sizes + deadlines)
+  const schema = useMemo(
+    () => makeSchema(sizeOptions, phaseDeadline, projectDeadline),
+    [sizeOptions, phaseDeadline, projectDeadline]
+  );
 
   const {
     control,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm({
-    resolver: yupResolver(schema, { context: { phaseDeadline, projectDeadline } }),
+    resolver: yupResolver(schema),
     defaultValues: {
       name: "",
       description: "",
       size: "M",
-      deadline: today,
+      deadline: todayStr(),
       assigneeId: null,
     },
   });
-
-  const [sizeOptions, setSizeOptions] = useState(["S", "M", "L"]);
-  const [members, setMembers] = useState([]);
-  const [assigneeSearch, setAssigneeSearch] = useState("");
 
   const filter = createFilterOptions({
     stringify: (opt) =>
       `${opt.firstName || ""} ${opt.lastName || ""} ${opt.username || ""} ${opt.email || ""}`.toLowerCase(),
   });
 
-  // Task sizes
+  // Load sizes
   useEffect(() => {
     if (!open) return;
     (async () => {
       try {
         const sizes = await getTaskSizes();
-        setSizeOptions(Array.isArray(sizes) && sizes.length ? sizes : ["S", "M", "L"]);
+        const list = Array.isArray(sizes) && sizes.length ? sizes : ["S", "M", "L"];
+        setSizeOptions(list);
       } catch {
         setSizeOptions(["S", "M", "L"]);
       }
     })();
   }, [open]);
 
-  // Project members (only those already added into project)
+  // Load project members
   useEffect(() => {
     if (!open || !projectId) return;
     (async () => {
       try {
         const res = await getProjectEmployees(projectId);
-        // Hỗ trợ cả hai kiểu trả về: axios response hoặc data đã unwrap
         const list =
           (Array.isArray(res?.data?.data) && res.data.data) ||
           (Array.isArray(res?.data) && res.data) ||
@@ -123,7 +140,7 @@ export default function CreateTaskDialog({
     })();
   }, [open, projectId]);
 
-  // Reset khi mở dialog
+  // Reset form when open (after sizes ready)
   useEffect(() => {
     if (!open) return;
     setAssigneeSearch("");
@@ -131,10 +148,10 @@ export default function CreateTaskDialog({
       name: "",
       description: "",
       size: sizeOptions.includes("M") ? "M" : sizeOptions[0],
-      deadline: today,
+      deadline: todayStr(),
       assigneeId: null,
     });
-  }, [open, reset, today, sizeOptions]);
+  }, [open, reset, sizeOptions]);
 
   const onSubmit = async (data) => {
     if (!phase?.id) {
@@ -142,18 +159,25 @@ export default function CreateTaskDialog({
       return;
     }
     const res = await createTask({ ...data, phaseId: phase.id });
-    if (res.status === 200 || res.status === 201) {
+    if (res?.status === 200 || res?.status === 201) {
       dispatch(setPopup({ type: "success", message: res.message || "task-created-successfully" }));
       onCreated?.();
-      onClose();
+      onClose?.();
     } else {
-      dispatch(setPopup({ type: "error", message: res.message || "server-is-busy" }));
+      dispatch(setPopup({ type: "error", message: tErrors(res?.message) || res?.message || tMessages("server-is-busy") }));
     }
   };
 
+  // deadline input bounds for UX (validation is in yup)
+  const minDate = todayStr();
+  const maxDate = useMemo(() => {
+    const cands = [phaseDeadline, projectDeadline].filter(Boolean).sort();
+    return cands.length ? cands[0] : undefined;
+  }, [phaseDeadline, projectDeadline]);
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{t("create-task")}</DialogTitle>
+      <DialogTitle>{tTask("create-task")}</DialogTitle>
       <DialogContent>
         <Stack spacing={3} mt={1}>
           {/* Task Name */}
@@ -163,11 +187,11 @@ export default function CreateTaskDialog({
             render={({ field }) => (
               <TextField
                 {...field}
-                label={t("task-name")}
+                label={tTask("task-name")}
                 fullWidth
                 size="small"
                 error={!!errors.name}
-                helperText={t(errors.name?.message)}
+                helperText={errors.name ? tErrors(errors.name.message) : ""}
                 autoFocus
               />
             )}
@@ -180,13 +204,13 @@ export default function CreateTaskDialog({
             render={({ field }) => (
               <TextField
                 {...field}
-                label={t("task-description")}
+                label={tTask("task-description")}
                 fullWidth
                 multiline
                 rows={3}
                 size="small"
                 error={!!errors.description}
-                helperText={t(errors.description?.message)}
+                helperText={errors.description ? tErrors(errors.description.message) : ""}
               />
             )}
           />
@@ -199,11 +223,11 @@ export default function CreateTaskDialog({
               <TextField
                 {...field}
                 select
-                label={t("task-size")}
+                label={tTask("task-size")}
                 fullWidth
                 size="small"
                 error={!!errors.size}
-                helperText={t(errors.size?.message || "")}
+                helperText={errors.size ? tErrors(errors.size.message) : ""}
               >
                 {sizeOptions.map((opt) => (
                   <MenuItem key={opt} value={opt}>
@@ -221,22 +245,19 @@ export default function CreateTaskDialog({
             render={({ field }) => (
               <TextField
                 {...field}
-                label={t("task-deadline")}
+                label={tTask("task-deadline")}
                 type="date"
                 fullWidth
                 size="small"
                 error={!!errors.deadline}
-                helperText={t(errors.deadline?.message)}
+                helperText={errors.deadline ? tErrors(errors.deadline.message) : ""}
                 InputLabelProps={{ shrink: true }}
-                inputProps={{
-                  min: today,
-                  max: phaseDeadline || projectDeadline,
-                }}
+                inputProps={{ min: minDate, max: maxDate }}
               />
             )}
           />
 
-          {/* Assign Employee (with search + name & username) */}
+          {/* Assignee */}
           <Controller
             name="assigneeId"
             control={control}
@@ -250,15 +271,16 @@ export default function CreateTaskDialog({
                 filterOptions={(options, params) => filter(options, params)}
                 getOptionLabel={(opt) => {
                   if (!opt) return "";
-                  return opt.username || `${opt.firstName || ""} ${opt.lastName || ""}`.trim() || opt.email || "";
+                  const fullname = `${opt.firstName || ""} ${opt.lastName || ""}`.trim();
+                  return opt.username || fullname || opt.email || "";
                 }}
                 isOptionEqualToValue={(opt, val) => opt.id === val?.id}
-                noOptionsText="No options"
+                noOptionsText={tTask("no-options")}
                 renderOption={(props, option) => (
                   <li {...props} key={option.id}>
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       <span style={{ fontWeight: 600 }}>
-                        {`${option.firstName || ""} ${option.lastName || ""}`.trim() || "(No name)"}
+                        {`${option.firstName || ""} ${option.lastName || ""}`.trim() || tTask("no-name")}
                       </span>
                       <span style={{ opacity: 0.7 }}>
                         {option.username ? `@${option.username}` : option.email || ""}
@@ -269,10 +291,10 @@ export default function CreateTaskDialog({
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label={t("assign-to")}
+                    label={tTask("assign-to")}
                     size="small"
                     error={!!errors.assigneeId}
-                    helperText={errors.assigneeId && t(errors.assigneeId.message)}
+                    helperText={errors.assigneeId ? tErrors(errors.assigneeId.message) : ""}
                   />
                 )}
               />
@@ -282,9 +304,11 @@ export default function CreateTaskDialog({
       </DialogContent>
 
       <DialogActions sx={{ p: 3, pt: 2 }}>
-        <Button onClick={onClose}>{t("cancel")}</Button>
-        <Button variant="contained" onClick={handleSubmit(onSubmit)}>
-          {t("create")}
+        <Button onClick={onClose} disabled={isSubmitting}>
+          {tTask("cancel")}
+        </Button>
+        <Button variant="contained" onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>
+          {tTask("create")}
         </Button>
       </DialogActions>
     </Dialog>

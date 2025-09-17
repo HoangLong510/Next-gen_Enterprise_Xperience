@@ -16,12 +16,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
     _loadTransactions();
   }
 
-  // Load transactions from the service
   void _loadTransactions() {
-    _transactions = TransactionService.getAllTransactions();
+    setState(() {
+      _transactions = TransactionService.getAllTransactions();
+    });
   }
 
-  // Helper function to split "Name (Email)" into name and email
+  // Helper: split "Name (Email)" thành map
   Map<String, String> _splitCreatedBy(String createdBy) {
     final regExp = RegExp(r'(.+?)\s\(([^)]+)\)');
     final match = regExp.firstMatch(createdBy);
@@ -32,22 +33,21 @@ class _TransactionsPageState extends State<TransactionsPage> {
         'email': match.group(2) ?? '',
       };
     }
-    return {'name': createdBy, 'email': ''};  // If no match, treat the entire string as name
+    return {'name': createdBy, 'email': ''};
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Transactions'),
+        title: const Text('Transactions'),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh),
             onPressed: _loadTransactions,
           ),
-          // Add a button for navigating to the Fund page
           IconButton(
-            icon: Icon(Icons.account_balance),
+            icon: const Icon(Icons.account_balance),
             onPressed: () {
               Navigator.pushNamed(context, '/accountant/funds');
             },
@@ -58,11 +58,11 @@ class _TransactionsPageState extends State<TransactionsPage> {
         future: _transactions,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No transactions found.'));
+            return const Center(child: Text('No transactions found.'));
           }
 
           final transactions = snapshot.data!;
@@ -71,12 +71,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
             itemCount: transactions.length,
             itemBuilder: (context, index) {
               final transaction = transactions[index];
-
-              // Split "Created by" into name and email
               final createdBy = _splitCreatedBy(transaction.createdByDisplay);
 
               return Card(
-                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 child: ListTile(
                   leading: Icon(
                     transaction.status == 'PENDING'
@@ -86,12 +84,15 @@ class _TransactionsPageState extends State<TransactionsPage> {
                         ? Colors.orange
                         : Colors.green,
                   ),
-                  title: Text('${transaction.type} - \$${transaction.amount.toStringAsFixed(2)}'),
+                  title: Text(
+                    '${transaction.type} - \$${transaction.amount.toStringAsFixed(2)}',
+                  ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Created by: ${createdBy['name']}'),
-                      Text('Email: ${createdBy['email']}'),
+                      if (createdBy['email']!.isNotEmpty)
+                        Text('Email: ${createdBy['email']}'),
                       Text('Status: ${transaction.status}'),
                     ],
                   ),
@@ -100,12 +101,18 @@ class _TransactionsPageState extends State<TransactionsPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: Icon(Icons.check, color: Colors.green),
-                              onPressed: () => _approveTransaction(transaction.id),
+                              icon: const Icon(Icons.check, color: Colors.green),
+                              onPressed: () => _approveTransaction(
+                                transaction.fundId,
+                                transaction.id,
+                              ),
                             ),
                             IconButton(
-                              icon: Icon(Icons.close, color: Colors.red),
-                              onPressed: () => _rejectTransaction(transaction.id),
+                              icon: const Icon(Icons.close, color: Colors.red),
+                              onPressed: () => _rejectTransaction(
+                                transaction.fundId,
+                                transaction.id,
+                              ),
                             ),
                           ],
                         )
@@ -119,18 +126,18 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
-  void _approveTransaction(int transactionId) async {
+  void _approveTransaction(int fundId, int transactionId) async {
     await TransactionService.approveTransaction(
-      fundId: 1, // Example fundId, replace with actual value
+      fundId: fundId,
       transactionId: transactionId,
       approve: true,
     );
     _loadTransactions();
   }
 
-  void _rejectTransaction(int transactionId) async {
+  void _rejectTransaction(int fundId, int transactionId) async {
     await TransactionService.approveTransaction(
-      fundId: 1, 
+      fundId: fundId,
       transactionId: transactionId,
       approve: false,
     );

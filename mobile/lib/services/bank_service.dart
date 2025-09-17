@@ -1,40 +1,48 @@
-import 'package:mobile/models/account.dart';
-import 'package:mobile/models/bank/bank_tx.dart';
-import 'package:mobile/models/bank/topup_intent.dart';
-import 'package:mobile/models/bank/topup_row.dart';
+import 'package:dio/dio.dart';
+import 'package:mobile/services/api_service.dart';
 
-abstract class BankService {
-  /// Tìm nhân sự  theo keyword
-  Future<List<Account>> searchEmployees(String keyword, {int limit = 50});
+class BankService {
+  /// Lấy snapshot số dư hiện tại
+  static Future<Response> getSnapshot() async {
+    return ApiService.client.get("/accountant/bank/snapshot");
+  }
 
-  /// Tạo topup 
-  Future<List<TopupIntent>> createTopup({
-    required int amount,
-    required String bankAccountNo,
-    bool perEmployee = false,
-    List<int>? employeeIds,
-    int copies = 1,
-  });
+  /// Lịch sử giao dịch ngân hàng
+  static Future<Response> getHistory({
+    String? fromDate, // yyyy-MM-dd
+    String? toDate,   // yyyy-MM-dd
+    int page = 1,
+    int size = 20,
+  }) async {
+    return ApiService.client.get(
+      "/accountant/bank/history",
+      queryParameters: {
+        if (fromDate != null) "fromDate": fromDate,
+        if (toDate != null) "toDate": toDate,
+        "page": page,
+        "size": size,
+      },
+    );
+  }
 
-  /// Lấy trạng thái topup theo code
-  Future<TopupIntent> getTopupStatus(String code);
+  /// Refresh snapshot
+  static Future<Response> refresh() async {
+    return ApiService.client.post("/accountant/bank/refresh");
+  }
 
-  /// Lấy QR image URL theo code
-  Future<String?> getTopupQrUrl(String code);
-
-  /// Lịch sử topup 
-  Future<({List<TopupRow> rows, int totalPages})> getMyTopups({
-    required int page,
-    required int size,
-    required String scope, 
-  });
-
-  /// Lịch sử giao dịch ngân hàng 
-  Future<({List<BankTx> rows, int totalPages})> getBankTransactions({
-    required int page,
-    required int size,
-    String? type,        
-    String? fromIso,     
-    String? toIso,
-  });
+  /// Lấy giao dịch thô từ PaymentController (/accountant/bank-transactions)
+  static Future<Response> getRawTransactions({
+    String? type, // CREDIT | DEBIT
+    int page = 1,
+    int size = 20,
+  }) async {
+    return ApiService.client.get(
+      "/accountant/bank-transactions",
+      queryParameters: {
+        if (type != null) "type": type,
+        "page": page,
+        "size": size,
+      },
+    );
+  }
 }

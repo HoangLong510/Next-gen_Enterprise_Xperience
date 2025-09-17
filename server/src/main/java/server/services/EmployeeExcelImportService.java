@@ -60,7 +60,6 @@ public class EmployeeExcelImportService {
                 catch (Exception e) { r.getErrors().put("role", "invalid-role"); }
             }
 
-            // Check DB từng dòng (giống create)
             if (d.getEmail() != null && !d.getEmail().isBlank()) {
                 boolean existsEmail = employeeRepository.findByEmail(d.getEmail().toLowerCase()).isPresent();
                 if (existsEmail) r.getErrors().put("email", "email-already-exists");
@@ -81,7 +80,6 @@ public class EmployeeExcelImportService {
         ImportEmployeesResult pre = preview(file);
         if (!pre.isSuccess()) return pre;
 
-        // Lưu giống create()
         record MailRow(String email, String username, String rawPassword) {}
         List<Employee> toSave = new ArrayList<>();
         List<MailRow> mails = new ArrayList<>();
@@ -126,12 +124,12 @@ public class EmployeeExcelImportService {
 
     private List<ImportEmployeeRow> parseExcel(MultipartFile file) throws Exception {
         try (InputStream in = file.getInputStream(); Workbook wb = new XSSFWorkbook(in)) {
-            Sheet sheet = wb.getSheetAt(0);
-            if (sheet == null || sheet.getPhysicalNumberOfRows() < 2) return List.of();
+            Sheet sheet = wb.getSheetAt(0); // Lấy trang đầu tiên
+            if (sheet == null || sheet.getPhysicalNumberOfRows() < 2) return List.of(); //
 
             // Nếu có hàng 1 (keys ẩn) thì dùng, ngược lại dùng hàng 0
             Row keyRow = sheet.getRow(1) != null && !sheet.getRow(1).getZeroHeight() ? sheet.getRow(1) : null;
-            if (keyRow == null) keyRow = sheet.getRow(1); // vẫn dùng dù đã ẩn (ZeroHeight true)
+            if (keyRow == null) keyRow = sheet.getRow(1);
             if (keyRow == null || isBlankRow(keyRow)) keyRow = sheet.getRow(0);
 
             Map<String, Integer> idx = new HashMap<>();

@@ -14,7 +14,7 @@ android {
         applicationId = "com.example.mobile"
 
         // Lấy từ gradle.properties
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = 36
 
         versionCode = flutter.versionCode

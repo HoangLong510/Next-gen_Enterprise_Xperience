@@ -622,6 +622,30 @@ export default function DocumentCreate({ onSuccess, onCancel }) {
                       }}
                     />
                   </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      size="small"
+                      label="Fund Purpose"
+                      {...register("fundPurpose")}
+                      fullWidth
+                      error={!!errors.fundPurpose}
+                      helperText={
+                        errors.fundPurpose?.message || "Enter purpose"
+                      }
+                      margin="dense"
+                      InputProps={{
+                        sx: { borderRadius: 2 },
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <AssignmentOutlined
+                              fontSize="small"
+                              color="action"
+                            />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
                 </Grid>
               </Box>
             </Collapse>

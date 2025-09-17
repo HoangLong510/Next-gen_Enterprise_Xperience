@@ -10,7 +10,7 @@ export async function listEvidence(taskId) {
 // Upload nhiều evidence (images/videos/files)
 export async function uploadEvidence(taskId, files) {
   const form = new FormData();
-  files.forEach(f => form.append("files", f)); // field name BE yêu cầu: "files"
+  files.forEach((f) => form.append("files", f));
   const res = await api.post(`/tasks/${taskId}/evidence`, form, {
     headers: { "Content-Type": "multipart/form-data" },
   });

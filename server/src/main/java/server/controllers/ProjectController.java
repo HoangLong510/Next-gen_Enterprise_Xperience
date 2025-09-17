@@ -22,33 +22,36 @@ import java.util.Map;
 public class ProjectController {
 
     private final ProjectService projectService;
+
+
     private final QuickTaskService quickTaskService;
     private final UploadFileService uploadFileService;
 
-    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM')")
+    // ✅ Lấy tất cả dự án đang hoạt động (theo role, EMP/HOD dùng rule mới)
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE','SECRETARY')")
+
     @GetMapping
     public ApiResponse<List<ProjectDto>> getAllVisible(HttpServletRequest request) {
         return projectService.getAllVisible(request);
     }
-    @PreAuthorize("""
-      hasAnyAuthority('ADMIN','MANAGER') or
-      (hasAuthority('PM') and @projectService.isProjectManager(#id, authentication.name))
-    """)
+
+    @PreAuthorize("@projectService.hasProjectAccess(#id, authentication.name)")
     // Lấy chi tiết dự án
     @GetMapping("/{id}")
-    public ApiResponse<ProjectDto> getProjectDetail(@PathVariable Long id) {
-        return projectService.getProjectDetail(id);
+    public ApiResponse<ProjectDto> getProjectDetail(@PathVariable Long id, HttpServletRequest request) {
+        return projectService.getProjectDetail(id, request);
     }
 
-    // Lấy các dự án đã hoàn tất
+    // ✅ Lấy các dự án đã hoàn tất (EMP/HOD sẽ bị lọc rỗng theo rule mới)
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
     @GetMapping("/done")
-    public ApiResponse<List<ProjectDto>> getDoneProjects() {
-        return projectService.getDoneProjects();
+    public ApiResponse<List<ProjectDto>> getDoneProjects(HttpServletRequest request) {
+        return projectService.getDoneProjects(request);
     }
 
     // Tìm kiếm dự án theo từ khoá
 // ProjectController.java
-    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
     @GetMapping("/search")
     public ApiResponse<List<ProjectDto>> search(
             HttpServletRequest request,
@@ -58,12 +61,15 @@ public class ProjectController {
     }
 
     // Lọc dự án theo trạng thái và độ ưu tiên
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
     @GetMapping("/filter")
     public ApiResponse<List<ProjectDto>> filter(
+            HttpServletRequest request,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String priority
     ) {
-        return projectService.filter(status, priority);
+
+        return projectService.filter(request, status, priority);
     }
 
     // Tạo mới dự án từ tài liệu được duyệt
@@ -74,9 +80,8 @@ public class ProjectController {
     ) {
         return projectService.createProject(dto, request);
     }
-
     @PreAuthorize("""
-  hasAnyAuthority('ADMIN','MANAGER') or
+  hasAnyAuthority('ADMIN','MANAGER','SECRETARY') or
   (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))
 """)
     @PostMapping("/{projectId}/quick-task")
@@ -91,7 +96,7 @@ public class ProjectController {
     }
 
     @PreAuthorize("""
-  hasAnyAuthority('ADMIN','MANAGER') or
+  hasAnyAuthority('ADMIN','MANAGER','SECRETARY') or
   (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))
 """)
     @PostMapping("/{projectId}/quick-tasks")
@@ -140,17 +145,19 @@ public class ProjectController {
         return projectService.linkRepo(id, dto, request);
     }
     // ProjectController.java
-    @PreAuthorize("""
-  hasAnyAuthority('ADMIN','MANAGER') or
-  (hasAuthority('PM') and @projectService.isProjectManager(#id, authentication.name))
-""")
 
+    @PreAuthorize("""
+      hasAnyAuthority('ADMIN','MANAGER') or
+      (hasAuthority('PM') and @projectService.isProjectManager(#id, authentication.name))
+    """)
     @GetMapping("/{id}/repo")
     public ApiResponse<?> getProjectRepo(@PathVariable Long id, HttpServletRequest request) {
         return projectService.getProjectRepo(id, request);
     }
 
-    // Lấy danh sách Project cho Kanban Board (Employee)
+    // ✅ Lấy danh sách Project cho Kanban Board
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
+
     @GetMapping("/kanban")
     public ApiResponse<List<ProjectDto>> getKanbanProjects(HttpServletRequest request) {
         return projectService.getKanbanProjects(request);

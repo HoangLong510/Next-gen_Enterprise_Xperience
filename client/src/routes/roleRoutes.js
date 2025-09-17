@@ -23,7 +23,7 @@ import FundDetails from "~/pages/accountant/fund-detail";
 import TransactionList from "~/pages/accountant/fund-transaction-list";
 import CreateSalaryPage from "~/pages/accountant/salary";
 import SalaryDetail from "~/pages/accountant/salary-detail";
-
+import ProjectKanbanBoard from "~/components/project/KanbanForm";
 // Employees
 import EmployeesListPage from "~/pages/employees";
 import CreateEmployeePage from "~/pages/employees/create";
@@ -51,30 +51,45 @@ const roleRoutes = [
     path: "/management/documents",
     component: DocumentList,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
+    roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT","SECRETARY"],
   },
   {
     path: "/management/documents/:id",
     component: DocumentDetail,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT"],
+    roles: ["ADMIN", "MANAGER", "PM", "CHIEFACCOUNTANT" ,"ACCOUNTANT","SECRETARY"],
   },
+
   {
     path: "/management/documents/:id/update",
     component: DocumentUpdate,
     layout: DefaultLayout,
-    roles: ["ADMIN"],
+    roles: ["ADMIN","SECRETARY"],
+
   },
   {
     path: "/management/documents/:id/histories",
     component: DocumentHistoryList,
     layout: DefaultLayout,
-    roles: ["MANAGER", "ADMIN"],
+    roles: ["MANAGER", "ADMIN","SECRETARY"],
   },
 
-  
 
-  // Departments
+  // Kanban (Project & Phase) — mở cho HOD/EMPLOYEE để họ xem/drag theo rule
+  {
+    path: "/projects/:id/kanban",
+    component: ProjectKanbanBoard,
+    layout: DefaultLayout,
+    roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE",],
+  },
+  {
+    path: "/projects/:projectId/phase/:phaseId/kanban",
+    component: ProjectKanbanBoard,
+    layout: DefaultLayout,
+    roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+  },
+
+    // Departments
   {
     path: "/departments/add",
     component: AddDepartmentPage,
@@ -99,37 +114,37 @@ const roleRoutes = [
     path: "/finance/fund",
     component: FundList,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "HOD", "ACCOUNTANT"],
+    roles: ["ADMIN", "MANAGER", "HOD", "CHIEFACCOUNTANT" ,"ACCOUNTANT"],
   },
   {
     path: "/finance/fund/:fundID",
     component: FundDetails,
     layout: DefaultLayout,
-    roles: ["ADMIN", "HOD", "ACCOUNTANT"],
+    roles: ["ADMIN", "HOD", "CHIEFACCOUNTANT" ,"ACCOUNTANT"],
   },
   {
     path: "/finance/fund/transactions",
     component: TransactionList,
     layout: DefaultLayout,
-    roles: ["ADMIN", "HOD", "ACCOUNTANT"],
+    roles: ["ADMIN", "HOD", "CHIEFACCOUNTANT" ,"ACCOUNTANT"],
   },
   {
     path: "/finance/salary",
     component: CreateSalaryPage,
     layout: DefaultLayout,
-    roles: ["ADMIN", "MANAGER", "HOD", "ACCOUNTANT"],
+    roles: ["ADMIN", "MANAGER", "HOD", "CHIEFACCOUNTANT" ,"ACCOUNTANT"],
   },
   {
     path: "/finance/salary/detail/:id",
     component: SalaryDetail,
     layout: DefaultLayout,
-    roles: ["ADMIN", "HOD", "ACCOUNTANT"],
+    roles: ["ADMIN", "HOD", "CHIEFACCOUNTANT" ,"ACCOUNTANT"],
   },
   {
     path: "/finance/salary/create",
     component: CreateSalaryPage,
     layout: DefaultLayout,
-    roles: ["ADMIN"],
+    roles: ["ADMIN","CHIEFACCOUNTANT" ,"ACCOUNTANT"],
   },
  
 

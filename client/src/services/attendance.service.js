@@ -67,7 +67,7 @@ export const getAttendanceTodayStatusApi = async (accountId) => {
     const res = await api.get("/attendance/today-status", {
       params: { accountId },
     });
-    return res.data; // "NOT_CHECKED_IN", "CHECKED_IN", "CHECKED_OUT"
+    return res.data;
   } catch (error) {
     if (error.response) {
       throw error.response.data;

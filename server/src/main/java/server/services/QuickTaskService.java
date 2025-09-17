@@ -17,9 +17,11 @@ import server.repositories.EmployeeRepository;
 import server.repositories.PhaseRepository;
 import server.repositories.ProjectRepository;
 import server.repositories.TaskRepository;
+import server.repositories.TaskEvidenceRepository;
 import server.utils.ApiResponse;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -34,6 +36,7 @@ public class QuickTaskService {
     private final EmployeeRepository employeeRepo;
     private final DepartmentRepository departmentRepository;
     private final ProjectEmployeeService projectEmployeeService;
+    private final TaskEvidenceRepository taskEvidenceRepo;
 
     /* ===================== CREATE 1 TASK ===================== */
 
@@ -57,7 +60,7 @@ public class QuickTaskService {
         Task t = Task.builder()
                 .name(finalName)
                 .description(payload.description())
-                 .imageUrl(payload.imageUrl())
+                // KHÔNG lưu imageUrl trong Task — ảnh/đính kèm được lưu ở TaskEvidence (fileUrl)
                 .size(payload.size())
                 .deadline(payload.deadline())
                 .status(TaskStatus.IN_PROGRESS)
@@ -67,7 +70,10 @@ public class QuickTaskService {
                 .build();
         taskRepo.save(t);
 
-        return ApiResponse.created(TaskMapper.toDto(t), "task-created");
+        // Nếu có image/file URL -> tạo TaskEvidence
+        createEvidenceForUrlIfPresent(t, payload.imageUrl());
+
+        return ApiResponse.created(toDto(t), "task-created");
     }
 
     /* ===================== CREATE NHIỀU TASK ===================== */
@@ -101,9 +107,10 @@ public class QuickTaskService {
             String withAssignee = appendAssigneeSuffix(payload.name(), payload.assignee());
             String finalName = ensureUniqueName(phase.getId(), withAssignee);
             created.add(persistTask(phase, payload, finalName));
-            return ApiResponse.created(created.stream().map(TaskMapper::toDto).toList(), "tasks-created");
+            return ApiResponse.created(created.stream().map(this::toDto).toList(), "tasks-created");
         }
 
+        // đảm bảo các employee target đã được add vào project
         AddEmployeesRequestDto addReq = new AddEmployeesRequestDto();
         addReq.setEmployeeIds(new ArrayList<>(targetIds));
         projectEmployeeService.addEmployeesToProject(projectId, addReq);
@@ -119,7 +126,7 @@ public class QuickTaskService {
             created.add(persistTask(phase, payload, finalName));
         }
 
-        return ApiResponse.created(created.stream().map(TaskMapper::toDto).toList(), "tasks-created");
+        return ApiResponse.created(created.stream().map(this::toDto).toList(), "tasks-created");
     }
 
     /* ===================== HELPERS ===================== */
@@ -128,7 +135,7 @@ public class QuickTaskService {
         Task t = Task.builder()
                 .name(finalName)
                 .description(payload.description())
-                .imageUrl(payload.imageUrl())
+                // KHÔNG lưu imageUrl trong Task
                 .size(payload.size())
                 .deadline(payload.deadline())
                 .status(TaskStatus.IN_PROGRESS)
@@ -136,7 +143,44 @@ public class QuickTaskService {
                 .assignee(payload.assignee())
                 .hidden(false)
                 .build();
-        return taskRepo.save(t);
+        t = taskRepo.save(t);
+
+        // Nếu có image/file URL -> tạo TaskEvidence
+        createEvidenceForUrlIfPresent(t, payload.imageUrl());
+
+        return t;
+    }
+
+    private void createEvidenceForUrlIfPresent(Task task, @Nullable String imageOrFileUrl) {
+        if (imageOrFileUrl == null || imageOrFileUrl.isBlank()) return;
+
+        String fileName = safeFileNameFromUrl(imageOrFileUrl);
+        TaskEvidence ev = TaskEvidence.builder()
+                .task(task)
+                .uploadedBy(null) // nếu cần set user hiện tại, inject và set sau
+                .fileName(fileName != null ? fileName : "evidence")
+                .fileUrl(imageOrFileUrl.trim())
+                .contentType(null) // có thể detect từ đuôi file; để null nếu không chắc
+                .size(null)
+                .uploadedAt(LocalDateTime.now())
+                .build();
+        taskEvidenceRepo.save(ev);
+    }
+
+    private String safeFileNameFromUrl(String url) {
+        try {
+            String clean = url;
+            int q = clean.indexOf('?');
+            if (q >= 0) clean = clean.substring(0, q);
+            int hash = clean.indexOf('#');
+            if (hash >= 0) clean = clean.substring(0, hash);
+            int idx = clean.lastIndexOf('/');
+            String name = (idx >= 0 && idx < clean.length() - 1) ? clean.substring(idx + 1) : clean;
+            if (name.length() > 255) name = name.substring(name.length() - 255);
+            return name.isBlank() ? null : name;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private String ensureUniqueName(Long phaseId, String name) {
@@ -190,7 +234,7 @@ public class QuickTaskService {
                 ? overrideDescription.trim()
                 : (p.getDescription() != null ? p.getDescription().trim() : "");
 
-        String img = (overrideImageUrl != null && !overrideImageUrl.isBlank())
+        String imgOrFileUrl = (overrideImageUrl != null && !overrideImageUrl.isBlank())
                 ? overrideImageUrl.trim()
                 : null;
 
@@ -205,16 +249,53 @@ public class QuickTaskService {
             assignee = p.getProjectManager().getEmployee();
         }
 
-        return new TaskPayload(name, desc, img, size, deadline, assignee);
+        return new TaskPayload(name, desc, imgOrFileUrl, size, deadline, assignee);
     }
 
     /* ===================== DTO nội bộ ===================== */
     record TaskPayload(String name,
                        String description,
-                       String imageUrl,          // <— thêm field
+                       String imageUrl, // dùng để tạo TaskEvidence.fileUrl nếu có
                        TaskSize size,
                        LocalDate deadline,
                        Employee assignee) {}
+
+    // ========= MAPPER NỘI BỘ (thay TaskMapper) =========
+    private TaskDto toDto(Task t) {
+        if (t == null) return null;
+
+        Employee emp = t.getAssignee();
+        String assigneeUsername = (emp != null && emp.getAccount() != null) ? emp.getAccount().getUsername() : null;
+        String assigneeName = null;
+        if (emp != null) {
+            String first = emp.getFirstName() != null ? emp.getFirstName() : "";
+            String last  = emp.getLastName()  != null ? emp.getLastName()  : "";
+            assigneeName = (last + " " + first).trim();
+            if (assigneeName.isBlank()) assigneeName = null;
+        }
+
+        return TaskDto.builder()
+                .id(t.getId())
+                .name(t.getName())
+                .description(t.getDescription())
+                .imageUrl(null) // KHÔNG dùng; ảnh/đính kèm lấy từ TaskEvidence
+                .deadline(t.getDeadline())
+                .status(t.getStatus() != null ? t.getStatus().name() : null)
+                .phaseId(t.getPhase() != null ? t.getPhase().getId() : null)
+                .size(t.getSize() != null ? t.getSize().name() : null)
+                .hidden(t.isHidden())
+                .totalSubtasks(0) // có SubTask thì tính thật sau
+                .doneSubtasks(0)
+                .assigneeId(emp != null ? emp.getId() : null)
+                .assigneeName(assigneeName)
+                .assigneeUsername(assigneeUsername)
+                .githubBranch(t.getGithubBranch())
+                .branchCreated(t.isBranchCreated())
+                .pullRequestUrl(t.getPullRequestUrl())
+                .merged(t.isMerged())
+                .mergedAt(t.getMergedAt())
+                .build();
+    }
 
     /* ===================== PHỤ TRỢ KHÁC (giữ nguyên) ===================== */
 

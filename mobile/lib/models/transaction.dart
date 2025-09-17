@@ -1,5 +1,6 @@
 class FundTransaction {
   final int id;
+  final int fundId; 
   final String type;
   final double amount;
   final String? note;
@@ -17,6 +18,7 @@ class FundTransaction {
 
   FundTransaction({
     required this.id,
+    required this.fundId, 
     required this.type,
     required this.amount,
     this.note,
@@ -36,8 +38,9 @@ class FundTransaction {
   factory FundTransaction.fromJson(Map<String, dynamic> json) {
     return FundTransaction(
       id: json['id'],
+      fundId: json['fundId'], 
       type: json['type'],
-      amount: json['amount'].toDouble(),
+      amount: (json['amount'] as num).toDouble(),
       note: json['note'],
       createdBy: json['createdBy'],
       createdByDisplay: json['createdByDisplay'],

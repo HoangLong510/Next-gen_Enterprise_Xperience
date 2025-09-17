@@ -18,17 +18,13 @@ public class Task {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String name;
+    @Column(columnDefinition = "TEXT")
+    private String description; 
+    @Enumerated(EnumType.STRING) 
+    private TaskSize size;        
 
-    private String description;
-
-    private String imageUrl;
-
-    @Enumerated(EnumType.STRING)
-    private TaskSize size;
     private LocalDate deadline;
-
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
     private TaskStatus status;

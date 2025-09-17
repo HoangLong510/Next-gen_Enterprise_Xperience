@@ -1,0 +1,180 @@
+
+{
+  "title": "Project Management",
+  "subtitle": "Track and manage all your projects",
+  "searchPlaceholder": "Search projects...",
+  "allStatuses": "All Statuses",
+  "aria": {
+    "listView": "List view",
+    "gridView": "Grid view",
+    "openMenu": "Open menu"
+  },
+  "loading": "Loading...",
+  "noProjects": "No projects found.",
+  "action": {
+    "update": "Update",
+    "viewDetail": "View Detail"
+  },
+  "status": {
+    "planning": "Planning",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "canceled": "Canceled"
+  },
+  "statusLabel": {
+    "PLANNING": "Planning",
+    "IN_REVIEW": "In Review",
+    "IN_PROGRESS": "In Progress",
+    "COMPLETED": "Completed",
+    "CANCELED": "Cancel"
+  },
+  "tasksCompleted": "tasks completed",
+  "projectTimeline": "Project Timeline",
+  "daysOverdue_one": "{{count}} day overdue",
+  "daysOverdue_other": "{{count}} days overdue",
+  "daysLeft_one": "{{count}} day left",
+  "daysLeft_other": "{{count}} days left",
+  "overdue": "Overdue",
+  "remaining": "Remaining",
+  "backToProjects": "Back to Projects",
+  "projectDetailTitle": "Project Detail",
+  "projectDetailSubtitle": "Manage phases, tasks & members",
+  "phaseManagement": "Phase Management",
+  "searchTasksPlaceholder": "Search tasks...",
+  "deadlineLabel": "Deadline",
+  "createTask": "Create Task",
+  "progress": "Progress",
+  "tasksHeading": "Tasks",
+  "noTasksFound": "No matching tasks found.",
+  "noTasksYet": "No tasks yet. Create the first one!",
+  "noPhasesYet": "No phases yet",
+  "sizeLabel": "Size: {{value}}",
+  "noName": "(No name)",
+  "githubOpen": "Open on GitHub",
+  "linkRepo": "Link Repo",
+  "githubConnected": "GitHub Connected",
+  "viewOnly": "View only",
+  "connectGithub": "Connect GitHub",
+  "githubConnectedMenu": "GitHub Connected",
+  "editProject": "Edit Project",
+  "viewProject": "View Project",
+  "viewMembers": "View Members",
+  "addMember": "Add Member",
+  "createPhase": "Create Phase",
+  "projectNotFound": "Project not found.",
+  "loadingProject": "Loading project details...",
+  "confirmDeleteTitle": "Confirm delete",
+  "confirmDeleteBody": "Are you sure you want to delete this task? This action cannot be undone.",
+  "cancel": "Cancel",
+  "deleteTask": "Delete Task",
+  "errors": {
+    "projectCanceledCreateTask": "❌ Project is canceled. Cannot create a new task.",
+    "addMembersFirst": "❌ Please add members to the project before creating tasks.",
+    "prevPhaseNotCompleted": "❌ Cannot create task: Previous phase is not completed.",
+    "phaseLockedEditing": "❌ Next phase is In progress and already has tasks. You cannot edit tasks in a Completed phase.",
+    "noPermissionCreatePhase": "You do not have permission to create a phase.",
+    "githubLoginInitFailed": "Failed to start GitHub login.",
+    "noPermissionLinkRepo": "You don't have permission to link the repo.",
+    "repoUrlRequired": "Please enter a repo URL (e.g., https://github.com/owner/repo).",
+    "invalidRepoUrl": "Invalid repo URL format.",
+    "linkRepoFailed": "Failed to link repo."
+  },
+  "toasts": {
+    "linkRepoSuccess": "Repo linked successfully.",
+    "githubConnectedToast": "GitHub connected!"
+  },
+  "repoUrlPlaceholder": "https://github.com/owner/repo",
+  "form": {
+    "updateTitle": "Update Project",
+    "unknownDocumentCode": "Unknown",
+    "labels": {
+      "projectName": "Project Name",
+      "description": "Description",
+      "status": "Status",
+      "deadline": "Deadline",
+      "documentCode": "Document Code",
+      "pmName": "PM Name"
+    },
+    "buttons": {
+      "update": "Update",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "close": "Close"
+    },
+    "helper": {
+      "minAllowed": "Minimum allowed: {{date}}",
+      "cannotBackToPlanning": "Cannot set Planning when project already has tasks.",
+      "cannotComplete": "Cannot complete project while some tasks are not completed."
+    },
+    "validation": {
+      "project-name-is-required": "Project name is required",
+      "description-is-required": "Description is required",
+      "status-is-required": "Status is required",
+      "invalid-date-format": "Invalid date format (YYYY-MM-DD)",
+      "project-deadline-cannot-be-earlier-than-existing-phases-or-tasks": "Project deadline cannot be earlier than existing phases or tasks",
+      "pm-name-is-required": "PM name is required",
+      "document-id-is-required": "Document ID is required",
+      "document-id-must-be-a-number": "Document ID must be a number",
+      "deadline-cannot-be-in-the-past": "Deadline cannot be in the past"
+    },
+    "confirmCancelProjectMessage": "Are you sure you want to cancel this project? This action will mark the whole project as canceled."
+  },
+  "formCreate": {
+    "title": "Create Project from Document",
+    "pmLabel": "📌 Project Manager:",
+    "create": "Create"
+  },
+  "members": {
+    "title": "Project Members",
+    "searchPlaceholder": "Search members...",
+    "departmentLabel": "Department",
+    "allDepartments": "All Departments",
+    "assignedTooltip": "This member is assigned to a task",
+    "table": {
+      "name": "Name",
+      "department": "Department"
+    },
+    "noMembers": "No members found",
+    "buttons": {
+      "remove": "Remove",
+      "removeWithCount_one": "Remove ({{count}})",
+      "removeWithCount_other": "Remove ({{count}})"
+    }
+  },
+  "membersAdd": {
+    "title": "Add Team Members",
+    "subtitle": "Search and select employees to add to your project",
+    "searchPlaceholder": "Search employees...",
+    "departmentLabel": "Department",
+    "allDepartments": "All Departments",
+    "table": {
+      "name": "Name",
+      "department": "Department"
+    },
+    "noEmployees": "No employees found",
+    "buttons": {
+      "close": "Close",
+      "add": "Add",
+      "addWithCount_one": "Add ({{count}})",
+      "addWithCount_other": "Add ({{count}})"
+    }
+    },
+     "kanban": {
+    "aria": {
+      "column": "{{title}} column",
+      "itemsCount_one": "{{count}} task",
+      "itemsCount_other": "{{count}} tasks"
+    },
+    "columns": {
+      "BACKLOG": "Backlog",
+      "TODO": "To do",
+      "DOING": "Doing",
+      "DONE": "Done"
+    }
+  }, "kanbanTitle": "Project Kanban Board",
+  "backToProjectDetail": "Back to Project Detail",
+  "actions": {
+    "refresh": "Refresh"
+  },
+  "featureDisabled": "This feature is currently unavailable."
+}

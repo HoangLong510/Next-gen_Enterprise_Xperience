@@ -1,5 +1,6 @@
 package server.controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
@@ -19,8 +20,10 @@ import server.dtos.DocumentResponseDto;
 import server.dtos.GetDocumentHistoryPageDto;
 import server.dtos.GetDocumentsPageDto;
 import server.models.Document;
+import server.models.enums.DocumentStatus;
 import server.services.DocumentService;
 import server.utils.ApiResponse;
+import server.utils.JwtUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -36,6 +39,7 @@ import java.util.Map;
 public class DocumentController {
 
     private final DocumentService documentService;
+    private final JwtUtil jwtUtil;
 
     @PostMapping("/create")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER','SECRETARY')")
@@ -53,15 +57,27 @@ public class DocumentController {
     }
     // Xem chi tiết document (ADMIN, MANAGER, PM)
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'PM','ACCOUNTANT','SECRETARY')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MANAGER', 'PM', 'CHIEFACCOUNTANT','ACCOUNTANT','SECRETARY')")
     public ResponseEntity<?> getDetail(@PathVariable Long id) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         var doc = documentService.getDocumentById(id, username);
         return ResponseEntity.ok(ApiResponse.success(doc, "Fetched document detail"));
     }
 
+    @PutMapping("/{id}/status")
+    public ResponseEntity<?> updateDocumentStatus(
+            @PathVariable Long id,
+            @RequestParam("status") String status,
+            HttpServletRequest request) {
+        String username = jwtUtil.extractUsernameFromRequest(request);
+        DocumentStatus newStatus = DocumentStatus.valueOf(status);
+
+        DocumentResponseDto dto = documentService.updateStatus(id, newStatus, username);
+        return ResponseEntity.ok(ApiResponse.success(dto, "document-status-updated"));
+    }
+
     @GetMapping("/{id}/preview")
-    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','SECRETARY','ACCOUNTANT','PM','HOD')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','CHIEFACCOUNTANT','SECRETARY','ACCOUNTANT','PM','HOD')")
     public ResponseEntity<?> previewDocument(@PathVariable Long id) throws IOException {
         Document doc = documentService.getDocumentEntityById(id);
         String html = documentService.convertDocxToHtml(doc.getFileUrl());
@@ -112,7 +128,7 @@ public class DocumentController {
 
     // PM/ACCOUNTANT/HOD: chỉ lấy document của mình
     @PostMapping("/my/get-documents-page")
-    @PreAuthorize("hasAnyAuthority('PM', 'ACCOUNTANT', 'HOD')")
+    @PreAuthorize("hasAnyAuthority('PM', 'ACCOUNTANT', 'HOD','SECRETARY')")
     public ResponseEntity<?> getMyDocumentsPage(@RequestBody GetDocumentsPageDto req) {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         var user = (UserDetails) auth.getPrincipal();
@@ -138,7 +154,7 @@ public class DocumentController {
 
     // --- SECRETARY chỉnh sửa khi NEW (tự động snapshot vào history)
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','SECRETARY')")
     public ResponseEntity<?> updateDocument(@PathVariable Long id, @RequestBody DocumentRequestDto req) throws IOException {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         var user = (UserDetails) auth.getPrincipal();

@@ -28,6 +28,24 @@ export const filterProjects = async (status) => {
 };
 
 // ➡️ Lấy danh sách Project cho Kanban Board (Employee)
+/* =========================
+   PROJECTS: repo info
+   returns: { status, message, data: { repoLink, owner, name, defaultBranch } }
+   ========================= */
+export const getProjectRepo = async (id) => {
+  try {
+    const res = await api.get(`/projects/${id}/repo`);
+    return res.data;
+  } catch (error) {
+    // e.g. 204 "no-repo-linked", 401 "please-login-github-to-continue"
+    return handleApiError(error);
+  }
+};
+
+/* =========================
+   KANBAN: projects for staff board
+   NOTE: returns Axios Promise (caller unwraps)
+   ========================= */
 export const getKanbanProjects = () => api.get("/projects/kanban");
 
 // 🆕 Create project
@@ -36,9 +54,7 @@ export const createProjectFromDocument = async (data) => {
     const res = await api.post("/projects", data);
     return res.data;
   } catch (error) {
-    if (error.response) {
-      return error.response.data;
-    }
+if (error.response) return error.response.data;
     return { status: 500, message: "server-is-busy" };
   }
 };
@@ -51,7 +67,7 @@ export const updateProject = async (id, dto) => {
     });
     return res.data;
   } catch (error) {
-    console.error("❌ Lỗi API:", error);
+    console.error("API error:", error);
     return { status: 500, message: "server-error" };
   }
 };
@@ -91,7 +107,6 @@ const handleApiError = (error) => {
   if (error.response) return error.response.data;
   return { status: 500, message: "server-is-busy" };
 };
-
 export const createQuickTask = async (projectId, name) => {
   try {
     const payload = name ? { name } : {}; 
@@ -165,3 +180,4 @@ export const uploadPublicImageApi = async (file) => {
     return { status: 500, message: "server-is-busy" };
   }
 };
+

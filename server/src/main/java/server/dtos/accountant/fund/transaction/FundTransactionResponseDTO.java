@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 public record FundTransactionResponseDTO(
         Long id,
+        Long fundId,
         String type,
         Double amount,
         String note,

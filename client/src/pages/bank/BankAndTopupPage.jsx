@@ -114,27 +114,35 @@ export default function BankAndTopupPage() {
   const [txRows, setTxRows] = useState([]);
 
   /* ------------ employees: load + search ------------- */
-  const loadEmployees = async (keyword = "", limit = 50) => {
+  const loadEmployees = async (keyword) => {
     if (!isAccountant) return;
     setFetchingEmp(true);
-    const res = await searchEmployeesApi(keyword, { limit });
+    const res = await searchEmployeesApi(keyword);
     setFetchingEmp(false);
     setEmployeeOptions(res?.data || []);
   };
 
   // initial load employees (khi là kế toán)
   useEffect(() => {
-    if (isAccountant) loadEmployees("", 50);
+    if (isAccountant) loadEmployees("");
   }, [isAccountant]);
+
+  const optionsWithAll = useMemo(() => {
+    if (employeeOptions.length === 0) return [];
+    return [
+      { id: "__ALL__", firstName: "Select", lastName: "All" },
+      ...employeeOptions,
+    ];
+  }, [employeeOptions]);
 
   const debouncedSearch = useMemo(
     () =>
       debounce((kw) => {
         if (!isAccountant) return;
         if (!kw || kw.trim().length === 0) {
-          loadEmployees("", 50);
+          loadEmployees("");
         } else {
-          loadEmployees(kw.trim(), 20);
+          loadEmployees(kw.trim());
         }
       }, 350),
     [isAccountant]
@@ -348,9 +356,15 @@ export default function BankAndTopupPage() {
               <Collapse in={multiMode} unmountOnExit>
                 <Autocomplete
                   multiple
-                  options={employeeOptions}
+                  options={optionsWithAll}
                   value={selectedEmployees}
-                  onChange={(_, v) => setSelectedEmployees(v)}
+                  onChange={(_, v) => {
+                    if (v.some((e) => e.id === "__ALL__")) {
+                      setSelectedEmployees(employeeOptions);
+                    } else {
+                      setSelectedEmployees(v);
+                    }
+                  }}
                   loading={fetchingEmp}
                   getOptionLabel={(o) =>
                     `${o.firstName || ""} ${o.lastName || ""}`.trim()
@@ -358,7 +372,7 @@ export default function BankAndTopupPage() {
                   filterSelectedOptions
                   sx={{ width: 720 }}
                   onOpen={() => {
-                    if (employeeOptions.length === 0) loadEmployees("", 50);
+                    if (employeeOptions.length === 0) loadEmployees("");
                   }}
                   onInputChange={(_, v) => debouncedSearch(v)}
                   renderInput={(params) => (
@@ -559,8 +573,14 @@ export default function BankAndTopupPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {generatedList.map((it, idx) => (
-                      <GeneratedRow key={it.id || it.code || idx} it={it} />
+                    {topups.map((t, idx) => (
+                      <HistoryRow
+                        key={t.id || idx}
+                        t={t}
+                        idx={idx}
+                        topupPage={topupPage}
+                        isAccountant={isAccountant}
+                      />
                     ))}
                   </TableBody>
                 </Table>
@@ -592,53 +612,18 @@ export default function BankAndTopupPage() {
                 <TableCell>Status</TableCell>
                 <TableCell>Completed at</TableCell>
                 <TableCell>Created at</TableCell>
+                <TableCell>QR</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {topups.map((t, idx) => {
-                const ownerName = [t?.owner?.firstName, t?.owner?.lastName]
-                  .filter(Boolean)
-                  .join(" ");
-
-                return (
-                  <TableRow key={t.id || idx}>
-                    <TableCell>{(topupPage - 1) * 10 + idx + 1}</TableCell>
-                    <TableCell sx={{ maxWidth: 240, wordBreak: "break-all" }}>
-                      {t.code}
-                    </TableCell>
-
-                    {isAccountant && (
-                      <TableCell
-                        sx={{
-                          maxWidth: 220,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                        title={ownerName}
-                      >
-                        {ownerName || "—"}
-                      </TableCell>
-                    )}
-
-                    <TableCell>{formatVND(t.amount)}</TableCell>
-                    <TableCell>{t.bankAccountNo || "-"}</TableCell>
-                    <TableCell>
-                      <StatusChip s={t.status} />
-                    </TableCell>
-                    <TableCell>
-                      {t.completedAt
-                        ? new Date(t.completedAt).toLocaleString()
-                        : "-"}
-                    </TableCell>
-                    <TableCell>
-                      {t.createdAt
-                        ? new Date(t.createdAt).toLocaleString()
-                        : "-"}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {topups.map((t, idx) => (
+                <HistoryRow
+                  key={t.id || idx}
+                  t={t}
+                  idx={idx}
+                  topupPage={topupPage}
+                />
+              ))}
             </TableBody>
           </Table>
         </TableContainer>
@@ -808,14 +793,49 @@ function Row({ label, children }) {
 function GeneratedRow({ it }) {
   const [qr, setQr] = useState("");
   const [open, setOpen] = useState(false);
+  const [status, setStatus] = useState(it.status);
+  const pollTimer = useRef(null);
+
+  const stopPolling = () => {
+    if (pollTimer.current) {
+      clearInterval(pollTimer.current);
+      pollTimer.current = null;
+    }
+  };
+
+  const startPolling = (code) => {
+    stopPolling();
+    pollTimer.current = setInterval(async () => {
+      const r = await getTopupStatusApi(code);
+      const payload = r?.data || r;
+      if (payload?.status) {
+        setStatus(payload.status);
+        if (
+          payload.status !== "PENDING" &&
+          payload.status !== "REQUIRES_ACTION"
+        ) {
+          stopPolling();
+        }
+      }
+    }, 4000);
+  };
 
   const loadQr = async () => {
-    if (qr) return setOpen((v) => !v);
-    const r = await getTopupQrImageApi(it.code);
-    const payload = r?.data || r;
-    setQr(payload?.qrImageUrl || "");
-    setOpen(true);
+    if (!open) {
+      // khi mở lần đầu
+      const r = await getTopupQrImageApi(it.code);
+      const payload = r?.data || r;
+      setQr(payload?.qrImageUrl || "");
+      startPolling(it.code); // bắt đầu poll khi mở
+    } else {
+      stopPolling(); // nếu đóng thì dừng poll
+    }
+    setOpen((v) => !v);
   };
+
+  useEffect(() => {
+    return () => stopPolling(); // clear khi unmount
+  }, []);
 
   const name = (it?.owner?.firstName || "") + " " + (it?.owner?.lastName || "");
 
@@ -849,6 +869,9 @@ function GeneratedRow({ it }) {
         <TableCell>{formatVND(it.amount)}</TableCell>
         <TableCell>{it.bankAccountNo || "—"}</TableCell>
         <TableCell>
+          <StatusChip s={status} />
+        </TableCell>
+        <TableCell>
           <Button
             variant="text"
             size="small"
@@ -860,7 +883,111 @@ function GeneratedRow({ it }) {
         </TableCell>
       </TableRow>
       <TableRow>
-        <TableCell colSpan={6} sx={{ py: 0 }}>
+        <TableCell colSpan={7} sx={{ py: 0 }}>
+          <Collapse in={open}>
+            <Box display="flex" justifyContent="center" py={2}>
+              {qr ? (
+                <img
+                  src={qr}
+                  alt="VietQR"
+                  style={{ width: 200, height: 200, objectFit: "contain" }}
+                />
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Generating QR…
+                </Typography>
+              )}
+            </Box>
+          </Collapse>
+        </TableCell>
+      </TableRow>
+    </>
+  );
+}
+
+function HistoryRow({ t, idx, topupPage, isAccountant }) {
+  const [qr, setQr] = useState("");
+  const [open, setOpen] = useState(false);
+  const [status, setStatus] = useState(t.status); // track status
+
+  const loadQr = async () => {
+    if (!open && !qr) {
+      const r = await getTopupQrImageApi(t.code);
+      const payload = r?.data || r;
+      setQr(payload?.qrImageUrl || "");
+    }
+    setOpen((v) => !v);
+  };
+
+  const refreshStatus = async () => {
+    try {
+      const r = await getTopupStatusApi(t.code);
+      const payload = r?.data || r;
+      if (payload?.status) {
+        setStatus(payload.status);
+      }
+    } catch (e) {
+      console.error("Failed to refresh status", e);
+    }
+  };
+
+  const ownerName = [t?.owner?.firstName, t?.owner?.lastName]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <>
+      <TableRow>
+        <TableCell>{(topupPage - 1) * 10 + idx + 1}</TableCell>
+        <TableCell sx={{ maxWidth: 240, wordBreak: "break-all" }}>
+          {t.code}
+        </TableCell>
+
+        {isAccountant && (
+          <TableCell
+            sx={{
+              maxWidth: 220,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+            title={ownerName}
+          >
+            {ownerName || "—"}
+          </TableCell>
+        )}
+
+        <TableCell>{formatVND(t.amount)}</TableCell>
+        <TableCell>{t.bankAccountNo || "-"}</TableCell>
+        <TableCell>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <StatusChip s={status} />
+            <Tooltip title="Refresh status">
+              <IconButton size="small" onClick={refreshStatus}>
+                <AutorenewIcon fontSize="inherit" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        </TableCell>
+        <TableCell>
+          {t.completedAt ? new Date(t.completedAt).toLocaleString() : "-"}
+        </TableCell>
+        <TableCell>
+          {t.createdAt ? new Date(t.createdAt).toLocaleString() : "-"}
+        </TableCell>
+        <TableCell>
+          <Button
+            variant="text"
+            size="small"
+            startIcon={<QrCode2Icon />}
+            onClick={loadQr}
+          >
+            QR
+          </Button>
+        </TableCell>
+      </TableRow>
+      <TableRow>
+        <TableCell colSpan={isAccountant ? 9 : 8} sx={{ py: 0 }}>
           <Collapse in={open}>
             <Box display="flex" justifyContent="center" py={2}>
               {qr ? (

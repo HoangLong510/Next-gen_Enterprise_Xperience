@@ -76,6 +76,9 @@ public class TaskController {
     public ApiResponse<List<TaskDto>> filterTasks(@RequestParam(required = false) String status) {
         return taskService.filter(status);
     }
+    // ⬇️ Kanban Tasks: cho ADMIN, MANAGER, PM, HOD, EMPLOYEE
+    // Service sẽ tự lọc theo role (EMP/HOD chỉ thấy task của họ trong projects đủ điều kiện)
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM','HOD','EMPLOYEE')")
 
     @GetMapping("/kanban")
     public ApiResponse<List<TaskDto>> getKanbanTasks(
@@ -94,7 +97,14 @@ public class TaskController {
         taskOrderService.updateOrder(orderedTaskIds, auth);
         return ApiResponse.success(null, "order-updated");
     }
-
+    @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER','PM')")
+    @GetMapping("/{taskId}/assignment-logs")
+    public ApiResponse<?> getAssignmentLogs(
+            @PathVariable Long taskId,
+            HttpServletRequest request
+    ) {
+        return taskService.getAssignmentLogs(taskId, request);
+    }
     @GetMapping("/visible")
     public ApiResponse<List<TaskDto>> getAllVisible() {
         return taskService.getAllVisible();

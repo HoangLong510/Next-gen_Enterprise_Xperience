@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import server.models.Contract;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ContractRepository extends JpaRepository<Contract, Long> {
@@ -21,4 +22,10 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
      and c.endDate < :today
 """)
     int bulkExpire(@Param("today") java.time.LocalDate today);
+
+    @Query("SELECT c FROM Contract c " +
+            "WHERE c.employee.id = :empId " +
+            "AND c.status = 'ACTIVE' " +
+            "ORDER BY c.startDate DESC")
+    Optional<Contract> findActiveByEmployeeId(@Param("empId") Long empId);
 }

@@ -61,35 +61,79 @@ class DocumentModel {
   });
 
   factory DocumentModel.fromJson(Map<String, dynamic> json) {
+
+    double? _toDouble(dynamic v) {
+      if (v == null) return null;
+      if (v is num) return v.toDouble();
+      return double.tryParse(v.toString());
+    }
+
+    int? _toInt(dynamic v) {
+      if (v == null) return null;
+      if (v is num) return v.toInt();
+      return int.tryParse(v.toString());
+    }
+
     return DocumentModel(
-      id: json['id'],
-      code: json['code'],
-      title: json['title'],
-      content: json['content'],
-      fileUrl: json['fileUrl'],
-      createdBy: json['createdBy'],
-      receiver: json['receiver'],
-      relatedProjectId: json['relatedProjectId'],
-      createdAt: DateTime.parse(json['createdAt']),
+      id: _toInt(json['id']) ?? 0,
+      code: json['code']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      content: json['content']?.toString() ?? '',
+      fileUrl: json['fileUrl']?.toString(),
+      createdBy: json['createdBy']?.toString() ?? '',
+      receiver: json['receiver']?.toString(),
+      relatedProjectId: _toInt(json['relatedProjectId']),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
       status: DocumentStatusX.fromString(json['status']),
       type: DocumentTypeX.fromString(json['type']),
-      signature: json['signature'],
-      previewHtml: json['previewHtml'],
+      signature: json['signature']?.toString(),
+      previewHtml: json['previewHtml']?.toString(),
 
-      // 📝 Lấy ghi chú từ BE
-      managerNote: json['managerNote'],
+      managerNote: json['managerNote']?.toString(),
 
-      projectName: json['projectName'],
-      projectDescription: json['projectDescription'],
-      projectPriority: json['projectPriority'],
-      projectDeadline: json['projectDeadline'],
-      pmName: json['pmName'],
-      pmId: json['pmId'],
+      projectName: json['projectName']?.toString(),
+      projectDescription: json['projectDescription']?.toString(),
+      projectPriority: json['projectPriority']?.toString(),
+      projectDeadline: json['projectDeadline']?.toString(),
+      pmName: json['pmName']?.toString(),
+      pmId: _toInt(json['pmId']),
 
-      fundName: json['fundName'],
-      fundBalance: (json['fundBalance'] != null) ? json['fundBalance'].toDouble() : null,
-      fundPurpose: json['fundPurpose'],
-      accountantName: json['accountantName'],
+      fundName: json['fundName']?.toString(),
+      fundBalance: _toDouble(json['fundBalance']),
+      fundPurpose: json['fundPurpose']?.toString(),
+      accountantName: json['accountantName']?.toString(),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'code': code,
+      'title': title,
+      'content': content,
+      'fileUrl': fileUrl,
+      'createdBy': createdBy,
+      'receiver': receiver,
+      'relatedProjectId': relatedProjectId,
+      'createdAt': createdAt.toIso8601String(),
+      'status': status.name,
+      'type': type.name,
+      'signature': signature,
+      'previewHtml': previewHtml,
+
+      'managerNote': managerNote,
+
+      'projectName': projectName,
+      'projectDescription': projectDescription,
+      'projectPriority': projectPriority,
+      'projectDeadline': projectDeadline,
+      'pmId': pmId,
+
+      'fundName': fundName,
+      'fundBalance': fundBalance,
+      'fundPurpose': fundPurpose,
+      'accountantName': accountantName,
+    };
+  }
+
 }

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    .btn {
+      display: inline-block;
+      background-color: #4CAF50;
+      color: white !important;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+    .container {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <p>Hello <b th:text="${employeeName}">Employee</b>,</p>
+
+  <p>Your cash advance request has been <b>approved by the Director</b>.</p>
+
+  <p>
+    <a th:href="${paymentUrl}" class="btn">View Payment Request Details</a>
+  </p>
+
+  <p>Best regards,<br/>Accounting Department</p>
+</div>
+</body>
+</html>

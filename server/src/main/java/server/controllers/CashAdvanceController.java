@@ -21,10 +21,10 @@ public class CashAdvanceController {
 
     private final CashAdvanceService cashAdvanceService;
 
-    // Payload đơn giản cho các quyết định approve/reject ở từng cấp
     public static class DecisionPayload {
-        public Boolean approve; // true = approve, false = reject
-        public String note;     // optional, dùng khi reject
+        public Boolean approve;
+        public String note;
+        public String signatureDataUrl;
     }
 
     /* ================== Create ================== */
@@ -51,6 +51,14 @@ public class CashAdvanceController {
         return cashAdvanceService.create(me, dto, file);
     }
 
+    @PostMapping(path = "/json", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ApiResponse<?> createJson(Authentication auth,
+                                     @RequestBody CreateCashAdvanceDto payload) {
+        Account me = (Account) auth.getPrincipal();
+        return cashAdvanceService.create(me, payload, null);
+    }
+
+    /* ================== Queries ================== */
 
     @GetMapping("/my")
     public ApiResponse<?> my(Authentication auth) {
@@ -82,9 +90,14 @@ public class CashAdvanceController {
         return cashAdvanceService.pendingForDirector();
     }
 
+    // 🔹 Download file docx
+    @GetMapping("/{id}/docx")
+    public ResponseEntity<Resource> downloadDoc(@PathVariable Long id) throws IOException {
+        return cashAdvanceService.generateDoc(id);
+    }
+
     /* ================== Decisions per role ================== */
 
-    // Kế toán: duyệt/từ chối từ trạng thái PENDING
     @PostMapping("/{id}/accountant-decision")
     public ApiResponse<?> accountantDecision(Authentication auth,
                                              @PathVariable Long id,
@@ -95,7 +108,6 @@ public class CashAdvanceController {
         return cashAdvanceService.accountantApprove(me, id, approve, note);
     }
 
-    // Kế toán trưởng: duyệt/từ chối từ trạng thái APPROVED_ACCOUNTANT
     @PostMapping("/{id}/chief-decision")
     public ApiResponse<?> chiefDecision(Authentication auth,
                                         @PathVariable Long id,
@@ -103,10 +115,10 @@ public class CashAdvanceController {
         Account me = (Account) auth.getPrincipal();
         boolean approve = payload != null && Boolean.TRUE.equals(payload.approve);
         String note = payload != null ? payload.note : null;
-        return cashAdvanceService.chiefApprove(me, id, approve, note);
+        String signature = payload != null ? payload.signatureDataUrl : null;
+        return cashAdvanceService.chiefApprove(me, id, approve, note, signature);
     }
 
-    // Giám đốc: duyệt/từ chối từ trạng thái APPROVED_CHIEF
     @PostMapping("/{id}/director-decision")
     public ApiResponse<?> directorDecision(Authentication auth,
                                            @PathVariable Long id,
@@ -114,21 +126,20 @@ public class CashAdvanceController {
         Account me = (Account) auth.getPrincipal();
         boolean approve = payload != null && Boolean.TRUE.equals(payload.approve);
         String note = payload != null ? payload.note : null;
-        return cashAdvanceService.directorApprove(me, id, approve, note);
+        String signature = payload != null ? payload.signatureDataUrl : null;
+        return cashAdvanceService.directorApprove(me, id, approve, note, signature);
     }
 
-    /* ================== Deprecated (nếu FE cũ còn gọi) ==================
-       Nếu không cần tương thích ngược thì có thể xoá hẳn 4 endpoint này.
-    */
+    /* ================== Deprecated (tương thích ngược) ================== */
 
     @Deprecated
-    @GetMapping("/pending") // trước đây: inbox kế toán viên
+    @GetMapping("/pending")
     public ApiResponse<?> pendingDeprecated() {
         return cashAdvanceService.pendingForAccountant();
     }
 
     @Deprecated
-    @PostMapping("/{id}/status") // trước đây: updateStatus (kế toán)
+    @PostMapping("/{id}/status")
     public ApiResponse<?> updateStatusDeprecated() {
         return ApiResponse.badRequest("deprecated-use /{id}/accountant-decision");
     }
@@ -136,12 +147,12 @@ public class CashAdvanceController {
     @Deprecated
     @PostMapping("/send-to-chief")
     public ApiResponse<?> sendToChiefDeprecated() {
-        return ApiResponse.badRequest("deprecated-no-send-step-use /pending/chief & /{id}/chief-decision");
+        return ApiResponse.badRequest("deprecated-use /pending/chief & /{id}/chief-decision");
     }
 
     @Deprecated
     @PostMapping("/send-to-director")
     public ApiResponse<?> sendToDirectorDeprecated() {
-        return ApiResponse.badRequest("deprecated-no-send-step-use /pending/director & /{id}/director-decision");
+        return ApiResponse.badRequest("deprecated-use /pending/director & /{id}/director-decision");
     }
 }

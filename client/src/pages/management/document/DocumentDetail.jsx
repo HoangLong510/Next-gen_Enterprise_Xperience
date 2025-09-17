@@ -38,9 +38,11 @@ import {
   downloadDocumentFileApi,
   signDocumentApi,
   addManagerNoteApi,
+  updateDocumentStatusApi,
 } from "~/services/document.service";
 import SignatureCanvas from "react-signature-canvas";
 import ProjectFormCreate from "~/components/project/form/ProjectFormCreate";
+import { useTranslation } from "react-i18next";
 
 export default function DocumentDetail() {
   const { id } = useParams();
@@ -54,6 +56,7 @@ export default function DocumentDetail() {
   const signaturePadRef = useRef(null);
   const account = useSelector((state) => state.account.value);
   const dispatch = useDispatch();
+  const { t } = useTranslation("document_detail");
 
   // NOTE của giám đốc
   const [managerNote, setManagerNote] = useState("");
@@ -84,6 +87,23 @@ export default function DocumentDetail() {
     if (!id) return;
     fetchDetail();
   }, [id, account?.role]);
+
+  const handleUpdateStatus = async () => {
+    const res = await updateDocumentStatusApi(doc.id, "COMPLETED");
+    if (res.status === 200) {
+      dispatch(
+        setPopup({
+          type: "success",
+          message: "Update Document Sucessfully!",
+        })
+      );
+      fetchDetail();
+    } else {
+      dispatch(
+        setPopup({ type: "error", message: res.message || "Update Fail" })
+      );
+    }
+  };
 
   const handleDownload = async () => {
     if (!doc?.fileUrl) return;
@@ -277,7 +297,7 @@ export default function DocumentDetail() {
                     color="primary.dark"
                     fontSize={18}
                   >
-                    📄 Xem trước công văn (bản Word)
+                    📄 {t("previewWord")}
                   </Typography>
                 </Box>
                 <Box
@@ -302,7 +322,7 @@ export default function DocumentDetail() {
                   color="primary.main"
                   sx={{ mb: 2 }}
                 >
-                  📝 Nội dung chi tiết
+                  📝 {t("contentDetail")}
                 </Typography>
                 <Box
                   sx={{
@@ -333,7 +353,7 @@ export default function DocumentDetail() {
                   color="primary.main"
                   sx={{ mb: 3 }}
                 >
-                  🔧 Thao tác
+                  🔧 {t("action")}
                 </Typography>
                 <Stack
                   direction={{ xs: "column", sm: "row" }}
@@ -355,13 +375,13 @@ export default function DocumentDetail() {
                         py: 1.5,
                       }}
                     >
-                      {downloading ? "Downloading..." : "Download Word file"}
+                      {downloading ? t("downloading") : t("downloadWord")}
                     </Button>
                   )}
 
-                  {/* Nút xem lịch sử công văn */}
                   {(account?.role === "ADMIN" ||
-                    account?.role === "MANAGER") && (
+                    account?.role === "MANAGER" ||
+                    account?.role === "SECRETARY") && (
                     <Button
                       variant="outlined"
                       startIcon={<HistoryIcon />}
@@ -375,7 +395,7 @@ export default function DocumentDetail() {
                         py: 1.5,
                       }}
                     >
-                      View document history
+                      {t("viewHistory")}
                     </Button>
                   )}
 
@@ -395,7 +415,7 @@ export default function DocumentDetail() {
                           py: 1.5,
                         }}
                       >
-                        Ký điện tử công văn
+                        Signature
                       </Button>
                     )}
 
@@ -415,6 +435,27 @@ export default function DocumentDetail() {
                       Create Project
                     </Button>
                   )}
+                  {(account?.role === "SECRETARY" ||
+                    account?.role === "MANAGER") &&
+                    doc.status !== "COMPLETED" &&
+                    doc.relatedProjectId &&
+                    doc.projectStatus === "COMPLETED" && (
+                      <Button
+                        variant="contained"
+                        color="success"
+                        onClick={handleUpdateStatus}
+                        sx={{
+                          fontWeight: 700,
+                          textTransform: "none",
+                          borderRadius: 2,
+                          px: 3,
+                          py: 1.5,
+                          ml: "auto",
+                        }}
+                      >
+                        ✅ Update Document Completed
+                      </Button>
+                    )}
                 </Stack>{" "}
                 {account?.role === "MANAGER" && doc.status === "NEW" && (
                   <Box
@@ -435,7 +476,7 @@ export default function DocumentDetail() {
                       color="warning.main"
                       sx={{ mb: 1.5 }}
                     >
-                      📌 Ghi chú cho thư ký
+                      📌 Note for Secretary
                     </Typography>
                     <TextField
                       fullWidth
@@ -496,18 +537,19 @@ export default function DocumentDetail() {
                       {doc.managerNote}
                     </Box>
 
-                    {/* Nếu ADMIN và doc đang NEW thì hiện nút chỉnh sửa */}
-                    {account?.role === "ADMIN" && doc.status === "NEW" && (
-                      <Button
-                        variant="contained"
-                        color="warning"
-                        component={Link}
-                        to={`/management/documents/${doc.id}/update`}
-                        sx={{ textTransform: "none", borderRadius: 2 }}
-                      >
-                        Chỉnh sửa theo ghi chú
-                      </Button>
-                    )}
+                    {(account?.role === "ADMIN" ||
+                      account?.role === "SECRETARY") &&
+                      doc.status === "NEW" && (
+                        <Button
+                          variant="contained"
+                          color="warning"
+                          component={Link}
+                          to={`/management/documents/${doc.id}/update`}
+                          sx={{ textTransform: "none", borderRadius: 2 }}
+                        >
+                          Chỉnh sửa theo ghi chú
+                        </Button>
+                      )}
                   </CardContent>
                 </Card>
               )}
@@ -519,13 +561,13 @@ export default function DocumentDetail() {
                   color="primary.main"
                   sx={{ mb: 3 }}
                 >
-                  ℹ️ Thông tin chi tiết
+                  ℹ️ {t("detailInfo")}
                 </Typography>
                 <Grid container spacing={3}>
                   <Grid item xs={12} sm={6} md={3}>
                     <InfoRow
                       icon={<Person />}
-                      label="Created by"
+                      label={t("createdBy")}
                       value={doc.createdBy}
                       theme={theme}
                       color={theme.palette.success.main}
@@ -534,7 +576,7 @@ export default function DocumentDetail() {
                   <Grid item xs={12} sm={6} md={3}>
                     <InfoRow
                       icon={<Work />}
-                      label="Project Manager"
+                      label={t("pm")}
                       value={doc.pmName}
                       theme={theme}
                       color={theme.palette.info.main}
@@ -543,7 +585,7 @@ export default function DocumentDetail() {
                   <Grid item xs={12} sm={6} md={3}>
                     <InfoRow
                       icon={<CalendarToday />}
-                      label="Created at"
+                      label={t("createdAt")}
                       value={new Date(doc.createdAt).toLocaleString()}
                       theme={theme}
                       color={theme.palette.warning.main}
@@ -553,7 +595,7 @@ export default function DocumentDetail() {
                     <InfoRow
                       icon={<InfoOutlined />}
                       label="Status"
-                      value={doc.status}
+                      value={t(doc.status?.toLowerCase())}
                       theme={theme}
                       color={theme.palette.error.main}
                     />

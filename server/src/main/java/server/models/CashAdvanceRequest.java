@@ -21,15 +21,17 @@ import java.time.LocalDateTime;
                 @Index(name = "ix_cashadv_director_assignee", columnList = "director_assignee_id")
         }
 )
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class CashAdvanceRequest {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "task_id",
@@ -45,6 +47,19 @@ public class CashAdvanceRequest {
 
     @Column(columnDefinition = "TEXT")
     private String reason;
+
+    @Column(columnDefinition = "TEXT")
+    private String recipient;
+
+    // 🔹 Bổ sung từ DTO
+    @Column(name = "unit_name", columnDefinition = "TEXT")
+    private String unitName;
+
+    @Column(name = "department_or_address", columnDefinition = "TEXT")
+    private String departmentOrAddress;
+
+    @Column(name = "repayment_deadline_str", columnDefinition = "TEXT")
+    private String repaymentDeadlineStr;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
@@ -97,6 +112,18 @@ public class CashAdvanceRequest {
 
     @Column(columnDefinition = "TEXT")
     private String rejectNote;
+
+    @Column(name = "amount_text", columnDefinition = "TEXT")
+    private String amountText;
+
+    @Column(name = "signature_data_url", columnDefinition = "LONGTEXT")
+    private String signatureDataUrl;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String chiefSignatureDataUrl;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String directorSignatureDataUrl;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

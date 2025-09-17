@@ -49,19 +49,19 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
     final note = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(approved ? 'Duyệt ghi chú' : 'Từ chối ghi chú'),
+        title: Text(approved ? 'Approve explanation' : 'Reject explanation'),
         content: TextField(
           controller: controller,
           minLines: 2,
           maxLines: 5,
           decoration: const InputDecoration(
-            hintText: 'Nhập ghi chú quyết định',
+            hintText: 'Enter decision note',
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
-          FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: const Text('Xác nhận')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: const Text('Confirm')),
         ],
       ),
     );
@@ -71,7 +71,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
     if (!approved && note.trim().isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập lý do khi từ chối'), backgroundColor: Colors.red),
+        const SnackBar(content: Text('Please enter a reason to reject.'), backgroundColor: Colors.red),
       );
       return;
     }
@@ -86,14 +86,14 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(approved ? 'Đã duyệt ghi chú' : 'Đã từ chối ghi chú'),
+          content: Text(approved ? 'Explanation approved' : 'Explanation rejected'),
           backgroundColor: approved ? Colors.green : Colors.red,
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -106,25 +106,25 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
     final note = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Gửi ghi chú thiếu check-out'),
+        title: const Text('Submit missing check-out explanation'),
         content: TextField(
           controller: controller,
           minLines: 2,
           maxLines: 5,
           decoration: const InputDecoration(
-            hintText: 'Nhập lý do/ghi chú... (bắt buộc)',
+            hintText: 'Enter reason/note... (required)',
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           FilledButton(
             onPressed: () {
               final text = controller.text.trim();
               if (text.isEmpty) return;
               Navigator.pop(ctx, text);
             },
-            child: const Text('Gửi'),
+            child: const Text('Send'),
           ),
         ],
       ),
@@ -140,12 +140,12 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
       setState(() => _attendance = updated);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã gửi/ cập nhật ghi chú'), backgroundColor: Colors.green),
+        const SnackBar(content: Text('Note submitted/updated'), backgroundColor: Colors.green),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gửi ghi chú thất bại: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Failed to submit note: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -253,9 +253,10 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
   @override
   Widget build(BuildContext context) {
     final role = context.watch<AuthProvider>().account?.role;
-
+    final me = context.watch<AuthProvider>().account;
+    final bool isOwner = (me?.id != null) && (_attendance?.account.id == me?.id);
     return Scaffold(
-      appBar: AppBar(title: const Text('Chi tiết chấm công')),
+      appBar: AppBar(title: const Text('Attendance Details')),
       body: RefreshIndicator(
         onRefresh: _fetch,
         child: _loading
@@ -264,30 +265,28 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
             ? ListView(children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Text('Lỗi tải dữ liệu: $_error'),
+            child: Text('Failed to load: $_error'),
           )
         ])
             : _attendance == null
             ? ListView(children: const [
           Padding(
             padding: EdgeInsets.all(16),
-            child: Text('Không tìm thấy bản ghi'),
+            child: Text('Record not found'),
           )
         ])
             : ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Header + status
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Thông tin chung', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text('Overview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 _statusChip(_attendance!.status),
               ],
             ),
             const SizedBox(height: 12),
 
-            // Thông tin chung
             Card(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               elevation: 1,
@@ -296,29 +295,28 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _kv('Check-in lúc', _fmtDate(_attendance!.checkInTime), icon: Icons.login),
+                    _kv('Checked in at', _fmtDate(_attendance!.checkInTime), icon: Icons.login),
                     const SizedBox(height: 10),
-                    _kv('Check-out lúc', _fmtDate(_attendance!.checkOutTime), icon: Icons.logout),
+                    _kv('Checked out at', _fmtDate(_attendance!.checkOutTime), icon: Icons.logout),
                     const Divider(height: 24),
                     if (_attendance!.distanceKm != null)
-                      _kv('Khoảng cách (km)', _attendance!.distanceKm!.toStringAsFixed(2), icon: Icons.place),
+                      _kv('Distance (km)', _attendance!.distanceKm!.toStringAsFixed(2), icon: Icons.place),
                     const SizedBox(height: 8),
-                    _boolRow('Vị trí hợp lệ', _attendance!.locationValid),
+                    _boolRow('Location valid', _attendance!.locationValid),
                     const SizedBox(height: 8),
-                    _boolRow('Khuôn mặt khớp', _attendance!.faceMatch, ok: Icons.verified, bad: Icons.error_outline),
+                    _boolRow('Face matched', _attendance!.faceMatch, ok: Icons.verified, bad: Icons.error_outline),
                   ],
                 ),
               ),
             ),
 
             const SizedBox(height: 16),
-            _imageTile('Ảnh check-in', _attendance!.checkInImagePath),
+            _imageTile('Check-in image', _attendance!.checkInImagePath),
             const SizedBox(height: 12),
-            _imageTile('Ảnh check-out', _attendance!.checkOutImagePath),
+            _imageTile('Check-out image', _attendance!.checkOutImagePath),
 
             const SizedBox(height: 16),
 
-            // Ghi chú thiếu checkout (nhân viên)
             if (_attendance!.status == AttendanceStatus.MISSING_CHECKOUT)
               Card(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -332,7 +330,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
                         children: const [
                           Icon(Icons.note_alt_outlined),
                           SizedBox(width: 8),
-                          Text('Ghi chú giải trình', style: TextStyle(fontWeight: FontWeight.w700)),
+                          Text('Explanation note', style: TextStyle(fontWeight: FontWeight.w700)),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -347,22 +345,26 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
                           child: Text(_attendance!.checkOutEmployeeNote!),
                         )
                       else
-                        const Text('Chưa có ghi chú'),
+                        const Text('No explanation provided.'),
                       const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: OutlinedButton.icon(
-                          onPressed: _submitNoteDialog,
-                          icon: const Icon(Icons.send),
-                          label: Text((_attendance!.checkOutEmployeeNote ?? '').isNotEmpty ? 'Cập nhật ghi chú' : 'Gửi ghi chú'),
+                      if (isOwner && _attendance!.status == AttendanceStatus.MISSING_CHECKOUT)
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: OutlinedButton.icon(
+                            onPressed: _submitNoteDialog,
+                            icon: const Icon(Icons.send),
+                            label: Text(
+                              (_attendance!.checkOutEmployeeNote ?? '').isNotEmpty
+                                  ? 'Update note'
+                                  : 'Submit note',
+                            ),
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
               ),
 
-            // Kết quả HR (hiện khi đã có quyết định hoặc note HR)
             if (_attendance!.status == AttendanceStatus.RESOLVED ||
                 _attendance!.status == AttendanceStatus.REJECTED ||
                 _attendance!.hrDecision != null ||
@@ -379,12 +381,11 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
                         children: const [
                           Icon(Icons.verified_user_outlined),
                           SizedBox(width: 8),
-                          Text('Kết quả HR', style: TextStyle(fontWeight: FontWeight.w700)),
+                          Text('HR result', style: TextStyle(fontWeight: FontWeight.w700)),
                         ],
                       ),
                       const SizedBox(height: 12),
 
-                      // Quyết định
                       Row(
                         children: [
                           const Icon(Icons.flag, size: 18),
@@ -423,18 +424,18 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
                           child: Text(_attendance!.checkOutHrNote!),
                         )
                       else
-                        const Text('HR chưa để lại ghi chú'),
+                        const Text('No HR note'),
 
                       const SizedBox(height: 12),
 
                       // Thời gian & Người xử lý
                       if (_attendance!.hrResolvedAt != null)
-                        _kv('Thời gian xử lý',
+                        _kv('Resolved at',
                             DateFormat('HH:mm dd/MM/yyyy').format(_attendance!.hrResolvedAt!),
                             icon: Icons.schedule),
                       const SizedBox(height: 6),
                       _kv(
-                        'Người xử lý',
+                        'Resolved by',
                             () {
                           final hr = _attendance!.hrResolvedBy;
                           if (hr == null) return '—';
@@ -448,7 +449,6 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
                 ),
               ),
 
-            // Nút HR duyệt / từ chối
             if (role == 'HR' && _attendance!.status == AttendanceStatus.MISSING_CHECKOUT)
               Padding(
                 padding: const EdgeInsets.only(top: 12),
@@ -458,7 +458,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
                       child: OutlinedButton.icon(
                         onPressed: () => _hrResolve(false),
                         icon: const Icon(Icons.close),
-                        label: const Text('Từ chối'),
+                        label: const Text('Reject'),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -466,7 +466,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
                       child: FilledButton.icon(
                         onPressed: () => _hrResolve(true),
                         icon: const Icon(Icons.check),
-                        label: const Text('Duyệt'),
+                        label: const Text('Approve'),
                       ),
                     ),
                   ],

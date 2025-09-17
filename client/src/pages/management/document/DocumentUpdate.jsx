@@ -34,49 +34,46 @@ export default function DocumentUpdate() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // PM list
   const [pmOptions, setPmOptions] = useState([]);
   const [pmLoading, setPmLoading] = useState(false);
 
-  // Form state
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
-  // Common
-  const [type, setType] = useState(""); // PROJECT | ADMINISTRATIVE | ...
+  const [type, setType] = useState("");
   const [status, setStatus] = useState("");
 
-  // PROJECT fields
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
-  const [projectPriority, setProjectPriority] = useState(""); // HIGH|MEDIUM|LOW
-  const [projectDeadline, setProjectDeadline] = useState(""); // yyyy-MM-dd
-  const [pmId, setPmId] = useState(null); // allow changing PM
+  const [projectPriority, setProjectPriority] = useState("");
+  const [projectDeadline, setProjectDeadline] = useState("");
+  const [pmId, setPmId] = useState(null);
 
-  // ADMINISTRATIVE fields
   const [fundName, setFundName] = useState("");
   const [fundBalance, setFundBalance] = useState("");
   const [fundPurpose, setFundPurpose] = useState("");
 
-  // Manager note
   const [managerNote, setManagerNote] = useState("");
 
   const canEdit = useMemo(() => {
-    return account?.role === "ADMIN" && status === "NEW";
+    return (
+      (account?.role === "ADMIN" || account?.role === "SECRETARY") &&
+      status === "NEW"
+    );
   }, [account?.role, status]);
 
   const loadPMs = async () => {
     setPmLoading(true);
     try {
-      const res = await fetchPMsApi(); // expect { status:200, data:[{id, username, employee?}] }
+      const res = await fetchPMsApi();
       if (res?.status === 200 && Array.isArray(res.data)) {
         const mapped = res.data.map((u) => ({
           id: u.id,
-          label:
-            u?.employee
-              ? `${u.employee.firstName ?? ""} ${u.employee.lastName ?? ""}`.trim() ||
-                u.username
-              : u.username,
+          label: u?.employee
+            ? `${u.employee.firstName ?? ""} ${
+                u.employee.lastName ?? ""
+              }`.trim() || u.username
+            : u.username,
         }));
         setPmOptions(mapped);
       } else {
@@ -104,23 +101,22 @@ export default function DocumentUpdate() {
     }
     const d = res.data;
 
-    // Prefill
     setTitle(d.title || "");
     setContent(d.content || "");
     setType(d.type || "");
     setStatus(d.status || "");
     setManagerNote(d.managerNote || "");
 
-    // PROJECT
     setProjectName(d.projectName || "");
     setProjectDescription(d.projectDescription || "");
     setProjectPriority(d.projectPriority || "");
-    setProjectDeadline(d.projectDeadline || ""); // yyyy-MM-dd
+    setProjectDeadline(d.projectDeadline || "");
     setPmId(d.pmId || null);
 
-    // ADMIN
     setFundName(d.fundName || "");
-    setFundBalance(typeof d.fundBalance === "number" ? String(d.fundBalance) : "");
+    setFundBalance(
+      typeof d.fundBalance === "number" ? String(d.fundBalance) : ""
+    );
     setFundPurpose(d.fundPurpose || "");
   };
 
@@ -129,7 +125,6 @@ export default function DocumentUpdate() {
     loadDetail();
   }, [id]);
 
-  // Load PMs only when this document is a PROJECT
   useEffect(() => {
     if (type === "PROJECT") {
       loadPMs();
@@ -141,7 +136,7 @@ export default function DocumentUpdate() {
       dispatch(
         setPopup({
           type: "error",
-          message: "Only the secretary can edit when status is NEW.",
+          message: "Only ADMIN or SECRETARY can edit when status is NEW.",
         })
       );
       return;
@@ -150,14 +145,14 @@ export default function DocumentUpdate() {
     const payload = {
       title: title?.trim(),
       content: content?.trim(),
-      type, // backend decides which fields are applicable
+      type,
     };
 
     if (type === "PROJECT") {
       payload.projectName = projectName?.trim() || null;
       payload.projectDescription = projectDescription?.trim() || null;
       payload.projectPriority = projectPriority || null;
-      payload.projectDeadline = projectDeadline || null; // yyyy-MM-dd
+      payload.projectDeadline = projectDeadline || null;
       if (pmId) payload.pmId = pmId;
     } else if (type === "ADMINISTRATIVE") {
       payload.fundName = fundName?.trim() || null;
@@ -207,7 +202,12 @@ export default function DocumentUpdate() {
 
   return (
     <Box sx={{ maxWidth: 1100, mx: "auto", p: { xs: 2, md: 3 } }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{ mb: 2 }}
+      >
         <Button
           variant="text"
           component={Link}
@@ -245,7 +245,12 @@ export default function DocumentUpdate() {
       {managerNote && (
         <Card elevation={2} sx={{ mb: 3, borderRadius: 2 }}>
           <CardContent>
-            <Typography variant="subtitle1" fontWeight={700} color="warning.main" sx={{ mb: 1 }}>
+            <Typography
+              variant="subtitle1"
+              fontWeight={700}
+              color="warning.main"
+              sx={{ mb: 1 }}
+            >
               🗒️ Manager note
             </Typography>
             <Paper
@@ -387,7 +392,12 @@ export default function DocumentUpdate() {
             </>
           )}
 
-          <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 1 }}>
+          <Stack
+            direction="row"
+            spacing={2}
+            justifyContent="flex-end"
+            sx={{ mt: 1 }}
+          >
             <Button
               variant="outlined"
               color="inherit"

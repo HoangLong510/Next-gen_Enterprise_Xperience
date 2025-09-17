@@ -1,19 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/guards/role_guard.dart';
+import 'package:mobile/models/account.dart';
 
 // Attendance
 import 'package:mobile/screens/attendance/attendance_list_page.dart';
 import 'package:mobile/screens/attendance/attendance_details_page.dart';
-import 'package:mobile/screens/attendance/face_attendance_page.dart';
+
+import 'package:mobile/screens/attendance/missing_checkout_page.dart';
+import 'package:mobile/screens/attendance/face_attendance_page.dart' show CheckInCheckOutPage; // file này định nghĩa CheckInCheckOutPage
+
+// Bank
 import 'package:mobile/screens/bank/bank_and_topup_page.dart';
 
+// Auth / Core
 import 'package:mobile/screens/change_password.dart';
 
+import 'package:mobile/screens/fund/cash_advance_list_page.dart';
+
+import 'package:mobile/screens/dispatches/dispatch_edit_page.dart';
+
+
 // Core
+
 import 'package:mobile/screens/home_page.dart';
 import 'package:mobile/screens/login_page.dart';
 import 'package:mobile/screens/logout_page.dart';
+import 'package:mobile/screens/notifaications/notification_list_page.dart';
 import 'package:mobile/screens/profile_page.dart';
+import 'package:mobile/screens/transaction/transactions_page.dart';
 import 'package:mobile/widgets/custom_layout.dart';
 
 // Documents (Dispatches)
@@ -22,11 +36,20 @@ import 'package:mobile/screens/dispatches/dispatch_detail_page.dart';
 import 'package:mobile/screens/dispatches/dispatch_create_page.dart';
 
 // Notifications
-import 'package:mobile/screens/notifaications/notification_list_page.dart';
-import 'package:mobile/screens/leave_requests/leave_request_page.dart';
 
 // Projects
+
 import 'package:mobile/screens/projects/project_list_page.dart';
+
+
+import 'package:mobile/screens/projects/project_list_page.dart';
+import 'package:mobile/screens/projects/project_detail_page.dart';
+import 'package:mobile/screens/projects/kanban_board_page.dart';
+import 'package:mobile/models/project_model.dart';
+
+// Leave Requests
+
+import 'package:mobile/screens/leave_requests/leave_request_page.dart';
 
 // Funds
 import 'package:mobile/screens/fund/fund_create_page.dart';
@@ -36,25 +59,32 @@ import 'package:mobile/screens/fund/fund_update_page.dart';
 
 Route<dynamic> generateRoute(RouteSettings settings) {
   final name = settings.name;
+  // ignore: avoid_print
   print("Route: $name");
 
   // -------------------------
   // 1) Dynamic routes
   // -------------------------
   if (name != null) {
-    // /management/documents/:id
-    if (name.startsWith("/management/documents/")) {
-      final id = int.tryParse(name.split("/").last);
-      if (id != null) {
-        return _buildPage(
-          allowRoles: [
-            "ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HOD", "SECRETARY",
-          ],
-          child: DispatchDetailPage(id: id),
-        );
-      } else {
-        return _errorPage("Lỗi: ID công văn không hợp lệ");
-      }
+
+    // 1) EDIT: /management/documents/:id/edit
+    final editMatch = RegExp(r'^/management/documents/(\d+)/edit$').firstMatch(name);
+    if (editMatch != null) {
+      final id = int.parse(editMatch.group(1)!);
+      return _buildPage(
+        allowRoles: ["ADMIN", "SECRETARY"],
+        child: DispatchEditPage(documentId: id),
+      );
+    }
+
+    // 2) DETAIL: /management/documents/:id
+    final detailMatch = RegExp(r'^/management/documents/(\d+)$').firstMatch(name);
+    if (detailMatch != null) {
+      final id = int.parse(detailMatch.group(1)!);
+      return _buildPage(
+        allowRoles: ["ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HOD", "SECRETARY"],
+        child: DispatchDetailPage(id: id),
+      );
     }
 
     // /document/:id (redirect từ notification)
@@ -63,7 +93,12 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       if (id != null) {
         return _buildPage(
           allowRoles: [
-            "ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HOD", "SECRETARY",
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "ACCOUNTANT",
+            "HOD",
+            "SECRETARY",
           ],
           child: DispatchDetailPage(id: id),
         );
@@ -79,7 +114,13 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       if (id != null) {
         return _buildPage(
           allowRoles: [
-            "EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD",
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
           ],
           child: AttendanceDetailPage(attendanceId: id),
         );
@@ -114,6 +155,8 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         return _errorPage("Lỗi: ID quỹ không hợp lệ (edit)");
       }
     }
+
+
   }
 
   // -------------------------
@@ -124,7 +167,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HR", "HOD", "EMPLOYEE",
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "ACCOUNTANT",
+            "HR",
+            "HOD",
+            "EMPLOYEE",
+            "SECRETARY",
+            "CHIEFACCOUNTANT"
           ],
           child: CustomLayout(child: HomePage()),
         ),
@@ -135,7 +186,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD",
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
+            "SECRETARY",
+            "CHIEFACCOUNTANT"
           ],
           child: CustomLayout(child: AttendanceListPage()),
         ),
@@ -147,7 +206,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD",
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
+            "SECRETARY",
+            "CHIEFACCOUNTANT"
           ],
           child: CustomLayout(child: AttendanceDetailPage(attendanceId: id)),
         ),
@@ -157,9 +224,26 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD",
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
+            "SECRETARY",
+            "CHIEFACCOUNTANT"
+
           ],
           child: CustomLayout(child: CheckInCheckOutPage()),
+        ),
+      );
+
+    case "/attendance/missing-checkout":
+      return MaterialPageRoute(
+        builder: (_) => RoleGuard(
+          allowRoles: ["HR", "ADMIN"], // mở rộng nếu cần
+          child: CustomLayout(child: MissingCheckoutPage()),
         ),
       );
 
@@ -167,7 +251,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case "/management/documents":
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
-          allowRoles: ["ADMIN","MANAGER","PM","SECRETARY","ACCOUNTANT","HOD"],
+          allowRoles: [
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "SECRETARY",
+            "ACCOUNTANT",
+            "HOD",
+            "CHIEFACCOUNTANT"
+          ],
           child: CustomLayout(child: DispatchesListPage()),
         ),
       );
@@ -185,7 +277,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "ADMIN","MANAGER","PM","ACCOUNTANT","HR","HOD","EMPLOYEE",
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "ACCOUNTANT",
+            "HR",
+            "HOD",
+            "EMPLOYEE",
+            "CHIEFACCOUNTANT",
+            "SECRETARY"
           ],
           child: CustomLayout(child: NotificationListPage()),
         ),
@@ -195,29 +295,125 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case "/utilities/leave-request":
       return _buildPage(
         allowRoles: [
-          "ADMIN","MANAGER","PM","HOD","EMPLOYEE","HR","ACCOUNTANT",
+          "ADMIN",
+          "MANAGER",
+          "PM",
+          "HOD",
+          "EMPLOYEE",
+          "HR",
+          "ACCOUNTANT",
+          "SECRETARY",
+          "CHIEFACCOUNT"
         ],
-        child: const LeaveRequestPage(),
+        child: LeaveRequestPage(),
+      );
+
+    // Projects list (menu Utilities → Projects)
+    case "/utilities/projects":
+      return MaterialPageRoute(
+        builder: (_) => RoleGuard(
+          allowRoles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE"],
+          child: CustomLayout(child: ProjectListPage()),
+        ),
+      );
+
+    // Project detail (nhận ProjectModel từ arguments)
+    case "/projects/detail":
+      final project = settings.arguments as ProjectModel?;
+      if (project == null) return _errorPage("Thiếu ProjectModel (arguments).");
+      return _buildPage(
+        allowRoles: ["ADMIN","MANAGER","PM","ACCOUNTANT","HOD","EMPLOYEE"],
+        child: ProjectDetailPage(project: project),
+      );
+
+    // Kanban board
+    case "/projects/kanban":
+      final args = settings.arguments as Map<String, dynamic>? ?? {};
+      final projectId = args['projectId'] as int?;
+      if (projectId == null) return _errorPage("Thiếu projectId cho Kanban.");
+      return _buildPage(
+        allowRoles: ["ADMIN","MANAGER","PM","HOD","EMPLOYEE"],
+        child: KanbanBoardPage(
+          projectId: projectId,
+          projectName: args['projectName'] as String? ?? 'Kanban',
+          phaseName: args['phaseName'] as String?,
+          phaseId: args['phaseId'] as int?,
+          phaseTaskIds: (args['phaseTaskIds'] as List?)?.cast<int>(),
+          phaseCompleted: args['phaseCompleted'] as bool? ?? false,
+          projectPmId: args['projectPmId'] as int?,
+        ),
       );
 
     // Funds
     case "/accountant/funds":
       return _buildPage(
-        allowRoles: ["ADMIN", "ACCOUNTANT"],
+        allowRoles: [
+          "ADMIN",
+          "MANAGER",
+          "ACCOUNTANT",
+          "CHIEFACCOUNTANT",
+          "CHIEF_ACCOUNTANT",
+        ],
         child: FundListPage(),
       );
 
     case "/accountant/funds/create":
       return _buildPage(
-        allowRoles: ["ADMIN", "ACCOUNTANT"],
+        allowRoles: [
+          "ADMIN",
+          "MANAGER",
+          "ACCOUNTANT",
+          "CHIEFACCOUNTANT",
+          "CHIEF_ACCOUNTANT",
+        ],
         child: FundCreatePage(),
       );
-
+    //Transaction
+    case "/accountant/transactions":
+      return _buildPage(
+        allowRoles: [
+          "ADMIN",
+          "MANAGER",
+          "ACCOUNTANT",
+          "CHIEFACCOUNTANT",
+          "CHIEF_ACCOUNTANT",
+        ],
+        child: TransactionsPage(),
+      );
+    case "/accountant/cash-advance":
+      {
+        return _buildPage(
+          allowRoles: [
+            "ADMIN",
+            "MANAGER",
+            "ACCOUNTANT",
+            "CHIEFACCOUNTANT",
+            "CHIEF_ACCOUNTANT",
+            "EMPLOYEE",
+            "PM",
+            "HR",
+            "SECRETARY",
+          ],
+          child: CashAdvanceListPage(),
+        );
+      }
     // Bank
+
     case "/accountant/bank-topup":
       return _buildPage(
-        allowRoles: ["ADMIN","ACCOUNTANT","CHIEFACCOUNTANT","CHIEF_ACCOUNTANT"],
-        child: const BankAndTopupPage(isAccountant: true),
+        allowRoles: [
+          "ADMIN",
+          "MANAGER",
+          "PM",
+          "ACCOUNTANT",
+          "CHIEFACCOUNTANT",
+          "CHIEF_ACCOUNTANT",
+          "HR",
+          "HOD",
+          "EMPLOYEE",
+          "SECRETARY",
+        ],
+        child: const BankAndTopupPage(),
       );
 
     // Auth
@@ -226,19 +422,27 @@ Route<dynamic> generateRoute(RouteSettings settings) {
 
     case "/change-password":
       return MaterialPageRoute(
-        builder: (_) => const CustomLayout(child: ChangePasswordPage()),
+        builder: (_) => CustomLayout(child: ChangePasswordPage()),
       );
 
     case "/profile":
       return MaterialPageRoute(
-        builder: (_) => const CustomLayout(child: ProfilePage()),
+        builder: (_) => CustomLayout(child: ProfilePage()),
       );
 
     case "/logout":
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "ADMIN","MANAGER","PM","ACCOUNTANT","HR","HOD","EMPLOYEE",
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "ACCOUNTANT",
+            "HR",
+            "HOD",
+            "EMPLOYEE",
+            "CHIEFACCOUNTANT",
+            "SECRETARY"
           ],
           child: CustomLayout(child: LogoutPage()),
         ),
@@ -246,8 +450,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
 
     default:
       return MaterialPageRoute(
-        builder: (_) =>
-            const Scaffold(body: Center(child: Text("404 - Not found"))),
+        builder: (_) => const Scaffold(body: Center(child: Text("404 - Not found"))),
       );
   }
 }

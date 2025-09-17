@@ -26,6 +26,10 @@ public class SalaryHistoryDTO {
     private Long deductionBhxh;
     private Long deductionBhyt;
     private Long deductionBhtn;
+    private Long otherAllowance;
+    private Long otherDeduction;
+
+    private Long personalIncomeTax;
 
     private Long total;
 
