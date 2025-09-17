@@ -112,7 +112,7 @@ public class DocumentController {
 
     // PM/ACCOUNTANT/HOD: chỉ lấy document của mình
     @PostMapping("/my/get-documents-page")
-    @PreAuthorize("hasAnyAuthority('PM', 'ACCOUNTANT', 'HOD')")
+    @PreAuthorize("hasAnyAuthority('PM', 'ACCOUNTANT', 'HOD','SECRETARY')")
     public ResponseEntity<?> getMyDocumentsPage(@RequestBody GetDocumentsPageDto req) {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         var user = (UserDetails) auth.getPrincipal();

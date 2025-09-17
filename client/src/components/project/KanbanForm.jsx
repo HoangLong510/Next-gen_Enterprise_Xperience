@@ -1,6 +1,5 @@
 "use client";
 
-import { setPopup } from "~/libs/features/popup/popupSlice";
 
 /**
  * KanbanForm.jsx – FULL
@@ -110,6 +109,8 @@ export default function KanbanForm() {
 
   const [allowedDropSet, setAllowedDropSet] = useState(new Set());
   const [loading, setLoading] = useState(false);
+
+  const [advanceOpen, setAdvanceOpen] = useState(false);
 
 
   // Ghi nhớ ý định move-to-review
@@ -706,42 +707,6 @@ export default function KanbanForm() {
     },
     [refreshMeta]
   );
-
-
-  const visibleStatusOptions = useMemo(() => statusOptions, [statusOptions]);
-
-  // ===== Header / Toolbar UI =====
-  const renderHeader = () => (
-    <Stack direction="row" spacing={2} alignItems="center" mb={2}>
-      <Paper sx={{ p: 1.5, background: "linear-gradient(135deg,#118D57,#10B981)" }}>
-        <TrendingUp sx={{ color: "#fff", fontSize: 28 }} />
-      </Paper>
-      <Typography variant="h5" fontWeight={700}>
-        {tt(projReady, tProj, "kanbanTitle", "Project Kanban Board")}
-      </Typography>
-      <Box flex={1} />
-      <Tooltip title={tt(projReady, tProj, "actions.refresh", "Refresh")}>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<RefreshIcon />}
-          onClick={() => refreshMeta()}
-          sx={{ textTransform: "none" }}
-        >
-          {tt(projReady, tProj, "actions.refresh", "Refresh")}
-        </Button>
-      </Tooltip>
-    </Stack>
-  );
-
-  // View-only cho PM/Manager/Admin nếu phase của task đã COMPLETED
-  const dialogReadOnly = !isStaffMode && isTaskPhaseCompleted(pendingTask);
-
-  // ✅ Kiểm tra repo hợp lệ của project (để truyền xuống dialog)
-  const projectHasValidRepo = useMemo(() => {
-    const url = (projectInfo?.repoLink || "").trim();
-    return /^https:\/\/github\.com\/[^\/\s]+\/[^\/\s]+\/?$/i.test(url);
-  }, [projectInfo?.repoLink]);
 
 
   const visibleStatusOptions = useMemo(() => statusOptions, [statusOptions]);

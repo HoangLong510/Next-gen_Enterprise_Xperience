@@ -66,8 +66,7 @@ public class ProjectController {
     public ApiResponse<List<ProjectDto>> filter(
             HttpServletRequest request,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String priority,
-            HttpServletRequest request
+            @RequestParam(required = false) String priority
     ) {
 
         return projectService.filter(request, status, priority);

@@ -369,10 +369,12 @@ public class ProjectService {
             project.setCompletedAt(LocalDateTime.now());
 
             List<Document> docs = documentRepository.findByProject_Id(project.getId());
+            System.out.println("Found docs: " + docs.size());
 
             Account actor = accountRepository.findByUsername(
                     SecurityContextHolder.getContext().getAuthentication().getName()
             ).orElse(null);
+            System.out.println("Actor: " + (actor != null ? actor.getUsername() : "null"));
 
             for (Document doc : docs) {
                 doc.setStatus(DocumentStatus.COMPLETED);
@@ -593,21 +595,21 @@ public class ProjectService {
     /* ==================== HIDDEN FLAGS ==================== */
 
 
-        List<Project> projects = projectQuery.getAllVisible().stream()
-                .filter(pr -> pr.getStatus() != ProjectStatus.CANCELED)
-                .filter(pr -> pr.getPhases() != null && pr.getPhases().stream()
-                        .anyMatch(p -> p != null
-                                && p.getStatus() == PhaseStatus.IN_PROGRESS
-                                && p.getTasks() != null
-                                && p.getTasks().stream().anyMatch(t ->
-                                t != null
-                                        && t.getAssignee().getAccount() != null
-                                        && t.getAssignee().getAccount().getId().equals(me.getId())
-                                        && t.getStatus() != TaskStatus.CANCELED)))
-                .collect(Collectors.toList());
-
-        List<ProjectDto> dtos = projects.stream().map(this::toDto).collect(Collectors.toList());
-        return ApiResponse.success(dtos, "kanban-projects");
+//        List<Project> projects = projectQuery.getAllVisible().stream()
+//                .filter(pr -> pr.getStatus() != ProjectStatus.CANCELED)
+//                .filter(pr -> pr.getPhases() != null && pr.getPhases().stream()
+//                        .anyMatch(p -> p != null
+//                                && p.getStatus() == PhaseStatus.IN_PROGRESS
+//                                && p.getTasks() != null
+//                                && p.getTasks().stream().anyMatch(t ->
+//                                t != null
+//                                        && t.getAssignee().getAccount() != null
+//                                        && t.getAssignee().getAccount().getId().equals(me.getId())
+//                                        && t.getStatus() != TaskStatus.CANCELED)))
+//                .collect(Collectors.toList());
+//
+//        List<ProjectDto> dtos = projects.stream().map(this::toDto).collect(Collectors.toList());
+//        return ApiResponse.success(dtos, "kanban-projects");
 
     public void updateHiddenFlags() {
         List<Project> completedProjects = projectQuery.getDoneProjects();
@@ -625,6 +627,5 @@ public class ProjectService {
                 }
             }
         }
-
     }
 }

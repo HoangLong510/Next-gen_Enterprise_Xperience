@@ -3,6 +3,8 @@ package server.services;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -41,6 +43,7 @@ public class TaskService {
     private final TaskEvidenceRepository taskEvidenceRepository;
     private final EmployeeRepository employeeRepository;
     private final TaskEvidenceService taskEvidenceService;
+    private final NotificationService notificationService;
 
     @Transactional
     public ApiResponse<?> createTask(CreateTaskDto dto) {
@@ -103,6 +106,12 @@ public class TaskService {
 
         Task saved = taskRepository.save(task);
         projectStatusService.refreshStatus(phase.getProject());
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        Account me = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("invalid-account"));
+        notificationService.notifyTaskAssigned(saved, me);
 
         TaskDto result = new TaskDto();
         result.setId(saved.getId());
