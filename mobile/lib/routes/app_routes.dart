@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/guards/role_guard.dart';
+import 'package:mobile/models/account.dart';
 
 // Attendance
 import 'package:mobile/screens/attendance/attendance_list_page.dart';
@@ -8,12 +9,15 @@ import 'package:mobile/screens/attendance/face_attendance_page.dart';
 import 'package:mobile/screens/bank/bank_and_topup_page.dart';
 
 import 'package:mobile/screens/change_password.dart';
+import 'package:mobile/screens/fund/cash_advance_list_page.dart';
 
 // Core
 import 'package:mobile/screens/home_page.dart';
 import 'package:mobile/screens/login_page.dart';
 import 'package:mobile/screens/logout_page.dart';
+import 'package:mobile/screens/notifaications/notification_list_page.dart';
 import 'package:mobile/screens/profile_page.dart';
+import 'package:mobile/screens/transaction/transactions_page.dart';
 import 'package:mobile/widgets/custom_layout.dart';
 
 // Documents (Dispatches)
@@ -22,10 +26,9 @@ import 'package:mobile/screens/dispatches/dispatch_detail_page.dart';
 import 'package:mobile/screens/dispatches/dispatch_create_page.dart';
 
 // Notifications
-import 'package:mobile/screens/notifications/notification_list_page.dart';
 
 // Projects
-import 'package:mobile/screens/projects/project_list_page.dart'; 
+import 'package:mobile/screens/projects/project_list_page.dart';
 import 'package:mobile/screens/leave_requests/leave_request_page.dart';
 
 // Funds
@@ -48,7 +51,12 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       if (id != null) {
         return _buildPage(
           allowRoles: [
-            "ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HOD", "SECRETARY",
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "ACCOUNTANT",
+            "HOD",
+            "SECRETARY",
           ],
           child: DispatchDetailPage(id: id),
         );
@@ -63,7 +71,12 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       if (id != null) {
         return _buildPage(
           allowRoles: [
-            "ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HOD", "SECRETARY",
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "ACCOUNTANT",
+            "HOD",
+            "SECRETARY",
           ],
           child: DispatchDetailPage(id: id),
         );
@@ -79,7 +92,13 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       if (id != null) {
         return _buildPage(
           allowRoles: [
-            "EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD",
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
           ],
           child: AttendanceDetailPage(attendanceId: id),
         );
@@ -124,7 +143,14 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "ADMIN", "MANAGER", "PM", "ACCOUNTANT", "HR", "HOD", "EMPLOYEE",
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "ACCOUNTANT",
+            "HR",
+            "HOD",
+            "EMPLOYEE",
+            "CHIEFACCOUNTANT"
           ],
           child: CustomLayout(child: HomePage()),
         ),
@@ -135,7 +161,14 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD",
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
+            "CHIEFACCOUNTANT"
           ],
           child: CustomLayout(child: AttendanceListPage()),
         ),
@@ -147,7 +180,14 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD",
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
+            "CHIEFACCOUNTANT"
           ],
           child: CustomLayout(child: AttendanceDetailPage(attendanceId: id)),
         ),
@@ -157,7 +197,14 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "EMPLOYEE", "MANAGER", "PM", "HR", "ADMIN", "ACCOUNTANT", "HOD",
+            "EMPLOYEE",
+            "MANAGER",
+            "PM",
+            "HR",
+            "ADMIN",
+            "ACCOUNTANT",
+            "HOD",
+            "CHIEFACCOUNTANT"
           ],
           child: CustomLayout(child: CheckInCheckOutPage()),
         ),
@@ -167,7 +214,15 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case "/management/documents":
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
-          allowRoles: ["ADMIN","MANAGER","PM","SECRETARY","ACCOUNTANT","HOD"],
+          allowRoles: [
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "SECRETARY",
+            "ACCOUNTANT",
+            "HOD",
+            "CHIEFACCOUNTANT"
+          ],
           child: CustomLayout(child: DispatchesListPage()),
         ),
       );
@@ -185,7 +240,14 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "ADMIN","MANAGER","PM","ACCOUNTANT","HR","HOD","EMPLOYEE",
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "ACCOUNTANT",
+            "HR",
+            "HOD",
+            "EMPLOYEE",
+            "CHIEFACCOUNTANT"
           ],
           child: CustomLayout(child: NotificationListPage()),
         ),
@@ -195,7 +257,13 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case "/utilities/leave-request":
       return _buildPage(
         allowRoles: [
-          "ADMIN","MANAGER","PM","HOD","EMPLOYEE","HR","ACCOUNTANT",
+          "ADMIN",
+          "MANAGER",
+          "PM",
+          "HOD",
+          "EMPLOYEE",
+          "HR",
+          "ACCOUNTANT",
         ],
         child: const LeaveRequestPage(),
       );
@@ -203,21 +271,72 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     // Funds
     case "/accountant/funds":
       return _buildPage(
-        allowRoles: ["ADMIN", "ACCOUNTANT"],
+        allowRoles: [
+          "ADMIN",
+          "MANAGER",
+          "ACCOUNTANT",
+          "CHIEFACCOUNTANT",
+          "CHIEF_ACCOUNTANT",
+        ],
         child: FundListPage(),
       );
 
     case "/accountant/funds/create":
       return _buildPage(
-        allowRoles: ["ADMIN", "ACCOUNTANT"],
+        allowRoles: [
+          "ADMIN",
+          "MANAGER",
+          "ACCOUNTANT",
+          "CHIEFACCOUNTANT",
+          "CHIEF_ACCOUNTANT",
+        ],
         child: FundCreatePage(),
       );
-
+    //Transaction
+    case "/accountant/transactions":
+      return _buildPage(
+        allowRoles: [
+          "ADMIN",
+          "MANAGER",
+          "ACCOUNTANT",
+          "CHIEFACCOUNTANT",
+          "CHIEF_ACCOUNTANT",
+        ],
+        child: TransactionsPage(),
+      );
+    case "/accountant/cash-advance":
+      {
+        return _buildPage(
+          allowRoles: [
+            "ADMIN",
+            "MANAGER",
+            "ACCOUNTANT",
+            "CHIEFACCOUNTANT",
+            "CHIEF_ACCOUNTANT",
+            "EMPLOYEE",
+            "PM",
+            "HR",
+            "SECRETARY",
+          ],
+          child: CashAdvanceListPage(),
+        );
+      }
     // Bank
     case "/accountant/bank-topup":
       return _buildPage(
-        allowRoles: ["ADMIN","ACCOUNTANT","CHIEFACCOUNTANT","CHIEF_ACCOUNTANT"],
-        child: const BankAndTopupPage(isAccountant: true),
+        allowRoles: [
+          "ADMIN",
+          "MANAGER",
+          "PM",
+          "ACCOUNTANT",
+          "CHIEFACCOUNTANT",
+          "CHIEF_ACCOUNTANT",
+          "HR",
+          "HOD",
+          "EMPLOYEE",
+          "SECRETARY",
+        ],
+        child: const BankAndTopupPage(),
       );
 
     // Auth
@@ -238,7 +357,14 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         builder: (_) => RoleGuard(
           allowRoles: [
-            "ADMIN","MANAGER","PM","ACCOUNTANT","HR","HOD","EMPLOYEE",
+            "ADMIN",
+            "MANAGER",
+            "PM",
+            "ACCOUNTANT",
+            "HR",
+            "HOD",
+            "EMPLOYEE",
+            "CHIEFACCOUNTANT"
           ],
           child: CustomLayout(child: LogoutPage()),
         ),

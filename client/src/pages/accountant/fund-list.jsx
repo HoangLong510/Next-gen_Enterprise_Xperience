@@ -61,7 +61,7 @@ import {
   getAllTransactionsApi,
   getFundSummaryApi,
 } from "~/services/accountant/fund.service";
-import { getBankSnapshotApi,refreshBankApi } from "~/services/bank.service";
+import { getBankSnapshotApi, refreshBankApi } from "~/services/bank.service";
 import CustomAvatar from "~/components/custom-avatar";
 import { formatCurrency } from "~/utils/function";
 import i18n from "~/i18n";
@@ -1203,6 +1203,10 @@ export default function FundList({ accessToken }) {
                               startIcon={<AddCircleOutline />}
                               onClick={(e) => {
                                 e.stopPropagation();
+                                if (fund.name === "Bank Fund") {
+                                  navigate("/payment"); // dùng React Router
+                                  return;
+                                }
                                 setTransactionDialog({
                                   open: true,
                                   fundId: fund.id,

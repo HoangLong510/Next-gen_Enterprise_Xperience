@@ -46,6 +46,7 @@ import {
 
 import { renderAsync } from "docx-preview";
 import SignatureCanvas from "react-signature-canvas";
+import CashAdvanceFormDialog from "./CashAdvanceFormDialog";
 
 /* ================== Helper chữ ký ================== */
 function trimCanvasSafe(src) {
@@ -329,6 +330,7 @@ export default function CashAdvanceList() {
   const [reviewMode, setReviewMode] = useState("APPROVED");
   const [reviewId, setReviewId] = useState(null);
   const [reviewing, setReviewing] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -436,6 +438,19 @@ export default function CashAdvanceList() {
         <Button variant="outlined" onClick={fetchData}>
           {loading ? <CircularProgress size={18} /> : "Reload"}
         </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => setFormOpen(true)}
+        >
+          + New Cash Advance
+        </Button>
+
+        <CashAdvanceFormDialog
+          open={formOpen}
+          onClose={() => setFormOpen(false)}
+          onSuccess={() => fetchData()}
+        />
       </Stack>
 
       <Paper>

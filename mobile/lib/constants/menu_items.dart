@@ -63,9 +63,63 @@ const List<MenuSection> menuItems = [
     ],
   ),
   MenuSection(
+    title: "Finance",
+    items: [
+      MenuItemData(
+        label: "Funds",
+        icon: Icons.savings,
+        route: "/accountant/funds",
+        roles: [
+          "ADMIN",
+          "MANAGER",
+          "ACCOUNTANT",
+          "CHIEFACCOUNTANT",
+          "CHIEF_ACCOUNTANT",
+        ],
+      ),
+      MenuItemData(
+        label: "Transactions",
+        icon: Icons.compare_arrows,
+        route: "/accountant/transactions",
+        roles: [
+          "ADMIN",
+          "MANAGER",
+          "ACCOUNTANT",
+          "CHIEFACCOUNTANT",
+          "CHIEFACCOUNTANT",
+        ],
+      ),
+      MenuItemData(
+        label: "Cash Advance",
+        icon: Icons.payments,
+        route: "/accountant/cash-advance",
+        roles: [
+          "ADMIN",
+          "MANAGER",
+          "ACCOUNTANT",
+          "CHIEFACCOUNTANT",
+          "CHIEF_ACCOUNTANT",
+          "EMPLOYEE",
+        ],
+      ),
+      MenuItemData(
+        label: "Bank & Top-up",
+        icon: Icons.account_balance_wallet,
+        route: "/accountant/bank-topup",
+        roles: [
+          "ADMIN",
+          "MANAGER",
+          "ACCOUNTANT",
+          "CHIEFACCOUNTANT",
+          "CHIEF_ACCOUNTANT",
+        ],
+      ),
+    ],
+  ),
+  MenuSection(
     title: "Utilities",
     items: [
-       MenuItemData(
+      MenuItemData(
         label: "Bank & Top-up",
         icon: Icons.account_balance_wallet,
         route: "/accountant/bank-topup",
@@ -100,7 +154,17 @@ const List<MenuSection> menuItems = [
         label: "Leave Request",
         icon: Icons.description,
         route: "/utilities/leave-request",
-        roles: ["ADMIN", "MANAGER", "PM", "HOD", "EMPLOYEE", "HR", "ACCOUNTANT","SECRETARY","CHIEFACCOUNTANT"],
+        roles: [
+          "ADMIN",
+          "MANAGER",
+          "PM",
+          "HOD",
+          "EMPLOYEE",
+          "HR",
+          "ACCOUNTANT",
+          "SECRETARY",
+          "CHIEFACCOUNTANT",
+        ],
       ),
       MenuItemData(
         label: "AttenDance",
@@ -114,6 +178,7 @@ const List<MenuSection> menuItems = [
           "EMPLOYEE",
           "ACCOUNTANT",
           "HR",
+          "CHIEFACCOUNTANT"
         ],
       ),
     ],

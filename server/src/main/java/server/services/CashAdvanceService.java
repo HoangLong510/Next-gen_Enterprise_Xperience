@@ -113,14 +113,16 @@ public class CashAdvanceService {
     /* ===================== Commands ===================== */
     @Transactional
     public ApiResponse<?> create(Account creator, CreateCashAdvanceDto payload, MultipartFile file) {
-        if (payload.getTaskId() == null || payload.getAmount() == null || payload.getAmount() <= 0) {
+        if (payload.getAmount() == null || payload.getAmount() <= 0) {
             return ApiResponse.badRequest("invalid-params");
         }
-        Task task = taskRepo.findWithPhaseAndProjectById(payload.getTaskId()).orElse(null);
-        if (task == null) return ApiResponse.notfound("task-not-found");
-
         CashAdvanceRequest r = new CashAdvanceRequest();
-        r.setTask(task);
+
+        if (payload.getTaskId() != null) {
+            Task task = taskRepo.findWithPhaseAndProjectById(payload.getTaskId()).orElse(null);
+            if (task == null) return ApiResponse.notfound("task-not-found");
+            r.setTask(task);
+        }
         r.setAmount(payload.getAmount());
         r.setReason(payload.getReason());
         r.setStatus(CashAdvanceStatus.PENDING);

@@ -22,7 +22,7 @@ export const menuItems = [
         label: "Finance",
         icon: AttachMoneyIcon,
         href: "/management/finance",
-        roles: ["ADMIN", "MANAGER", "ACCOUNTANT"],
+        roles: ["ADMIN", "MANAGER", "CHIEFACCOUNTANT" ,"ACCOUNTANT"],
       },
       {
         label: "Accounts",
@@ -76,13 +76,13 @@ export const menuItems = [
         label: "Fund",
         icon: AssignmentIndIcon,
         href: "/finance/fund",
-        roles: ["ADMIN", "MANAGER", "ACCOUNTANT"],
+        roles: ["ADMIN", "MANAGER", "CHIEFACCOUNTANT" ,"ACCOUNTANT"],
       },
       {
         label: "Salary",
         icon: FilePresentIcon,
         href: "/finance/salary",
-        roles: ["ADMIN", "MANAGER", "ACCOUNTANT"],
+        roles: ["ADMIN", "MANAGER", "CHIEFACCOUNTANT" ,"ACCOUNTANT"],
       },
       {
         label: "Cash Advance",
