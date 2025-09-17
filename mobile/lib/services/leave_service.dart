@@ -4,22 +4,37 @@ import 'package:mobile/models/leave_request.dart';
 import 'package:mobile/models/account.dart';
 
 class LeaveService {
+  // (VN) Helper: coi 200/201/204 là thành công
+  static bool _ok(int? code) => code == 200 || code == 201 || code == 204;
+
   // ---------------- LIST & DETAIL ----------------
 
-  /// GET /leave-requests?status=...&page=...&size=...
-  /// Trả (items, totalPages)
+  /// GET /leave-requests?status=&page=&size=&departmentId=&departmentName=&senderName=&date=&month=
+  /// Trả về (items, totalPages)
   static Future<(List<LeaveRequest>, int)> getLeaveRequests({
     String? status,
     int page = 1,
     int size = 10,
+    int? departmentId,
+    String? departmentName,
+    String? senderName,
+    String? date,  // yyyy-MM-dd
+    String? month, // yyyy-MM
   }) async {
+    final qp = <String, dynamic>{
+      if (status != null && status.isNotEmpty) 'status': status,
+      'page': page,
+      'size': size,
+      if (departmentId != null) 'departmentId': departmentId,
+      if (departmentName != null && departmentName.isNotEmpty) 'departmentName': departmentName,
+      if (senderName != null && senderName.isNotEmpty) 'senderName': senderName,
+      if (date != null && date.isNotEmpty) 'date': date,
+      if (month != null && month.isNotEmpty) 'month': month,
+    };
+
     final res = await ApiService.client.get(
       '/leave-requests',
-      queryParameters: {
-        if (status != null && status.isNotEmpty) 'status': status,
-        'page': page,
-        'size': size,
-      },
+      queryParameters: qp,
       options: Options(headers: {'Content-Type': 'application/json'}),
     );
 
@@ -31,7 +46,6 @@ class LeaveService {
     final List raw = (data['items'] ?? data['documents'] ?? []) as List;
     final items = raw.map((e) => LeaveRequest.fromJson(e)).toList();
 
-    // Đọc linh hoạt tên trường tổng trang
     final totalPagesAny = data['totalPages'] ?? data['totalPage'] ?? data['total_pages'] ?? 1;
     final totalPages = (totalPagesAny as num).toInt();
 
@@ -50,16 +64,23 @@ class LeaveService {
   // ---------------- CREATE / APPROVE / REJECT ----------------
 
   /// POST /leave-requests
-  /// body: {reason, receiverId, leaveType, startDate/endDate | days, startTime?, endTime?}
+  /// body: {reason, receiverId?, leaveType, startDate/endDate | days, startTime?, endTime?}
   static Future<void> create(Map<String, dynamic> body) async {
     final res = await ApiService.client.post(
       '/leave-requests',
       data: body,
-      options: Options(headers: {'Content-Type': 'application/json'}),
+      options: Options(
+        headers: {'Content-Type': 'application/json'},
+        // (VN) Tự xử lý status thay vì để Dio throw
+        validateStatus: (_) => true,
+      ),
     );
-    if (res.statusCode != 201) {
-      throw Exception(res.data?['message'] ?? 'Tạo đơn nghỉ phép thất bại');
+    final code = res.statusCode ?? 0;
+    if (_ok(code)) {
+      // (VN) 200/201/204 đều coi là thành công
+      return;
     }
+    throw Exception(res.data?['message'] ?? 'Tạo đơn nghỉ phép thất bại (HTTP $code)');
   }
 
   /// POST /leave-requests/{id}/approve  body: { "signature": base64 }
@@ -67,10 +88,13 @@ class LeaveService {
     final res = await ApiService.client.post(
       '/leave-requests/$id/approve',
       data: {'signature': signatureBase64},
-      options: Options(headers: {'Content-Type': 'application/json'}),
+      options: Options(
+        headers: {'Content-Type': 'application/json'},
+        validateStatus: (_) => true,
+      ),
     );
-    if (res.statusCode != 200) {
-      throw Exception(res.data?['message'] ?? 'Duyệt đơn thất bại');
+    if (!_ok(res.statusCode)) {
+      throw Exception(res.data?['message'] ?? 'Duyệt đơn thất bại (HTTP ${res.statusCode})');
     }
   }
 
@@ -79,10 +103,13 @@ class LeaveService {
     final res = await ApiService.client.post(
       '/leave-requests/$id/reject',
       data: {'rejectReason': reason},
-      options: Options(headers: {'Content-Type': 'application/json'}),
+      options: Options(
+        headers: {'Content-Type': 'application/json'},
+        validateStatus: (_) => true,
+      ),
     );
-    if (res.statusCode != 200) {
-      throw Exception(res.data?['message'] ?? 'Từ chối đơn thất bại');
+    if (!_ok(res.statusCode)) {
+      throw Exception(res.data?['message'] ?? 'Từ chối đơn thất bại (HTTP ${res.statusCode})');
     }
   }
 
@@ -103,14 +130,65 @@ class LeaveService {
   static Future<void> hrConfirm(int id) async {
     final res = await ApiService.client.post(
       '/leave-requests/$id/hr-confirm',
-      options: Options(headers: {'Content-Type': 'application/json'}),
+      options: Options(
+        headers: {'Content-Type': 'application/json'},
+        validateStatus: (_) => true,
+      ),
     );
-    if (res.statusCode != 200) throw Exception(res.data?['message'] ?? 'Xác nhận HR thất bại');
+    if (!_ok(res.statusCode)) {
+      throw Exception(res.data?['message'] ?? 'Xác nhận HR thất bại (HTTP ${res.statusCode})');
+    }
   }
 
-  // ---------------- BANNERS ----------------
+  /// POST /leave-requests/{id}/hr-reject  body: { rejectReason? }
+  static Future<void> hrReject(int id, {String? reason}) async {
+    final res = await ApiService.client.post(
+      '/leave-requests/$id/hr-reject',
+      data: reason == null ? null : {'rejectReason': reason},
+      options: Options(
+        headers: {'Content-Type': 'application/json'},
+        validateStatus: (_) => true,
+      ),
+    );
+    if (!_ok(res.statusCode)) {
+      throw Exception(res.data?['message'] ?? 'HR từ chối thất bại (HTTP ${res.statusCode})');
+    }
+  }
 
-  /// GET /leave-requests/my-pending
+  /// POST /leave-requests/{id}/hr-cancel  (no body)
+  static Future<void> hrCancel(int id) async {
+    final res = await ApiService.client.post(
+      '/leave-requests/$id/hr-cancel',
+      options: Options(
+        headers: {'Content-Type': 'application/json'},
+        validateStatus: (_) => true,
+      ),
+    );
+    if (!_ok(res.statusCode)) {
+      throw Exception(res.data?['message'] ?? 'HR hủy đơn thất bại (HTTP ${res.statusCode})');
+    }
+  }
+
+  // ---------------- CANCEL REQUEST (Employee) ----------------
+
+  /// POST /leave-requests/{id}/cancel-request  body: { reason }
+  static Future<void> requestCancel(int id, {required String reason}) async {
+    final res = await ApiService.client.post(
+      '/leave-requests/$id/cancel-request',
+      data: {'reason': reason},
+      options: Options(
+        headers: {'Content-Type': 'application/json'},
+        validateStatus: (_) => true,
+      ),
+    );
+    if (!_ok(res.statusCode)) {
+      throw Exception(res.data?['message'] ?? 'Gửi yêu cầu hủy thất bại (HTTP ${res.statusCode})');
+    }
+  }
+
+  // ---------------- BANNERS / COUNTS ----------------
+
+  /// GET /leave-requests/my-pending (đơn mình gửi nhưng chưa được duyệt)
   static Future<List<LeaveRequest>> getMyPending() async {
     final res = await ApiService.client.get(
       '/leave-requests/my-pending',
@@ -121,7 +199,10 @@ class LeaveService {
     return list.map((e) => LeaveRequest.fromJson(e)).toList();
   }
 
-  /// GET /leave-requests/pending-to-approve
+  /// Alias để khớp tên gọi trên web
+  static Future<List<LeaveRequest>> getMyPendingSent() => getMyPending();
+
+  /// GET /leave-requests/pending-to-approve (đơn chờ tôi duyệt)
   static Future<List<LeaveRequest>> getPendingToApprove() async {
     final res = await ApiService.client.get(
       '/leave-requests/pending-to-approve',
@@ -131,6 +212,21 @@ class LeaveService {
     final list = res.data['data'] as List? ?? [];
     return list.map((e) => LeaveRequest.fromJson(e)).toList();
   }
+
+  /// GET /leave-requests/my-expired-count?month=yyyy-MM
+  static Future<int> getMyExpiredCount({String? month}) async {
+    final m = month ?? DateTime.now().toIso8601String().substring(0, 7); // yyyy-MM
+    final res = await ApiService.client.get(
+      '/leave-requests/my-expired-count',
+      queryParameters: {'month': m},
+      options: Options(headers: {'Content-Type': 'application/json'}),
+    );
+    if (res.statusCode != 200) throw Exception(res.data?['message'] ?? 'server-is-busy');
+    final data = res.data['data'];
+    if (data is num) return data.toInt();
+    if (data is String) return int.tryParse(data) ?? 0;
+    return 0;
+    }
 
   // ---------------- EXPORT ----------------
 
@@ -189,9 +285,14 @@ class LeaveService {
     final res = await ApiService.client.post(
       '/leave-requests/my-signature-sample',
       data: {'signatureBase64': signatureBase64},
-      options: Options(headers: {'Content-Type': 'application/json'}),
+      options: Options(
+        headers: {'Content-Type': 'application/json'},
+        validateStatus: (_) => true,
+      ),
     );
-    if (res.statusCode != 200) throw Exception(res.data?['message'] ?? 'Lưu chữ ký thất bại');
+    if (!_ok(res.statusCode)) {
+      throw Exception(res.data?['message'] ?? 'Lưu chữ ký thất bại (HTTP ${res.statusCode})');
+    }
   }
 
   // ---------------- ACCOUNTS ----------------

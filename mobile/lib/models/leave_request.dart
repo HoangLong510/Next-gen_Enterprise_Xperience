@@ -1,4 +1,13 @@
-enum LeaveStatus { PENDING, PENDING_HR, APPROVED, REJECTED, CANCELLED }
+enum LeaveStatus {
+  PENDING,
+  PENDING_HR,
+  APPROVED,
+  REJECTED,
+  CANCELLED,
+  WAITING_TO_CANCEL, 
+  EXPIRED,           
+}
+
 LeaveStatus leaveStatusFrom(String? s) => LeaveStatus.values.firstWhere(
   (e) => e.name == (s ?? 'PENDING'),
   orElse: () => LeaveStatus.PENDING,
@@ -141,20 +150,20 @@ class LeaveBalance {
   );
 }
 
-/// Body tạo đơn
 class LeaveRequestCreateInput {
   final String reason;
-  final int receiverId;
+  final int? receiverId; // đổi sang optional 
   final LeaveType leaveType;
   final String? startDate; // yyyy-MM-dd
   final String? endDate;   // yyyy-MM-dd
   final List<String>? days; // MULTI
   final String? startTime; // HH:mm
   final String? endTime;   // HH:mm
+
   const LeaveRequestCreateInput({
     required this.reason,
-    required this.receiverId,
     required this.leaveType,
+    this.receiverId,
     this.startDate,
     this.endDate,
     this.days,
@@ -164,7 +173,7 @@ class LeaveRequestCreateInput {
 
   Map<String, dynamic> toJson() => {
     'reason': reason,
-    'receiverId': receiverId,
+    if (receiverId != null) 'receiverId': receiverId,
     'leaveType': leaveTypeTo(leaveType),
     'startDate': startDate,
     'endDate': endDate,
