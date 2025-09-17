@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:intl/intl.dart';
 import 'package:mobile/models/api_response.dart';
 import 'package:mobile/models/document.dart';
+import 'package:mobile/models/document_history.dart';
 import 'package:mobile/services/api_service.dart';
 import 'package:mobile/models/account.dart';
 
@@ -103,5 +105,70 @@ class DocumentService {
       data: {'note': note},
     );
     return ApiResponse.fromJson(res.data);
+  }
+
+  static Future<(List<DocumentHistory> histories, int totalPage, int currentPage, int totalElements)>
+  getDocumentHistoriesPage({
+    required int documentId,
+    int pageNumber = 1,
+    int pageSize = 10,
+    String sortBy = 'desc',
+  }) async {
+    final res = await ApiService.client.post(
+      '/documents/$documentId/histories',
+      data: {
+        "pageNumber": pageNumber,
+        "pageSize": pageSize,
+        "sortBy": sortBy,
+      },
+    );
+
+    final data = res.data['data'];
+    final List raw = (data['histories'] as List? ?? []);
+    final items = raw.map((e) => DocumentHistory.fromJson(e)).toList();
+
+    final totalPage     = (data['totalPage'] as num?)?.toInt() ?? 1;
+    final current       = (data['currentPage'] as num?)?.toInt() ?? pageNumber;
+    final totalElements = (data['totalElements'] as num?)?.toInt() ?? items.length;
+
+    return (items, totalPage, current, totalElements);
+  }
+
+  static Future<DocumentModel> updateWithHistory({
+    required int id,
+    String? title,
+    String? content,
+
+    // PROJECT
+    String? projectName,
+    String? projectDescription,
+    DateTime? projectDeadline, // format yyyy-MM-dd
+    int? pmId,
+
+    // ADMINISTRATIVE
+    String? fundName,
+    double? fundBalance,
+    String? fundPurpose,
+  }) async {
+    String? fmtDate(DateTime? d) =>
+        d == null ? null : DateFormat('yyyy-MM-dd').format(d);
+
+    final body = <String, dynamic>{};
+    if (title != null) body['title'] = title;
+    if (content != null) body['content'] = content;
+
+    if (projectName != null) body['projectName'] = projectName;
+    if (projectDescription != null) body['projectDescription'] = projectDescription;
+    final deadlineStr = fmtDate(projectDeadline);
+    if (deadlineStr != null) body['projectDeadline'] = deadlineStr;
+    if (pmId != null) body['pmId'] = pmId;
+
+    if (fundName != null) body['fundName'] = fundName;
+    if (fundBalance != null) body['fundBalance'] = fundBalance;
+    if (fundPurpose != null) body['fundPurpose'] = fundPurpose;
+
+    final res = await ApiService.client.put('/documents/$id', data: body);
+
+    return DocumentModel.fromJson(res.data['data']);
   }
 }

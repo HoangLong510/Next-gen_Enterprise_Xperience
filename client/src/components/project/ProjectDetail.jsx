@@ -47,7 +47,6 @@ import {
   GitHub,
   Link as LinkIcon,
   OpenInNew,
-  Bolt,
   Visibility,
   Lock,
 } from "@mui/icons-material";
@@ -56,11 +55,7 @@ import { useParams, Link as RouterLink } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 
-import {
-  getProjectDetail,
-  linkRepoToProject,
-  createQuickTask,
-} from "~/services/project.service";
+import { getProjectDetail, linkRepoToProject } from "~/services/project.service";
 import UpdateTaskDialog from "~/components/project/form/UpdateTaskDialog";
 import { getProjectEmployees } from "~/services/project-employee.service";
 import { getPhasesWithTasksByProject } from "~/services/phase.service";
@@ -81,11 +76,7 @@ import {
 } from "~/utils/project.utils";
 
 import { setPopup } from "~/libs/features/popup/popupSlice";
-import {
-  startGithubLogin,
-  getGithubTokenStatus,
-} from "~/services/github.service";
-import QuickTaskAssignDrawer from "./QuickTaskAssignDrawer";
+import { startGithubLogin, getGithubTokenStatus } from "~/services/github.service";
 
 const TASK_CARD_HEIGHT = 72;
 
@@ -115,11 +106,7 @@ export default function ProjectDetail() {
   const [openUpdateTask, setOpenUpdateTask] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
-  const [confirmDelete, setConfirmDelete] = useState({
-    open: false,
-    phaseId: null,
-    taskId: null,
-  });
+  const [confirmDelete, setConfirmDelete] = useState({ open: false, phaseId: null, taskId: null });
 
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -135,8 +122,7 @@ export default function ProjectDetail() {
   const [githubConnected, setGithubConnected] = useState(false);
   const [repoUrl, setRepoUrl] = useState("");
 
-  const [quicking, setQuicking] = useState(false);
-  const [openQuickAssign, setOpenQuickAssign] = useState(false);
+  // ========= Role-based capability =========
   const isPM = !!project?.pmId && !!me?.id && Number(me.id) === Number(project?.pmId);
   const canEditProject = ["ADMIN", "MANAGER", "PM"].includes(me?.role || "") || isPM;
   const isViewOnly = !canEditProject;
@@ -182,6 +168,7 @@ export default function ProjectDetail() {
       const res = await getProjectDetail(projectId);
       if (res?.status === 200 && res.data) {
         setProject(res.data);
+        // luôn sync repoUrl theo server để tránh giữ giá trị cũ trên input
         setRepoUrl(res.data.repoLink ? String(res.data.repoLink).trim() : "");
       } else {
         setProject(null);
@@ -203,12 +190,8 @@ export default function ProjectDetail() {
       if (res?.status === 200 && Array.isArray(res.data)) {
         setPhases(res.data);
         if (res.data.length > 0) {
-          const last = res.data.reduce((a, b) =>
-            a.sequence > b.sequence ? a : b
-          );
-          setPreviousDeadline(
-            dayjs(last.deadline).add(1, "day").format("YYYY-MM-DD")
-          );
+          const last = res.data.reduce((a, b) => (a.sequence > b.sequence ? a : b));
+          setPreviousDeadline(dayjs(last.deadline).add(1, "day").format("YYYY-MM-DD"));
         } else {
           setPreviousDeadline(null);
         }
@@ -259,27 +242,18 @@ export default function ProjectDetail() {
       const savedPid = sessionStorage.getItem("pendingRepoProjectId");
 
       (async () => {
+        // ✅ xác thực lại trạng thái token thật sự từ server
         const actuallyConnected = await getGithubTokenStatus();
 
         if (actuallyConnected && saved && savedPid && Number(savedPid) === Number(projectId)) {
           const resp = await linkRepoToProject(projectId, { repoUrl: saved });
           if (resp?.status === 200) {
-            dispatch(
-              setPopup({
-                type: "success",
-                message: resp.message || "Link repo thành công",
-              })
-            );
+            dispatch(setPopup({ type: "success", message: resp.message || "Link repo thành công" }));
             setRepoUrl(saved);
             setProject((p) => (p ? { ...p, repoLink: saved } : p));
             await fetchProject();
           } else {
-            dispatch(
-              setPopup({
-                type: "error",
-                message: resp?.message || "Link repo thất bại",
-              })
-            );
+            dispatch(setPopup({ type: "error", message: resp?.message || "Link repo thất bại" }));
           }
         } else if (saved) {
           dispatch(setPopup({
@@ -324,9 +298,7 @@ export default function ProjectDetail() {
 
   const getFilteredTasks = (tasks) => {
     if (!searchTerm.trim()) return tasks;
-    return tasks.filter((task) =>
-      task.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return tasks.filter((task) => task.name.toLowerCase().includes(searchTerm.toLowerCase()));
   };
 
   const getTaskStatusCounts = (tasks) => ({
@@ -348,6 +320,7 @@ export default function ProjectDetail() {
 
   const openUpdatePhaseDialog = (phase) => {
     if (isViewOnly) return;
+    // 🔒 Chỉ khóa khi phase hiện tại COMPLETED & phase sau IN_PROGRESS + có task
     if (isPhaseLockedForTaskEditing(phase, phases)) {
       dispatch(setPopup({ type: "warning", message: t("errors.phaseLockedEditing") }));
       return;
@@ -395,6 +368,7 @@ export default function ProjectDetail() {
 
   const handleOpenAddTask = (phase) => {
     if (isViewOnly) return;
+    // 🔒 HARD-LOCK: Phase completed → cấm tạo task
     if (phase?.status === "COMPLETED") {
       dispatch(setPopup({ type: "warning", message: t("errors.phaseLockedEditing") }));
       return;
@@ -418,18 +392,14 @@ export default function ProjectDetail() {
 
   const connectGithub = async () => {
     try {
+      // Chỉ PM mới có quyền link → dùng context "project"
       await startGithubLogin({
         context: "project",
         id: Number(projectId),
         redirect: window.location.href,
       });
     } catch (e) {
-      dispatch(
-        setPopup({
-          type: "error",
-          message: "Không khởi tạo được đăng nhập GitHub",
-        })
-      );
+      dispatch(setPopup({ type: "error", message: "Không khởi tạo được đăng nhập GitHub" }));
     }
   };
 
@@ -441,15 +411,9 @@ export default function ProjectDetail() {
 
     const url = (repoUrl || "").trim();
     if (!url) {
-      dispatch(
-        setPopup({
-          type: "error",
-          message: "Vui lòng nhập URL repo (vd: https://github.com/owner/repo)",
-        })
-      );
+      dispatch(setPopup({ type: "error", message: "Vui lòng nhập URL repo (vd: https://github.com/owner/repo)" }));
       return;
     }
-
     if (!/^https:\/\/github\.com\/[^\/\s]+\/[^\/\s]+\/?$/i.test(url)) {
       dispatch(setPopup({ type: "error", message: "Định dạng repo URL không hợp lệ" }));
       return;
@@ -464,22 +428,12 @@ export default function ProjectDetail() {
 
     const resp = await linkRepoToProject(projectId, { repoUrl: url });
     if (resp?.status === 200) {
-      dispatch(
-        setPopup({
-          type: "success",
-          message: resp.message || "Link repo thành công",
-        })
-      );
+      dispatch(setPopup({ type: "success", message: resp.message || "Link repo thành công" }));
       setProject((p) => (p ? { ...p, repoLink: url } : p));
       setRepoUrl(url);
       await fetchProject();
     } else {
-      dispatch(
-        setPopup({
-          type: "error",
-          message: resp?.message || "Link repo thất bại",
-        })
-      );
+      dispatch(setPopup({ type: "error", message: resp?.message || "Link repo thất bại" }));
     }
   };
 
@@ -489,43 +443,6 @@ export default function ProjectDetail() {
   const overdue = isOverdue(project.deadline);
   const daysLeft = calculateDaysRemaining(project.deadline);
   const daysLate = getDaysOverdue(project.deadline);
-
-  const handleQuickTask = async () => {
-    if (isProjectCanceled) {
-      dispatch(
-        setPopup({
-          type: "error",
-          message: "Project đã bị hủy. Không thể tạo task.",
-        })
-      );
-      return;
-    }
-    const name = window.prompt("Tên task (bỏ trống để dùng mặc định):", "");
-
-    try {
-      setQuicking(true);
-      const res = await createQuickTask(projectId, name?.trim() || undefined);
-      setQuicking(false);
-
-      if (res?.status === 201 && res?.data) {
-        dispatch(setPopup({ type: "success", message: "Đã tạo quick task!" }));
-        if (res.data.phaseId) setExpandedPhaseId(res.data.phaseId);
-        await fetchPhases();
-      } else {
-        dispatch(
-          setPopup({
-            type: "error",
-            message: res?.message || "Tạo quick task thất bại",
-          })
-        );
-      }
-    } catch (e) {
-      setQuicking(false);
-      dispatch(
-        setPopup({ type: "error", message: "Server lỗi khi tạo quick task" })
-      );
-    }
-  };
 
   return (
     <Box
@@ -572,6 +489,7 @@ export default function ProjectDetail() {
                 >
                   {project.name}
                 </Typography>
+                {/* ↓ Description: wrap xuống dòng, không ellipsis, không tràn ngang */}
                 {project?.description?.trim() ? (
                   <Typography
                     variant="body2"
@@ -591,6 +509,7 @@ export default function ProjectDetail() {
               </Box>
 
               <Stack direction="row" spacing={1.25} alignItems="center" sx={{ flexShrink: 0 }}>
+                {/* ✅ Chỉ hiện "Mở GitHub" khi đã có repo hợp lệ (mọi role đều thấy) */}
                 {hasValidRepo ? (
                   <Button
                     variant="outlined"
@@ -604,6 +523,7 @@ export default function ProjectDetail() {
                     {t("githubOpen")}
                   </Button>
                 ) : (
+                  // ❗Không có repo → chỉ PM mới thấy UI link repo
                   canLinkRepo && (
                     <>
                       <TextField
@@ -635,6 +555,7 @@ export default function ProjectDetail() {
                   )
                 )}
 
+                {/* More menu: ẨN hoàn toàn với EMP/HOD */}
                 {!isStaff && (
                   <IconButton onClick={handleMenuClick} aria-label="project menu">
                     <MoreVert />
@@ -643,8 +564,10 @@ export default function ProjectDetail() {
               </Stack>
             </Box>
 
+            {/* MENU (ẩn hoàn toàn với EMP/HOD) */}
             {!isStaff && (
               <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+                {/* ✅ Chỉ PM mới thấy “Connect GitHub” */}
                 {canLinkRepo && !githubConnected ? (
                   <MenuItem
                     onClick={() => {
@@ -680,6 +603,7 @@ export default function ProjectDetail() {
                   </MenuItem>
                 )}
 
+                {/* 👇 NEW: Add Members for ADMIN/MANAGER/PM */}
                 {canEditProject && (
                   <MenuItem
                     onClick={() => {
@@ -692,6 +616,7 @@ export default function ProjectDetail() {
                     <ListItemText primary={t("addMember")} />
                   </MenuItem>
                 )}
+
                 <MenuItem
                   onClick={() => {
                     setOpenViewMembers(true);
@@ -741,21 +666,12 @@ export default function ProjectDetail() {
 
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 1, py: 1.2, backgroundColor: "#F9FAFB", borderRadius: 2 }}>
               <Stack direction="row" spacing={1} alignItems="center">
-                <Box
-                  sx={{
-                    backgroundColor: "#3B82F6",
-                    color: "white",
-                    p: 1,
-                    borderRadius: 2,
-                  }}
-                >
+                <Box sx={{ backgroundColor: "#3B82F6", color: "white", p: 1, borderRadius: 2 }}>
                   <CalendarToday sx={{ fontSize: 18 }} />
                 </Box>
                 <Box>
                   <Typography variant="subtitle2" fontWeight={600}>
-                    {`${formatDate(project.createdAt)} - ${formatDate(
-                      project.deadline
-                    )}`}
+                    {`${formatDate(project.createdAt)} - ${formatDate(project.deadline)}`}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">{t("projectTimeline")}</Typography>
                 </Box>
@@ -818,6 +734,7 @@ export default function ProjectDetail() {
                 const filteredTasks = getFilteredTasks(phase.tasks || []);
                 const taskCounts = getTaskStatusCounts(filteredTasks);
                 const showEditPhase = canEditProject && !isProjectCanceled;
+                // ✅ chỉ khóa khi phase hiện tại COMPLETED & phase sau IN_PROGRESS + có task
                 const allowEditPhase = showEditPhase && !isPhaseLockedForTaskEditing(phase, phases);
 
                 return (
@@ -833,12 +750,8 @@ export default function ProjectDetail() {
                       "&.Mui-expanded": { margin: "8px 0" },
                     }}
                   >
-                    {/* ✅ SỬA Ở ĐÂY: thêm AccordionSummary đúng chuẩn */}
                     <AccordionSummary
-                      component="div"
                       expandIcon={<ExpandMore />}
-                      aria-controls={`phase-${phase.id}-content`}
-                      id={`phase-${phase.id}-header`}
                       sx={{
                         "& .MuiAccordionSummary-content": {
                           overflow: "hidden",
@@ -905,29 +818,16 @@ export default function ProjectDetail() {
                           direction="row"
                           justifyContent="space-between"
                           alignItems="center"
-                          sx={{
-                            px: 1,
-                            py: 1.2,
-                            backgroundColor: "#F9FAFB",
-                            borderRadius: 2,
-                          }}
+                          sx={{ px: 1, py: 1.2, backgroundColor: "#F9FAFB", borderRadius: 2 }}
                         >
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <Box
-                              sx={{
-                                backgroundColor: "#3B82F6",
-                                color: "white",
-                                p: 1,
-                                borderRadius: 2,
-                              }}
-                            >
+                            <Box sx={{ backgroundColor: "#3B82F6", color: "white", p: 1, borderRadius: 2 }}>
                               <CalendarToday sx={{ fontSize: 18 }} />
                             </Box>
                             <Box>
                               <Typography variant="subtitle2" fontWeight={600}>
                                 {t("deadlineLabel")}: {phase.deadline}
                               </Typography>
-
                               <Tooltip
                                 title={
                                   (isViewOnly || isStaff || phase.status === "COMPLETED")
@@ -941,6 +841,7 @@ export default function ProjectDetail() {
                                     size="small"
                                     startIcon={<Add />}
                                     onClick={() => handleOpenAddTask(phase)}
+                                    // 🔒 staff & view-only & COMPLETED không tạo task
                                     disabled={
                                       isProjectCanceled ||
                                       !canCreateTask(phase) ||
@@ -966,11 +867,7 @@ export default function ProjectDetail() {
                                   {phase.progress ?? 0}%
                                 </Typography>
                               </Stack>
-                              <LinearProgress
-                                variant="determinate"
-                                value={typeof phase.progress === "number" ? phase.progress : 0}
-                                sx={{ height: 8, borderRadius: 5 }}
-                              />
+                              <LinearProgress variant="determinate" value={typeof phase.progress === "number" ? phase.progress : 0} sx={{ height: 8, borderRadius: 5 }} />
                             </Box>
                           )}
                         </Stack>
@@ -985,6 +882,7 @@ export default function ProjectDetail() {
                               <>
                                 <Typography variant="body2" color="text.secondary">-</Typography>
                                 <Chip label={`${statusLabel("PLANNING", "task")} (${taskCounts["PLANNING"]})`} size="small" color="warning" variant="outlined" sx={{ fontSize: "0.75rem" }} />
+
                                 <Chip label={`${statusLabel("IN_PROGRESS", "task")} (${taskCounts["IN_PROGRESS"]})`} size="small" color="info" variant="outlined" sx={{ fontSize: "0.75rem" }} />
                                 <Chip label={`${statusLabel("IN_REVIEW", "task")} (${taskCounts["IN_REVIEW"]})`} size="small" color="secondary" variant="outlined" sx={{ fontSize: "0.75rem" }} />
                                 <Chip label={`${statusLabel("COMPLETED", "task")} (${taskCounts["COMPLETED"]})`} size="small" color="success" variant="outlined" sx={{ fontSize: "0.75rem" }} />
@@ -997,14 +895,8 @@ export default function ProjectDetail() {
                               maxHeight: 300,
                               overflowY: "auto",
                               "&::-webkit-scrollbar": { width: 6 },
-                              "&::-webkit-scrollbar-track": {
-                                bgcolor: "#f1f1f1",
-                                borderRadius: 3,
-                              },
-                              "&::-webkit-scrollbar-thumb": {
-                                bgcolor: "#c1c1c1",
-                                borderRadius: 3,
-                              },
+                              "&::-webkit-scrollbar-track": { bgcolor: "#f1f1f1", borderRadius: 3 },
+                              "&::-webkit-scrollbar-thumb": { bgcolor: "#c1c1c1", borderRadius: 3 },
                             }}
                           >
                             {filteredTasks.length === 0 ? (
@@ -1016,7 +908,9 @@ export default function ProjectDetail() {
                             ) : (
                               <Stack spacing={1}>
                                 {filteredTasks.map((task) => {
+                                  // 🔒 chỉ khóa khi phase hiện tại COMPLETED & phase sau IN_PROGRESS + có task
                                   const isLocked = isPhaseLockedForTaskEditing(phase, phases);
+                                  // 🔒 EMP/HOD & view-only không được click mở UpdateTask
                                   const clickable = !isLocked && canEditProject && !isStaff;
 
                                   return (
@@ -1037,6 +931,7 @@ export default function ProjectDetail() {
                                       }}
                                       onClick={() => {
                                         if (!clickable) {
+                                          // Thông báo khi cố sửa task thuộc phase đã bị khóa chuỗi
                                           dispatch(setPopup({ type: "warning", message: t("errors.phaseLockedEditing") }));
                                           return;
                                         }
@@ -1055,7 +950,7 @@ export default function ProjectDetail() {
                                             alignItems: "center",
                                           }}
                                         >
-                                          {/* Tên task */}
+                                          {/* Tên task (co giãn) */}
                                           <Box sx={{ minWidth: 0 }}>
                                             <Typography
                                               fontWeight={600}
@@ -1131,6 +1026,7 @@ export default function ProjectDetail() {
                                           </Box>
                                         </Box>
                                       </CardContent>
+
                                     </Card>
                                   );
                                 })}
@@ -1149,7 +1045,7 @@ export default function ProjectDetail() {
 
         {/* Create Task */}
         <CreateTaskDialog
-          open={openAddTask && canEditProject && !isStaff && currentPhaseForTask?.status !== "COMPLETED"}
+          open={openAddTask && canEditProject && !isStaff && currentPhaseForTask?.status !== "COMPLETED"} // 🔒 safety
           onClose={() => setOpenAddTask(false)}
           phase={currentPhaseForTask}
           projectId={projectId}
@@ -1175,9 +1071,7 @@ export default function ProjectDetail() {
         {/* Confirm delete */}
         <Dialog
           open={confirmDelete.open}
-          onClose={() =>
-            setConfirmDelete({ open: false, phaseId: null, taskId: null })
-          }
+          onClose={() => setConfirmDelete({ open: false, phaseId: null, taskId: null })}
           PaperProps={{ sx: { borderRadius: 3 } }}
         >
           <DialogTitle sx={{ fontWeight: 600 }}>{t("confirmDeleteTitle")}</DialogTitle>
@@ -1257,7 +1151,7 @@ export default function ProjectDetail() {
 
         {/* Update Task */}
         <UpdateTaskDialog
-          open={openUpdateTask && canEditProject && !isStaff}
+          open={openUpdateTask && canEditProject && !isStaff} // 🔒 staff không mở dialog
           onClose={() => setOpenUpdateTask(false)}
           task={editingTask}
           projectId={projectId}
@@ -1265,19 +1159,6 @@ export default function ProjectDetail() {
           projectDeadline={project?.deadline}
           onUpdated={async () => {
             await fetchPhases();
-          }}
-        />
-
-        <QuickTaskAssignDrawer
-          open={openQuickAssign}
-          onClose={() => setOpenQuickAssign(false)}
-          project={{ id: Number(projectId), ...project }}
-          onDone={async (createdList) => {
-            if (Array.isArray(createdList) && createdList[0]?.phaseId) {
-              setExpandedPhaseId(createdList[0].phaseId);
-            }
-            await fetchPhases();
-            await fetchProject();
           }}
         />
       </Container>

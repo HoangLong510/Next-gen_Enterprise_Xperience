@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:mobile/providers/auth_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,20 +26,15 @@ class ApiService {
     _initInterceptors(); // Khởi tạo interceptor sau khi có provider
   }
 
-  // Biến cờ để biết đang gọi refresh token hay không
   static bool _isRefreshing = false;
-
-  // Danh sách các request đang chờ token mới
   static final List<Completer<Response>> _waitingQueue = [];
 
-  // Hàm chính để cấu hình interceptor
   static void _initInterceptors() {
     _dio.interceptors.clear();
 
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          // Gắn access token vào header nếu có
           final prefs = await SharedPreferences.getInstance();
           final token = prefs.getString('accessToken');
           if (token != null) {
@@ -52,27 +48,22 @@ class ApiService {
           final refreshToken = prefs.getString('refreshToken');
           final originalRequest = error.requestOptions;
 
-          // Nếu request đã retry rồi thì không retry nữa
           if (originalRequest.extra['retry'] == true) {
             return handler.reject(error);
           }
 
-          // Nếu lỗi là 401 và đủ điều kiện để refresh
           if (error.response?.statusCode == 401 &&
               refreshToken != null &&
               !originalRequest.path.contains('/auth/refresh-token') &&
               !originalRequest.path.contains('/auth/login')) {
-            // Đánh dấu request đã retry
             originalRequest.extra['retry'] = true;
 
             final completer = Completer<Response>();
             _waitingQueue.add(completer);
 
-            // Nếu chưa refresh thì bắt đầu refresh
             if (!_isRefreshing) {
               _isRefreshing = true;
               try {
-                print("Attempting to refresh token...");
                 final res = await _dio.get(
                   '/auth/refresh-token',
                   options: Options(
@@ -83,13 +74,9 @@ class ApiService {
                 final newAccessToken = res.data['data']['accessToken'];
                 final newRefreshToken = res.data['data']['refreshToken'];
 
-                // Lưu lại token mới
                 await prefs.setString('accessToken', newAccessToken);
                 await prefs.setString('refreshToken', newRefreshToken);
 
-                print("Token refreshed. Retrying queued requests...");
-
-                // Gửi lại tất cả các request đang chờ
                 for (final completer in _waitingQueue) {
                   try {
                     final clone = Options(
@@ -111,7 +98,6 @@ class ApiService {
                   }
                 }
               } catch (e) {
-                // Refresh thất bại → logout toàn bộ
                 await _clearTokenAndRedirect();
                 for (final completer in _waitingQueue) {
                   if (!completer.isCompleted) completer.completeError(e);
@@ -120,26 +106,62 @@ class ApiService {
                 _waitingQueue.clear();
                 _isRefreshing = false;
               }
-            } else {
-              print("Waiting for token refresh to complete...");
             }
 
-            // Đợi request hiện tại được xử lý lại
             return handler.resolve(await completer.future);
           }
 
-          // Nếu không phải lỗi liên quan đến token thì trả lỗi như bình thường
           return handler.next(error);
         },
       ),
     );
   }
 
-  // Xóa token và gọi logout provider
   static Future<void> _clearTokenAndRedirect() async {
     _authProvider?.logout();
   }
 
-  // Public getter cho Dio client
   static Dio get client => _dio;
+
+  /// Build absolute URL từ đường dẫn BE trả về.
+  /// - Chuẩn hoá backslash -> slash
+  /// - Nếu đã là absolute (http/https/data/file/blob) -> trả nguyên
+  /// - Nếu là relative (/uploads/... hoặc uploads/...) -> GHÉP origin **KÈM** context-path (vd /api)
+  static String absoluteUrl(String? raw) {
+    if (raw == null) return '';
+    var s = raw.trim();
+    if (s.isEmpty) return '';
+
+    s = s.replaceAll('\\', '/');
+
+    final lower = s.toLowerCase();
+    if (lower.startsWith('http://') ||
+        lower.startsWith('https://') ||
+        lower.startsWith('data:') ||
+        lower.startsWith('file:') ||
+        lower.startsWith('blob:')) {
+      return s;
+    }
+
+    final baseUri = Uri.parse(_dio.options.baseUrl); // ví dụ: http://10.0.2.2:4040/api
+    final origin = '${baseUri.scheme}://${baseUri.host}${baseUri.hasPort ? ':${baseUri.port}' : ''}';
+    final contextPath = baseUri.path; // "/api" hoặc ""
+
+    // ensure leading slash
+    final rel = s.startsWith('/') ? s : '/$s';
+
+    // Nếu rel đã có contextPath (vd "/api/uploads/...") thì giữ nguyên
+    final bool hasContextPath = contextPath.isNotEmpty && rel.startsWith(contextPath);
+
+    final prefix = hasContextPath ? origin : (origin + contextPath);
+    return '$prefix$rel';
+  }
+
+  /// Header Authorization (nếu có) – dùng cho Image.network khi ảnh nằm sau auth
+  static Future<Map<String, String>?> authHeaders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('accessToken');
+    if (token == null || token.isEmpty) return null;
+    return {'Authorization': 'Bearer $token'};
+  }
 }

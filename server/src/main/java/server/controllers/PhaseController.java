@@ -1,7 +1,9 @@
 package server.controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,7 +29,7 @@ public class PhaseController {
       hasAnyAuthority('ADMIN','MANAGER') or
       (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))
     """)
-    @PostMapping("/{projectId}/phases")
+    @PostMapping("/project/{projectId}")
     public ApiResponse<PhaseDto> createPhase(
             @PathVariable Long projectId,
             @Valid @RequestBody CreatePhaseDto dto,
@@ -40,7 +42,8 @@ public class PhaseController {
     // Lấy phases (không kèm tasks) theo project
     @PreAuthorize("""
       hasAnyAuthority('ADMIN','MANAGER') or
-      (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))
+     (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name)) or
+      (hasAnyAuthority('EMPLOYEE','HOD') and @projectService.hasProjectAccess(#projectId, authentication.name))
     """)
     @GetMapping("/project/{projectId}")
     public ApiResponse<List<PhaseDto>> getPhasesByProject(@PathVariable Long projectId) {
@@ -65,12 +68,16 @@ public class PhaseController {
     // Lấy phases (kèm tasks) theo project
     @PreAuthorize("""
       hasAnyAuthority('ADMIN','MANAGER') or
-      (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name))
+    (hasAuthority('PM') and @projectService.isProjectManager(#projectId, authentication.name)) or
+      (hasAnyAuthority('EMPLOYEE','HOD') and @projectService.hasProjectAccess(#projectId, authentication.name))
     """)
     @GetMapping("/project/{projectId}/with-tasks")
-    public ApiResponse<List<PhaseDto>> getPhasesWithTasksByProject(@PathVariable Long projectId) {
-        return phaseService.getPhasesWithTasksByProject(projectId);
-    }
+
+    public ApiResponse<List<PhaseDto>> getPhasesWithTasksByProject(
+            @PathVariable Long projectId,
+            HttpServletRequest request
+    ) {
+        return phaseService.getPhasesWithTasksByProject(projectId, request);}
 
     // Lấy chi tiết phase theo phaseId
     @PreAuthorize("""

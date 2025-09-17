@@ -1,8 +1,6 @@
 "use client";
 
 
-import { setPopup } from "~/libs/features/popup/popupSlice";
-
 /**
  * KanbanForm.jsx – FULL
  *  1) PM/Manager/Admin vẫn có thể kéo vào CANCELED dù phase bị "khóa chuỗi".
@@ -11,8 +9,7 @@ import { setPopup } from "~/libs/features/popup/popupSlice";
  *  4) Chỉ hiển thị ô tạo Branch khi dự án đã gắn repo GitHub hợp lệ (owner/repo).
  */
 
-import React, { useEffect, useState, useCallback,useRef, useMemo } from "react";
-import Tooltip from '@mui/material/Tooltip';
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Box,
   Container,
@@ -31,32 +28,21 @@ import {
   Select,
   MenuItem,
   InputLabel,
-  Autocomplete,
-  Alert,
-  Tabs,
-  Tab,
-  Grid,
+  Tooltip,
+  CircularProgress,
 } from "@mui/material";
-import {
-  RequestQuote,
-  CloudDownload,
-  PictureAsPdf,
-  Search,  
-} from "@mui/icons-material";
-import CircularProgress from '@mui/material/CircularProgress';
-import SignatureCanvas from "react-signature-canvas";
-import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useDispatch, useSelector } from "react-redux";
-import { TrendingUp, CalendarToday, ArrowBack, Refresh as RefreshIcon } from "@mui/icons-material";
+import { setPopup } from "~/libs/features/popup/popupSlice";
+import { Search, TrendingUp, CalendarToday, ArrowBack, Refresh as RefreshIcon } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import KanbanColumn from "~/components/project/form/KanbanColumn";
 import TaskCard from "~/components/project/form/TaskCard";
 import TaskReviewDialog from "~/components/project/form/TaskReviewDialog";
-import { createCashAdvanceApi } from "~/services/cash-advance.service";
+
 import { uploadEvidence, listEvidence } from "~/services/task-evidence.service";
-import { formatStatus, getStatusColor } from "~/utils/project.utils";
+import { getStatusColor } from "~/utils/project.utils";
 
 import {
   DndContext,
@@ -80,73 +66,27 @@ import {
   updateTaskStatus,
   getTaskStatuses,
 } from "~/services/task.service.js";
-import {
-  getKanbanProjects,
-  getProjectDetail,
-} from "~/services/project.service.js";
-import {
-  getPhaseDetail,
-  getPhasesWithTasksByProject,
-} from "~/services/phase.service.js";
-import {
-  getAccountFullNameAndTitle,
-  formatNumber,
-  numToWords,
-} from "~/utils/money";
-import { translateReason } from "~/utils/translateApi";
-import dayjs from "dayjs";
-
-function trimCanvasSafe(src) {
-  if (!src) return null;
-  const ctx = src.getContext("2d");
-  const { width: w, height: h } = src;
-  const data = ctx.getImageData(0, 0, w, h).data;
-
-  let top = h,
-    left = w,
-    right = 0,
-    bottom = 0,
-    hasInk = false;
-
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const a = data[(y * w + x) * 4 + 3]; // kênh alpha
-      if (a !== 0) {
-        hasInk = true;
-        if (x < left) left = x;
-        if (x > right) right = x;
-        if (y < top) top = y;
-        if (y > bottom) bottom = y;
-      }
-    }
-  }
-  if (!hasInk) return null;
-
-  const tw = right - left + 1;
-  const th = bottom - top + 1;
-
-  const out = document.createElement("canvas");
-  out.width = tw;
-  out.height = th;
-  const octx = out.getContext("2d");
-  octx.putImageData(ctx.getImageData(left, top, tw, th), 0, 0);
-  return out;
-}
-
-function getSignatureDataUrl(sigRef) {
-  const base = sigRef?.current?.getCanvas?.();
-  if (!base) return null;
-  const trimmed = trimCanvasSafe(base);
-  return (trimmed || base).toDataURL("image/png");
-}
+import { getKanbanProjects, getProjectDetail } from "~/services/project.service.js";
+import { getPhaseDetail, getPhasesWithTasksByProject } from "~/services/phase.service.js";
 
 export default function KanbanForm() {
   const { t: tMsg } = useTranslation("messages");
+  const { t: tProj, i18n, ready: projReady } = useTranslation("project");
+  const { t: tTasks, ready: tasksReady } = useTranslation("tasks");
   const { t: tPhases } = useTranslation("phases");
-  const dispatch = useDispatch();
 
-  const [statusOptions, setStatusOptions] = useState([]);
-  const [grouped, setGrouped] = useState({});
+  const tt = useCallback(
+    (ready, tFn, key, fallback) => {
+      const out = tFn(key);
+      if (ready && out !== key) return out;
+      return fallback ?? key;
+    },
+    []
+  );
+
+  // ====== Local state ======
+  const [statusOptions, setStatusOptions] = useState([]);   // [{value,label}]
+  const [grouped, setGrouped] = useState({});               // { STATUS: Task[] }
   const [searchTerm, setSearchTerm] = useState("");
 
   const [projectList, setProjectList] = useState([]);
@@ -168,28 +108,21 @@ export default function KanbanForm() {
   const [phasesMeta, setPhasesMeta] = useState([]);
 
   const [allowedDropSet, setAllowedDropSet] = useState(new Set());
+  const [loading, setLoading] = useState(false);
+
+  const [advanceOpen, setAdvanceOpen] = useState(false);
+
+
+  // Ghi nhớ ý định move-to-review
+  const [pendingMoveToReview, setPendingMoveToReview] = useState(null);
 
   const { projectId, phaseId } = useParams();
-
-  // ===== Cash Advance dialog =====
-  const [advanceOpen, setAdvanceOpen] = useState(false);
-  const [advanceTask, setAdvanceTask] = useState(null);
-  const [recipient, setRecipient] = useState(
-    "Board of Directors of Next-Gen Enterprise Experience Company"
-  );
-  const [advanceDeadline, setAdvanceDeadline] = useState(null);
-  const sigRef = useRef(null);
-
-  const [advanceAmount, setAdvanceAmount] = useState("");
-  const [advanceReason, setAdvanceReason] = useState("");
-  const [advanceBusy, setAdvanceBusy] = useState(false);
-  const [advanceError, setAdvanceError] = useState("");
-
   const account = useSelector((s) => s.account?.value);
   const navigate = useNavigate();
 
+  // Staff mode (EMP/HOD)
   const isStaffMode = ["EMPLOYEE", "HOD"].includes(account?.role);
-  const isStaffTasksPage = isStaffMode && !projectId; // trang Utilities/Tasks cho EMP/HOD
+  const isStaffTasksPage = isStaffMode && !projectId;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -206,6 +139,7 @@ export default function KanbanForm() {
     overflowWrap: "anywhere",
     lineHeight: 1.3,
   };
+  const dispatch = useDispatch();
 
   // Helper: label trạng thái
   const prettyStatus = useCallback(
@@ -219,7 +153,6 @@ export default function KanbanForm() {
   );
 
   // Allowed targets theo status gốc
-
   const getAllowedTargets = useCallback((from, role) => {
     const s = new Set([from]);
     switch (from) {
@@ -227,7 +160,6 @@ export default function KanbanForm() {
         s.add("IN_PROGRESS");
         s.add("CANCELED");
         s.add("IN_REVIEW");
-
         break;
       case "IN_PROGRESS":
         s.add("CANCELED");
@@ -240,11 +172,6 @@ export default function KanbanForm() {
         break;
       case "COMPLETED":
         s.add("IN_PROGRESS");
-        break; // UI không cho IN_REVIEW
-      case "CANCELED":
-        s.add("PLANNING");
-        s.add("IN_PROGRESS");
-        break; // UI không cho IN_REVIEW
         break;
       case "CANCELED":
         s.add("PLANNING");
@@ -255,7 +182,7 @@ export default function KanbanForm() {
     }
     if (from === "COMPLETED" || from === "CANCELED") s.delete("IN_REVIEW");
 
-    // Cả EMPLOYEE & HOD: không được Completed/Canceled
+    // EMP/HOD không được Completed/Canceled
     if (role === "EMPLOYEE" || role === "HOD") {
       s.delete("COMPLETED");
       s.delete("CANCELED");
@@ -263,7 +190,7 @@ export default function KanbanForm() {
     return s;
   }, []);
 
-  // Load status list
+  // ===== Load status list =====
   useEffect(() => {
     (async () => {
       try {
@@ -281,43 +208,71 @@ export default function KanbanForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Project info (khi vào theo route /projects/:id/kanban)
+  // (Optional) danh sách project cho staff filter
+  useEffect(() => {
+    if (!isStaffTasksPage) return;
+    (async () => {
+      setProjLoading(true);
+      try {
+        const res = await getKanbanProjects();
+        const items = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        setProjectList(items);
+        if (!selectedProject && items.length) setSelectedProject(items[0]?.id);
+      } catch {
+        setProjectList([]);
+      } finally {
+        setProjLoading(false);
+      }
+    })();
+  }, [isStaffTasksPage, selectedProject]);
+
+  // Project info
   const loadProjectInfo = useCallback(async () => {
-    if (projectId) {
+    if (!projectId) {
+      setProjectInfo(null);
+      return;
+    }
+    try {
       const res = await getProjectDetail(projectId);
-      if (res.status === 200) setProjectInfo(res.data);
-    } else {
+      if (res?.status === 200) setProjectInfo(res.data);
+      else setProjectInfo(null);
+    } catch {
       setProjectInfo(null);
     }
   }, [projectId]);
+  useEffect(() => { loadProjectInfo(); }, [loadProjectInfo]);
 
-  useEffect(() => {
-    loadProjectInfo();
-  }, [loadProjectInfo]);
-
-  // Phase info (view theo route /phase/:phaseId)
+  // Phase info
   const loadPhaseInfo = useCallback(async () => {
-    if (phaseId) {
+    if (!phaseId) {
+      setPhaseInfo(null);
+      return;
+    }
+    try {
       const resp = await getPhaseDetail(phaseId);
-      if (resp.status === 200 && resp.data) setPhaseInfo(resp.data);
-    } else {
+      if (resp?.status === 200 && resp.data) setPhaseInfo(resp.data);
+      else setPhaseInfo(null);
+    } catch {
       setPhaseInfo(null);
     }
   }, [phaseId]);
+  useEffect(() => { loadPhaseInfo(); }, [loadPhaseInfo]);
 
-  useEffect(() => {
-    loadPhaseInfo();
-  }, [loadPhaseInfo]);
-
-  // Phases metadata
+  // Phases meta
   const loadPhasesMeta = useCallback(async () => {
     const pid = isStaffTasksPage ? selectedProject : projectId;
-    if (!pid) return;
-    const res = await getPhasesWithTasksByProject(pid);
-    if (res?.status === 200 && Array.isArray(res.data)) setPhasesMeta(res.data);
-    else setPhasesMeta([]);
+    if (!pid) {
+      setPhasesMeta([]);
+      return;
+    }
+    try {
+      const res = await getPhasesWithTasksByProject(pid);
+      if (res?.status === 200 && Array.isArray(res.data)) setPhasesMeta(res.data);
+      else setPhasesMeta([]);
+    } catch {
+      setPhasesMeta([]);
+    }
   }, [projectId, selectedProject, isStaffTasksPage]);
-
   useEffect(() => { loadPhasesMeta(); }, [loadPhasesMeta]);
 
   // 🔒 Rule "khóa chuỗi"
@@ -330,12 +285,12 @@ export default function KanbanForm() {
     return !!(next && cur.status === "COMPLETED" && next.status === "IN_PROGRESS" && nextHasTasks);
   }, [phasesMeta]);
 
-
   // ===== Fetch & group tasks =====
   const fetchAndGroup = useCallback(async () => {
     if (!statusOptions.length) return;
     const pid = isStaffTasksPage ? selectedProject : projectId;
     if (!pid) return;
+
     setLoading(true);
     try {
       const res = await getKanbanTasks(pid);
@@ -363,37 +318,15 @@ export default function KanbanForm() {
       setGrouped(next);
     } finally {
       setLoading(false);
-
     }
+  }, [projectId, selectedProject, searchTerm, statusOptions, phaseId, isStaffTasksPage]);
+  useEffect(() => {
+    if (!statusOptions.length) return;
+    if (isStaffTasksPage && !selectedProject) return;
+    fetchAndGroup();
   }, [fetchAndGroup, selectedProject, isStaffTasksPage, statusOptions.length]);
 
-  // Staff: load project list có phase IN_PROGRESS và có task assign cho user
-  useEffect(() => {
-    if (!isStaffTasksPage) return;
-
-    const normalizeToArray = (x) => {
-      if (Array.isArray(x)) return x;
-      if (Array.isArray(x?.data)) return x.data;
-      if (Array.isArray(x?.data?.data)) return x.data.data;
-      return [];
-    };
-
-    setProjLoading(true);
-    getKanbanProjects()
-      .then((raw) => {
-        const list = normalizeToArray(raw);
-        setProjectList(list);
-        if (list.length) setSelectedProject(list[0].id);
-      })
-      .catch(() => {
-        setProjectList([]);
-        setSelectedProject(null);
-      })
-      .finally(() => setProjLoading(false));
-  }, [isStaffTasksPage]);
-
-
-  // ===== Helpers: phase sau của 1 phase =====
+  // next phase info helper
   const nextPhaseInfo = useCallback(
     (curPhaseId) => {
       if (!Array.isArray(phasesMeta) || !curPhaseId) return null;
@@ -411,16 +344,28 @@ export default function KanbanForm() {
     [phasesMeta]
   );
 
+  // COMPLETED/CANCELED -> IN_PROGRESS bị chặn nếu phase sau không còn Planning rỗng
   const blockToInProgress = useCallback(
-    (fromTaskStatus, phaseId) => {
+    (fromTaskStatus, phId) => {
       if (!["COMPLETED", "CANCELED"].includes(fromTaskStatus)) return false;
-      const info = nextPhaseInfo(phaseId);
+      const info = nextPhaseInfo(phId);
       if (!info || !info.exists) return false;
       const ok = info.status === "PLANNING" && info.taskCount === 0;
       return !ok;
     },
     [nextPhaseInfo]
   );
+
+  // Mọi thay đổi bị chặn nếu "khóa chuỗi"
+  const blockAllChange = useCallback(
+    (phId) => {
+      const info = nextPhaseInfo(phId);
+      if (!info || !info.exists) return false;
+      return info.curStatus === "COMPLETED" && info.status === "IN_PROGRESS" && info.taskCount > 0;
+    },
+    [nextPhaseInfo]
+  );
+
 
   // ===== helper: phase của task đã completed chưa?
   const isTaskPhaseCompleted = useCallback((task) => {
@@ -432,9 +377,12 @@ export default function KanbanForm() {
   // ===== Click mở dialog
   //  - EMP/HOD: KHÔNG cho click task COMPLETED hoặc CANCELED
   //  - Role khác: cho click bình thường
-n
   const handleCardClick = (task) => {
     if (!task) return;
+    if (isStaffMode && (task.status === "COMPLETED" || task.status === "CANCELED")) {
+      dispatch(setPopup({ type: "warning", message: tProj("errors.viewCompletedNotAllowed") || "Bạn không thể mở task đã hoàn thành/đã hủy." }));
+      return;
+    }
     setPendingTask(task);
     setReviewOpen(true);
   };
@@ -447,15 +395,47 @@ n
       return false;
     }
   };
-
-  // helper check branch (FE)
   const hasBranch = (task) => !!(task?.branchCreated || task?.githubBranch);
+
+  const refreshMeta = useCallback(async () => {
+    await Promise.all([fetchAndGroup(), loadPhasesMeta(), loadPhaseInfo(), loadProjectInfo()]);
+  }, [fetchAndGroup, loadPhasesMeta, loadPhaseInfo, loadProjectInfo]);
+
+  const promoteToReview = useCallback(
+    async (taskId) => {
+      // UI lạc quan
+      setGrouped((prev) => {
+        const next = { ...prev };
+        let movedTask = null;
+        for (const col of Object.keys(next)) {
+          const idx = (next[col] || []).findIndex((t) => String(t.id) === String(taskId));
+          if (idx >= 0) {
+            movedTask = { ...next[col][idx], status: "IN_REVIEW" };
+            next[col] = [...next[col]];
+            next[col].splice(idx, 1);
+            break;
+          }
+        }
+        if (movedTask) {
+          next["IN_REVIEW"] = [...(next["IN_REVIEW"] || []), movedTask];
+        }
+        return next;
+      });
+
+      try {
+        await updateTaskStatus(taskId, "IN_REVIEW");
+      } catch {
+        await fetchAndGroup();
+      } finally {
+        setPendingMoveToReview(null);
+        await refreshMeta();
+      }
+    },
+    [fetchAndGroup, refreshMeta]
+  );
 
   // ===== DnD =====
   const handleDragStart = ({ active }) => {
-    setActiveId(active.id);
-    const fromTaskStatus = active?.data?.current?.project?.status;
-    const taskPhaseId = active?.data?.current?.project?.phaseId;
     const taskObj = active?.data?.current?.project;
 
     // 🔒 Nếu phase bị khóa:
@@ -463,6 +443,54 @@ n
     //  - PM/Manager/Admin: vẫn cho drag, nhưng sẽ siết allowedDropSet (chỉ còn CANCELED).
     if (taskObj && isPhaseLocked(taskObj.phaseId) && isStaffMode) {
       setAllowedDropSet(new Set());
+      setActiveId(null);
+      dispatch(setPopup({ type: "warning", message: tProj("errors.phaseLockedEditing") }));
+      return;
+    }
+
+    setActiveId(String(active.id));
+
+    const fromTaskStatus = taskObj?.status;
+    const taskPhaseId = taskObj?.phaseId;
+    if (!fromTaskStatus) {
+      setAllowedDropSet(new Set());
+      return;
+    }
+
+    const s = getAllowedTargets(fromTaskStatus, account.role);
+
+    // Siết rule theo phase
+    if (s.has("IN_PROGRESS") && blockToInProgress(fromTaskStatus, taskPhaseId)) {
+      s.delete("IN_PROGRESS");
+    }
+
+    // Nếu bị "khóa chuỗi":
+    //  - EMP/HOD: chỉ giữ nguyên trạng (không đổi).
+    //  - PM/Manager/Admin: chỉ cho chuyển sang CANCELED (ngoài ra giữ nguyên).
+    if (blockAllChange(taskPhaseId)) {
+      const keep = new Set([fromTaskStatus]);
+      if (!isStaffMode) keep.add("CANCELED");
+      for (const v of Array.from(s)) {
+        if (!keep.has(v)) s.delete(v);
+      }
+    }
+
+    // PLANNING -> IN_REVIEW nếu có evidence/branch
+    if (fromTaskStatus === "PLANNING" && taskObj) {
+      if (hasBranch(taskObj)) s.add("IN_REVIEW");
+      setAllowedDropSet(new Set(s));
+      (async () => {
+        const existed = await hasEvidence(taskObj.id);
+        if (existed) {
+          setAllowedDropSet((prev) => {
+            const next = new Set(prev);
+            next.add("IN_REVIEW");
+            return next;
+          });
+        }
+      })();
+    } else {
+      setAllowedDropSet(s);
     }
   };
 
@@ -472,7 +500,6 @@ n
       setOverIndex(null);
       return;
     }
-
     const overId = String(over.id);
     const colId = grouped[overId] ? overId : over.data.current?.sortable?.containerId;
     if (!grouped[colId] || (allowedDropSet.size && !allowedDropSet.has(colId))) {
@@ -480,21 +507,11 @@ n
       setOverIndex(null);
       return;
     }
-    const idx = grouped[colId].findIndex((t) => t.id === over.id);
+    const idx = grouped[colId].findIndex((t) => String(t.id) === overId);
     setOverColumn(colId);
     setOverIndex(idx >= 0 ? idx : grouped[colId].length);
   };
 
-
-  // gộp refresh meta
-  const refreshMeta = useCallback(async () => {
-    await Promise.all([
-      fetchAndGroup(),
-      loadPhasesMeta(),
-      loadPhaseInfo(),
-      loadProjectInfo(),
-    ]);
-  }, [fetchAndGroup, loadPhasesMeta, loadPhaseInfo, loadProjectInfo]);
   const handleDragEnd = async ({ active, over }) => {
     setOverColumn(null);
     setOverIndex(null);
@@ -505,60 +522,70 @@ n
       return;
     }
 
-    const fromCol = active?.data?.current?.project?.status;
+    const srcTask = active?.data?.current?.project;
 
+
+    // 🔒 Phase khóa → chỉ chặn EMP/HOD; PM/Manager/Admin tiếp tục (để hủy).
+    if (srcTask && isPhaseLocked(srcTask.phaseId) && isStaffMode) {
+      setAllowedDropSet(new Set());
+      return;
+    }
+
+    const fromCol = srcTask?.status;
     let toCol = null;
-    if (grouped[over.id]) {
-      toCol = over.id;
-    } else if ((grouped[fromCol] || []).some((t) => t.id === over.id)) {
-      toCol = fromCol;
+
+    const overId = String(over.id);
+    if (grouped[overId]) {
+      toCol = overId;
     } else {
       const cont = over.data.current?.sortable?.containerId;
       if (grouped[cont]) toCol = cont;
     }
+
     if (!toCol || !fromCol) {
       setAllowedDropSet(new Set());
       return;
     }
+
     // ❌ EMP/HOD không được move vào CANCELED
     if (isStaffMode && toCol === "CANCELED") {
       dispatch(setPopup({ type: "error", message: tTasks("errors.noPermissionChangeCanceled") || tTasks("errors.noPermissionChangeCompleted") }));
-
       setAllowedDropSet(new Set());
       return;
     }
 
+    // Nếu cột đích không hợp lệ theo allowedDropSet
     if (allowedDropSet.size && !allowedDropSet.has(toCol)) {
       setAllowedDropSet(new Set());
       return;
     }
 
     const srcList = grouped[fromCol] || [];
-    const task = srcList.find((t) => t.id === active.id);
+    const task = srcList.find((t) => String(t.id) === String(active.id));
     if (!task) {
       setAllowedDropSet(new Set());
       return;
     }
+
     // Không cho từ COMPLETED/CANCELED sang IN_REVIEW
     if (toCol === "IN_REVIEW" && (fromCol === "COMPLETED" || fromCol === "CANCELED")) {
       dispatch(setPopup({ type: "warning", message: tTasks("errors.cannotMoveToInReviewFromDoneOrCanceled") }));
-
       setAllowedDropSet(new Set());
       return;
     }
+
     // COMPLETED/CANCELED -> IN_PROGRESS: check phase sau
     if (toCol === "IN_PROGRESS" && ["COMPLETED", "CANCELED"].includes(fromCol)) {
       if (blockToInProgress(fromCol, task.phaseId)) {
-
         dispatch(setPopup({ type: "warning", message: tTasks("errors.cannotMoveToInProgressNextPhaseNotPlanning") }));
-
         setAllowedDropSet(new Set());
         return;
       }
     }
 
+    // Block mọi chuyển đổi nếu "khóa chuỗi"
+    //  - vẫn cho PM/Manager/Admin chuyển sang CANCELED
     if (fromCol !== toCol && blockAllChange(task.phaseId)) {
-
       if (!(toCol === "CANCELED" && !isStaffMode)) {
         dispatch(setPopup({ type: "warning", message: tProj("errors.phaseLockedEditing") }));
         setAllowedDropSet(new Set());
@@ -566,35 +593,37 @@ n
       }
     }
 
-    if (toCol === "CANCELED" && fromCol !== toCol) {
+    // Xác nhận cancel (không phải staff)
+    if (toCol === "CANCELED" && fromCol !== toCol && !isStaffMode) {
       setPendingCancelTask(task);
       setCancelConfirmOpen(true);
       setAllowedDropSet(new Set());
       return;
     }
 
-    // nếu kéo sang IN_REVIEW mà chưa có evidence & branch → mở dialog
+    // Nếu chuyển vào IN_REVIEW mà thiếu evidence/branch => mở dialog
     if (toCol === "IN_REVIEW" && fromCol !== toCol) {
       const existed = await hasEvidence(task.id);
       const branched = hasBranch(task);
       if (!existed && !branched) {
         setPendingTask(task);
         setReviewOpen(true);
+        setPendingMoveToReview(task.id);
         setAllowedDropSet(new Set());
         return;
       }
     }
 
-    // update UI lạc quan
+    // ===== UI lạc quan
     const next = { ...grouped };
     if (fromCol === toCol) {
       const oldIdx = (grouped[fromCol] || []).findIndex((t) => String(t.id) === String(active.id));
       const overIdx = (grouped[toCol] || []).findIndex((t) => String(t.id) === overId);
       next[fromCol] = arrayMove(grouped[fromCol], oldIdx, overIdx >= 0 ? overIdx : grouped[fromCol].length - 1);
     } else {
-      next[fromCol] = srcList.filter((t) => t.id !== active.id);
+      next[fromCol] = (grouped[fromCol] || []).filter((t) => String(t.id) !== String(active.id));
       const dest = [...(grouped[toCol] || [])];
-      const idx = dest.findIndex((t) => t.id === over.id);
+      const idx = dest.findIndex((t) => String(t.id) === overId);
       const moved = { ...task, status: toCol };
       if (idx >= 0) dest.splice(idx, 0, moved);
       else dest.push(moved);
@@ -602,6 +631,7 @@ n
     }
     setGrouped(next);
 
+    // ===== Persist
     try {
       if (fromCol !== toCol) {
         await updateTaskStatus(task.id, toCol);
@@ -622,11 +652,10 @@ n
     }
   };
 
+  // Task đang drag
   const flattened = useMemo(() => Object.values(grouped).flat(), [grouped]);
   const activeTask = activeId ? flattened.find((t) => String(t.id) === String(activeId)) : null;
-const advanceOptions = useMemo(() => {
-    return (flattened || []).filter((t) => t && t.status !== "CANCELED");
-  }, [flattened])
+
   // ===== Lock clear evidence theo rule phase sau
   const curPhaseMeta = useMemo(() => {
     if (!pendingTask) return null;
@@ -659,6 +688,7 @@ const advanceOptions = useMemo(() => {
 
   const handleBranchCreated = useCallback(
     (taskId, fullBranchName) => {
+      // cập nhật local task
       setGrouped((prev) => {
         const next = {};
         for (const col of Object.keys(prev)) {
@@ -674,97 +704,50 @@ const advanceOptions = useMemo(() => {
           : prev
       );
       refreshMeta();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [refreshMeta]);
+    },
+    [refreshMeta]
+  );
 
-  // Ẩn cột CANCELED trên trang Tasks (staff)
-  const visibleStatusOptions = useMemo(() => {
-    if (isStaffTasksPage) {
-      return statusOptions.filter((o) => o.value !== "CANCELED");
-    }
-    return statusOptions;
-  }, [statusOptions, isStaffTasksPage]);
 
-  const handleSubmitAdvance = async () => {
-    try {
-      if (!advanceTask?.id)
-        return setAdvanceError("You have not selected a task.");
-      const amountNum = Number(advanceAmount || 0);
-      if (!amountNum || amountNum <= 0)
-        return setAdvanceError("Advance amount must be > 0.");
-      if (!advanceReason?.trim())
-        return setAdvanceError("Reason for advance is required.");
-      if (!advanceDeadline)
-        return setAdvanceError("Please choose a payment term.");
-      if (!sigRef?.current || sigRef.current.isEmpty())
-        return setAdvanceError("Please sign in the signature box.");
+  const visibleStatusOptions = useMemo(() => statusOptions, [statusOptions]);
 
-      setAdvanceBusy(true);
-      setAdvanceError("");
+  // ===== Header / Toolbar UI =====
+  const renderHeader = () => (
+    <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+      <Paper sx={{ p: 1.5, background: "linear-gradient(135deg,#118D57,#10B981)" }}>
+        <TrendingUp sx={{ color: "#fff", fontSize: 28 }} />
+      </Paper>
+      <Typography variant="h5" fontWeight={700}>
+        {tt(projReady, tProj, "kanbanTitle", "Project Kanban Board")}
+      </Typography>
+      <Box flex={1} />
+      <Tooltip title={tt(projReady, tProj, "actions.refresh", "Refresh")}>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={() => refreshMeta()}
+          sx={{ textTransform: "none" }}
+        >
+          {tt(projReady, tProj, "actions.refresh", "Refresh")}
+        </Button>
+      </Tooltip>
+    </Stack>
+  );
 
-      const signatureDataUrl = getSignatureDataUrl(sigRef);
-      if (!signatureDataUrl) {
-        setAdvanceError("Could not get signature. Please re-sign.");
-        return;
-      }
+  // View-only cho PM/Manager/Admin nếu phase của task đã COMPLETED
+  const dialogReadOnly = !isStaffMode && isTaskPhaseCompleted(pendingTask);
 
-      const translatedReason = await translateReason(advanceReason.trim());
-
-      function formatVietnameseDate(date) {
-        return dayjs(date).format("[ngày] DD [tháng] MM [năm] YYYY");
-      }
-      const formattedDeadline = formatVietnameseDate(advanceDeadline);
-
-      const payload = {
-        taskId: advanceTask.id,
-        unitName: "Công ty Cổ phần Trải nghiệm Doanh nghiệp Next-Gen",
-        departmentOrAddress: "181 Cao Thắng, Phường 12, Quận 10, TP.HCM",
-        recipient,
-        amount: amountNum,
-        amountText: numToWords(amountNum),
-        reason: translatedReason,
-        repaymentDeadlineStr: formattedDeadline,
-        signatureDataUrl,
-      };
-      console.log(payload);
-      const res = await createCashAdvanceApi(payload);
-      if (res?.status !== 200) {
-        setAdvanceError(res?.message || "Sending proposal failed.");
-        return;
-      }
-
-      // Reset & thông báo
-      setAdvanceOpen(false);
-      setAdvanceTask(null);
-      setAdvanceAmount("");
-      setAdvanceReason("");
-      setAdvanceDeadline(null);
-      sigRef?.current?.clear();
-      await refreshMeta();
-      dispatch(
-        setPopup({
-          type: "success",
-          message: "The advance request has been sent.",
-        })
-      );
-    } catch (e) {
-      console.error(e);
-      setAdvanceError("There was an error sending. Please try again.");
-    } finally {
-      setAdvanceBusy(false);
-    }
-  };
+  // ✅ Kiểm tra repo hợp lệ của project (để truyền xuống dialog)
+  const projectHasValidRepo = useMemo(() => {
+    const url = (projectInfo?.repoLink || "").trim();
+    return /^https:\/\/github\.com\/[^\/\s]+\/[^\/\s]+\/?$/i.test(url);
+  }, [projectInfo?.repoLink]);
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg,#F8FAFC,#FEF2F2)",
-      }}
-    >
+    <Box sx={{ minHeight: "100vh", background: "linear-gradient(135deg,#F8FAFC,#FEF2F2)" }}>
       <Container maxWidth="xl" sx={{ py: 3 }}>
-        {/* Ẩn Back khi là trang Tasks của staff */}
+        {/* Back nút: ẩn trên trang Utilities/Tasks của staff */}
         {!isStaffTasksPage && (
           <Button
             startIcon={<ArrowBack />}
@@ -774,16 +757,23 @@ const advanceOptions = useMemo(() => {
             }}
             sx={{ mb: 1, textTransform: "none", fontWeight: 600 }}
           >
-            Back To Project Detail
+            {tt(projReady, tProj, "backToProjectDetail", "Back to Project Detail")}
           </Button>
         )}
+
         {renderHeader()}
 
         {/* Project/Phase cards */}
         <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: { xs: "wrap", md: "nowrap" } }}>
           {projectInfo && (
             <Paper sx={{ flex: 1, p: 2, borderRadius: 2, boxShadow: 1 }}>
-              <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+              <Typography
+                variant="subtitle1"
+                fontWeight={600}
+                gutterBottom
+                title={projectInfo.name}
+                sx={NAME_CLAMP_SX}
+              >
                 {projectInfo.name}
               </Typography>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -794,7 +784,7 @@ const advanceOptions = useMemo(() => {
                   </Typography>
                 </Stack>
                 <Chip
-                  label={formatStatus(projectInfo.status)}
+                  label={prettyStatus(projectInfo.status)}
                   size="small"
                   color={getStatusColor(projectInfo.status)}
                 />
@@ -804,7 +794,13 @@ const advanceOptions = useMemo(() => {
 
           {phaseInfo && (
             <Paper sx={{ flex: 1, p: 2, borderRadius: 2, boxShadow: 1 }}>
-              <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+              <Typography
+                variant="subtitle1"
+                fontWeight={600}
+                gutterBottom
+                title={phaseInfo.name}
+                sx={NAME_CLAMP_SX}
+              >
                 {phaseInfo.name}
               </Typography>
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -812,17 +808,13 @@ const advanceOptions = useMemo(() => {
                   <CalendarToday fontSize="small" />
                   <Typography variant="body2">{phaseInfo.deadline}</Typography>
                 </Stack>
-                <Chip
-                  label={formatStatus(phaseInfo.status)}
-                  size="small"
-                  color={getStatusColor(phaseInfo.status)}
-                />
+                <Chip label={prettyStatus(phaseInfo.status)} size="small" color={getStatusColor(phaseInfo.status)} />
               </Stack>
             </Paper>
           )}
         </Box>
 
-        {/* Toolbar: Search + (Filter Project cho staff ở trang Tasks) */}
+        {/* Toolbar: Search + Project filter (cho staff) */}
         <Paper
           sx={{
             mb: 2,
@@ -834,7 +826,7 @@ const advanceOptions = useMemo(() => {
           }}
         >
           <TextField
-            placeholder="Search tasks..."
+            placeholder={tt(projReady, tProj, "searchTasksPlaceholder", "Search tasks...")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             size="small"
@@ -857,17 +849,19 @@ const advanceOptions = useMemo(() => {
                 ml: "auto",
               }}
             >
-              <InputLabel id="project-filter-label">Project</InputLabel>
+              <InputLabel id="project-filter-label">
+                {tt(tasksReady, tTasks, "labels.project", "Project")}
+              </InputLabel>
               <Select
                 labelId="project-filter-label"
-                label="Project"
+                label={tt(tasksReady, tTasks, "labels.project", "Project")}
                 value={selectedProject ?? ""}
                 onChange={(e) => setSelectedProject(e.target.value || null)}
                 disabled={projLoading || (projectList?.length ?? 0) === 0}
                 renderValue={(value) => {
-                  const p = (
-                    Array.isArray(projectList) ? projectList : []
-                  ).find((x) => String(x.id) === String(value));
+                  const p = (Array.isArray(projectList) ? projectList : []).find(
+                    (x) => String(x.id) === String(value)
+                  );
                   return (
                     <Box
                       sx={{
@@ -917,22 +911,17 @@ const advanceOptions = useMemo(() => {
                   ))
                 ) : (
                   <MenuItem value="" disabled>
-                    {projLoading ? "Loading..." : "No available projects"}
+                    {projLoading
+                      ? tt(projReady, tProj, "loading", "Loading...")
+                      : tt(tasksReady, tTasks, "noAvailableProjects", "No available projects")}
                   </MenuItem>
                 )}
               </Select>
             </FormControl>
           )}
-          <Button
-            variant="contained"
-            color="warning"
-            startIcon={<RequestQuote />}
-            onClick={() => setAdvanceOpen(true)}
-          >
-            Send advance application
-          </Button>
         </Paper>
 
+        {/* Kanban board */}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -1040,7 +1029,7 @@ const advanceOptions = useMemo(() => {
           </DialogActions>
         </Dialog>
 
-        {/* Evidence dialog */}
+        {/* Evidence / Review dialog */}
         <TaskReviewDialog
           open={reviewOpen}
           task={pendingTask}
@@ -1072,21 +1061,38 @@ const advanceOptions = useMemo(() => {
           onClose={(shouldRefresh) => {
             setReviewOpen(false);
             setPendingTask(null);
+            setPendingMoveToReview(null);
+            if (shouldRefresh) {
+              refreshMeta();
+            }
           }}
           onCancel={() => {
             setReviewOpen(false);
             setPendingTask(null);
+            setPendingMoveToReview(null);
             refreshMeta();
           }}
           onUploading={() => {}}
           onUploaded={async (files) => {
+            if (!pendingTask) return;
             await uploadEvidence(pendingTask.id, files);
-            await refreshMeta();
+            if (pendingMoveToReview && String(pendingMoveToReview) === String(pendingTask.id)) {
+              await promoteToReview(pendingTask.id);
+            } else {
+              await refreshMeta();
+            }
+
           }}
-          projectPmId={projectInfo?.pmId ?? selectedProjectInfo?.pmId}
-          repoLinked={projectInfo?.repoLink ?? selectedProjectInfo?.repoLink}
-          repoLink={projectInfo?.repoLink ?? selectedProjectInfo?.repoLink}
-          onBranchCreated={handleBranchCreated}
+          projectPmId={projectInfo?.pmId}
+          // ✅ TRUYỀN boolean đã được validate + URL repo xuống dialog
+          repoLinked={projectHasValidRepo}
+          repoLink={projectInfo?.repoLink}
+          onBranchCreated={async (taskId, fullBranchName) => {
+            handleBranchCreated(taskId, fullBranchName);
+            if (pendingMoveToReview && String(pendingMoveToReview) === String(taskId)) {
+              await promoteToReview(taskId);
+            }
+          }}
         />
         {/* Cash Advance dialog */}
         <Dialog
@@ -1099,197 +1105,11 @@ const advanceOptions = useMemo(() => {
             setAdvanceReason("");
             setAdvanceDeadline(null);
             setAdvanceError("");
-            setRecipient(
-              "Board of Directors of Next-Gen Enterprise Experience Company"
-            );
+            setRecipient("Ban lãnh đạo Công ty Next-Gen Enterprise Experience");
             sigRef?.current?.clear();
+
           }}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>
-            Request for advance payment (Form No. 03-TT)
-          </DialogTitle>
-
-          <DialogContent dividers>
-            <Stack spacing={2}>
-              {advanceError && <Alert severity="error">{advanceError}</Alert>}
-
-              <Paper variant="outlined" sx={{ p: 2, bgcolor: "#fafafa" }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="body2">
-                      <strong>Unit:</strong> Next-Gen Enterprise Experience
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Department (or Address):</strong> 181 Cao Thang,
-                      Ward 12, District 10, Ho Chi Minh
-                    </Typography>
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    md={6}
-                    sx={{ textAlign: { xs: "left", md: "right" } }}
-                  >
-                    <Typography variant="body2">
-                      <em>Form No. 03-TT (TT 133/2016/TT-BTC)</em>
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </Paper>
-
-              {/* Chọn task */}
-              <Autocomplete
-                options={advanceOptions}
-                value={advanceTask}
-                onChange={(_, v) => setAdvanceTask(v)}
-                getOptionLabel={(o) => (o?.name ? o.name : "")}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Select Task to advance"
-                    placeholder="Type the task name..."
-                  />
-                )}
-              />
-
-              <TextField
-                label="Dear"
-                value={recipient}
-                onChange={(e) => setRecipient(e.target.value)}
-                fullWidth
-              />
-
-              {(() => {
-                const { fullName, title } = getAccountFullNameAndTitle(account);
-                return (
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        label="My name is"
-                        value={fullName}
-                        fullWidth
-                        disabled
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        label="Position"
-                        value={title}
-                        fullWidth
-                        disabled
-                      />
-                    </Grid>
-                  </Grid>
-                );
-              })()}
-
-              {/* Số tiền + chữ */}
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Advance request (VND)"
-                    type="number"
-                    fullWidth
-                    value={advanceAmount}
-                    onChange={(e) => setAdvanceAmount(e.target.value)}
-                    inputProps={{ min: 0 }}
-                  />
-                </Grid>
-                <Grid
-                  item
-                  xs={12}
-                  md={6}
-                  sx={{ display: "flex", alignItems: "center" }}
-                >
-                  <Typography variant="body2">
-                    {Number(advanceAmount) > 0
-                      ? `In words: ${numToWords(Number(advanceAmount))}`
-                      : "Text will appear here"}
-                  </Typography>
-                </Grid>
-              </Grid>
-
-              <TextField
-                label="Reason for advance"
-                multiline
-                minRows={2}
-                value={advanceReason}
-                onChange={(e) => setAdvanceReason(e.target.value)}
-                placeholder="For example: Buying materials for tasks, travel expenses,..."
-                fullWidth
-              />
-              <TextField
-                label="Payment term"
-                type="date"
-                InputLabelProps={{ shrink: true }}
-                value={advanceDeadline || ""}
-                onChange={(e) => setAdvanceDeadline(e.target.value)}
-                fullWidth
-              />
-
-              {/* Ký */}
-              <Box>
-                <Typography fontWeight={600} mb={1}>
-                  Person requesting advance payment - Sign
-                </Typography>
-                <Paper
-                  variant="outlined"
-                  sx={{ p: 1, width: "100%", height: 160 }}
-                >
-                  <SignatureCanvas
-                    ref={sigRef}
-                    canvasProps={{
-                      width: 700,
-                      height: 140,
-                      style: { width: "100%", height: "140px" },
-                    }}
-                    backgroundColor="#fff"
-                    penColor="black"
-                  />
-                </Paper>
-                <Stack direction="row" spacing={1} mt={1}>
-                  <Button onClick={() => sigRef?.current?.clear()}>
-                    Delete signature
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      sigRef?.current?.fromData(sigRef?.current?.toData())
-                    }
-                  >
-                    Smoothing strokes
-                  </Button>
-                </Stack>
-              </Box>
-            </Stack>
-          </DialogContent>
-
-          <DialogActions>
-            <Button
-              onClick={() => {
-                if (advanceBusy) return;
-                setAdvanceOpen(false);
-                setAdvanceTask(null);
-                setAdvanceAmount("");
-                setAdvanceReason("");
-                setAdvanceDeadline(null);
-                setAdvanceError("");
-                sigRef?.current?.clear();
-              }}
-              color="inherit"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              disabled={advanceBusy}
-              onClick={handleSubmitAdvance}
-            >
-              Send to accountant
-            </Button>
-          </DialogActions>
-        </Dialog>
+        />
       </Container>
     </Box>
   );

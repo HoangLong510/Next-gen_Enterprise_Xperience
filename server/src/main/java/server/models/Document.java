@@ -5,7 +5,6 @@ import lombok.*;
 import server.models.accountant.fund.Fund;
 import server.models.enums.DocumentStatus;
 import server.models.enums.DocumentType;
-import server.models.enums.ProjectPriority;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -73,6 +72,7 @@ public class Document {
     private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
     private DocumentStatus status;
 
     @Enumerated(EnumType.STRING)

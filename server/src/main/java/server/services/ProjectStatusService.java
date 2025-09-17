@@ -1,14 +1,16 @@
 package server.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import server.models.Project;
-import server.models.Phase;
-import server.models.Task;
+import server.models.*;
+import server.models.enums.DocumentStatus;
 import server.models.enums.TaskStatus;
 import server.models.enums.PhaseStatus;
 import server.models.enums.ProjectStatus;
+import server.repositories.AccountRepository;
+import server.repositories.DocumentRepository;
 import server.repositories.PhaseRepository;
 import server.repositories.ProjectRepository;
 
@@ -22,6 +24,9 @@ public class ProjectStatusService {
 
     private final ProjectRepository projectRepository;
     private final PhaseRepository phaseRepository;
+    private final DocumentRepository documentRepository;
+    private final AccountRepository accountRepository;
+    private final NotificationService notificationService;
 
     /**
      * Cập nhật status của các phase và project dựa trên các task.
@@ -81,11 +86,18 @@ public class ProjectStatusService {
                 .filter(t -> t.getStatus() != TaskStatus.CANCELED)
                 .count();
 
-        // Chỉ auto COMPLETED khi thực sự có task active
         if (allPhasesCompleted && totalActiveTasks > 0 && oldStatus != ProjectStatus.COMPLETED) {
             project.setStatus(ProjectStatus.COMPLETED);
             project.setCompletedAt(LocalDateTime.now()); // cập nhật mốc hoàn tất mới
             projectRepository.save(project);
+
+            Account actor = null;
+            var auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null) {
+                actor = accountRepository.findByUsername(auth.getName()).orElse(null);
+            }
+
+            notificationService.notifyProjectCompleted(project, actor);
             return;
         }
 
