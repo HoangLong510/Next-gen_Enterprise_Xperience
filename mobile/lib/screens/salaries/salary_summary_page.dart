@@ -87,43 +87,54 @@ class _SalarySummaryPageState extends State<SalarySummaryPage> {
     final totalFormatted = currencyFormatter.format(s.total);
     final baseFormatted = currencyFormatter.format(s.baseSalary);
 
-    return Card(
-      elevation: 4,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Employee Code: ${s.code} - ${s.role}",
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 6),
-            if (s.department != null) Text("Department: ${s.department}"),
-            const SizedBox(height: 6),
-            Text("Month: ${s.month}/${s.year}"),
-            const SizedBox(height: 6),
-            Text("Base Salary: $baseFormatted ₫"),
-            const SizedBox(height: 6),
-            Text("Total Salary: $totalFormatted ₫"),
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade100,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  s.status.toUpperCase(),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+    return InkWell(
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          "/accountant/salaries/detail",
+          arguments: s.id, // salaryId
+        );
+      },
+      child: Card(
+        elevation: 4,
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Employee Code: ${s.code} - ${s.role}",
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 6),
+              if (s.department != null) Text("Department: ${s.department}"),
+              const SizedBox(height: 6),
+              Text("Month: ${s.month}/${s.year}"),
+              const SizedBox(height: 6),
+              Text("Base Salary: $baseFormatted ₫"),
+              const SizedBox(height: 6),
+              Text("Total Salary: $totalFormatted ₫"),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade100,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    s.status.toUpperCase(),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -225,11 +236,11 @@ class _SalarySummaryPageState extends State<SalarySummaryPage> {
             : RefreshIndicator(
                 onRefresh: _loadData,
                 child: _summaries.isEmpty
-                    ? const Center(child: Text('No salary summaries available.'))
+                    ? const Center(
+                        child: Text('No salary summaries available.'))
                     : ListView.builder(
                         itemCount: _summaries.length,
-                        itemBuilder: (_, i) =>
-                            _buildSummaryItem(_summaries[i]),
+                        itemBuilder: (_, i) => _buildSummaryItem(_summaries[i]),
                       ),
               ),
       ),
